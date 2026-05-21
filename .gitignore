@@ -5,7 +5,9 @@
 # ── Secrets & Environment ──────────────────────────────────
 .env
 .env.*
-!.env.example          # keep the example template
+!*.example
+!**/*.example
+
 
 # ── Python / Backend ──────────────────────────────────────
 backend/.venv/
