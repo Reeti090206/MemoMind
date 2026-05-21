@@ -1,0 +1,150 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { 
+  LayoutGrid, 
+  Upload, 
+  FileText, 
+  CheckSquare, 
+  History, 
+  Search, 
+  BarChart3, 
+  Network, 
+  Cpu, 
+  Flame,
+  LogOut
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "./AuthProvider";
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const [contradictionCount, setContradictionCount] = useState(0);
+  const { user, logout } = useAuth();
+
+  // Fetch contradiction count dynamically to update sidebar indicator
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/analytics/widgets");
+        if (res.ok) {
+          const data = await res.json();
+          setContradictionCount(data.contradictions_count || 0);
+        }
+      } catch (err) {
+        // Fallback for initial render / network delays
+        setContradictionCount(1);
+      }
+    }
+    fetchStats();
+    // Poll every 30s
+    const timer = setInterval(fetchStats, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const navItems = [
+    { name: "Dashboard", href: "/", icon: LayoutGrid },
+    { name: "Meeting Upload", href: "/upload", icon: Upload },
+    { name: "Transcript Viewer", href: "/meetings", icon: FileText },
+    { name: "Task Board", href: "/tasks", icon: CheckSquare },
+    { name: "Decision History", href: "/decisions", icon: History },
+    { name: "AI Search", href: "/search", icon: Search },
+    { name: "Analytics", href: "/analytics", icon: BarChart3 },
+    { name: "Memory Graph", href: "/graph", icon: Network },
+  ];
+
+  return (
+    <aside className="w-64 border-r border-obsidian-border bg-obsidian-medium/70 backdrop-blur-xl h-screen sticky top-0 flex flex-col justify-between p-4 z-40">
+      <div>
+        {/* Logo / Branding */}
+        <div className="flex items-center gap-3 px-2 py-4 mb-6">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border-glow-purple">
+            <Network className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="font-semibold text-lg text-white tracking-wider flex items-center gap-1.5">
+              Meet<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan to-cyber-purple font-black">Graph</span>
+            </h1>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+              Memory Intelligence
+            </p>
+          </div>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="space-y-1.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+            
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group ${
+                  isActive
+                    ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border-l-2 border-cyber-purple text-white font-medium"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110 ${
+                    isActive ? "text-cyber-cyan" : "text-gray-400 group-hover:text-cyber-purple"
+                  }`} />
+                  <span className="text-sm">{item.name}</span>
+                </div>
+                
+                {/* Special Notification Badge for Decision overrides */}
+                {item.name === "Decision History" && contradictionCount > 0 && (
+                  <span className="px-2 py-0.5 text-[10px] rounded-full bg-cyber-rose/20 border border-cyber-rose/30 text-cyber-rose font-mono animate-pulse">
+                    {contradictionCount} Conflict{contradictionCount !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Dynamic User Profile Card & Logout */}
+      {user && (
+        <div className="p-3 bg-obsidian-light/35 border border-obsidian-border rounded-2xl flex flex-col gap-3.5 mb-2.5">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="h-9 w-9 rounded-xl bg-slate-900 border border-white/10 p-0.5"
+              />
+              <div className="overflow-hidden">
+                <p className="text-xs font-bold text-white truncate max-w-[120px]">{user.name}</p>
+                <p className="text-[9px] text-gray-500 font-mono truncate max-w-[120px]">{user.role}</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-cyber-rose/10 text-gray-400 hover:text-cyber-rose transition-all duration-300 border border-white/5 hover:border-cyber-rose/20"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {/* Small inline connection pulse status */}
+          <div className="flex items-center justify-between text-[8px] font-mono text-gray-500 border-t border-white/5 pt-2">
+            <span className="flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-emerald opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyber-emerald"></span>
+              </span>
+              Session Secure
+            </span>
+            <span>ID: {user.name.split(" ")[0].toLowerCase()}</span>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
