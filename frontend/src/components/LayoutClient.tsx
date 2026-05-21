@@ -5,9 +5,12 @@ import { useAuth } from "./AuthProvider";
 import Sidebar from "./Sidebar";
 import GlassLoginWall from "./GlassLoginWall";
 import { Network } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
 
   if (isLoading) {
     return (
@@ -35,12 +38,46 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       {/* Main Page Content Workspace */}
       <main className="flex-1 overflow-y-auto flex flex-col relative h-full">
         {/* Subtle Neon Radial Glow Lighting */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-cyber-purple/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse duration-4000" />
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyber-cyan/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse duration-3000" />
+        <motion.div 
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-0 right-1/4 w-96 h-96 bg-cyber-purple/5 rounded-full blur-[120px] pointer-events-none -z-10" 
+        />
+        <motion.div 
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+          className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyber-cyan/5 rounded-full blur-[120px] pointer-events-none -z-10" 
+        />
         
         {/* Scrollable Container Wrapper */}
-        <div className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto pb-16">
-          {children}
+        <div className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto pb-16 overflow-x-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="w-full h-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>

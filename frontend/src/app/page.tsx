@@ -303,10 +303,11 @@ export default function Dashboard() {
                 return (
                   <motion.div 
                     key={dec.id} 
-                    whileHover={{ scale: 1.01, x: 2 }}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.01, x: 4, borderColor: "rgba(139, 92, 246, 0.25)" }}
                     className={`p-5 rounded-2xl border transition-all duration-300 ${
                       isActive 
-                        ? "bg-white/[0.01] border-white/5 hover:border-cyber-purple/20" 
+                        ? "bg-white/[0.01] border-white/5" 
                         : "bg-obsidian-light/20 border-white/5 opacity-60"
                     }`}
                   >
@@ -360,6 +361,7 @@ export default function Dashboard() {
               {meetings.map((meet) => (
                 <motion.div
                   key={meet.id}
+                  variants={itemVariants}
                   whileHover={{ scale: 1.02, y: -2 }}
                   className="rounded-2xl"
                 >

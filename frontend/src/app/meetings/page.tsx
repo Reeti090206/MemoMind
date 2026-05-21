@@ -17,6 +17,7 @@ import {
   ArrowLeftRight,
   Zap
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Robust Fallbacks
 const MOCK_MEETINGS_DATA: Record<number, any> = {
@@ -101,6 +102,39 @@ const MOCK_MEETINGS_DATA: Record<number, any> = {
   }
 };
 
+const sidebarContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+};
+
+const sidebarItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  show: { opacity: 1, x: 0, transition: { type: "spring" as const, stiffness: 120, damping: 15 } }
+};
+
+const rightColumnVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut" as const,
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const cardItemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 15 } }
+};
+
 function MeetingContent() {
   const searchParams = useSearchParams();
   const [meetingsList, setMeetingsList] = useState<any[]>([]);
@@ -174,235 +208,374 @@ function MeetingContent() {
       
       {/* Left Sidebar Catalog Column */}
       <div className="space-y-4">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Select Session</h3>
-        <div className="space-y-2">
-          {meetingsList.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setSelectedId(m.id)}
-              className={`w-full text-left p-4 rounded-xl transition-all border duration-300 ${
-                m.id === selectedId
-                  ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/15 border-cyber-purple text-white shadow-md shadow-cyber-purple/5"
-                  : "bg-obsidian-light/35 hover:bg-obsidian-light/60 border-obsidian-border text-gray-400 hover:text-white"
-              }`}
-            >
-              <div className="font-semibold text-sm truncate">{m.title}</div>
-              <div className="text-[10px] font-mono mt-1 text-gray-500">{m.date}</div>
-            </button>
-          ))}
-        </div>
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-cyber-cyan" /> Select Session
+        </h3>
+        
+        <motion.div 
+          variants={sidebarContainerVariants}
+          initial="hidden"
+          animate="show"
+          className="space-y-2.5"
+        >
+          {meetingsList.map((m) => {
+            const isSelected = m.id === selectedId;
+            return (
+              <motion.button
+                key={m.id}
+                variants={sidebarItemVariants}
+                whileHover={{ scale: 1.02, x: 4 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedId(m.id)}
+                className={`w-full text-left p-4 rounded-xl relative border transition-all duration-300 ${
+                  isSelected
+                    ? "border-cyber-purple text-white shadow-lg shadow-cyber-purple/5"
+                    : "bg-obsidian-light/35 hover:bg-obsidian-light/50 border-obsidian-border/40 text-gray-400 hover:text-white"
+                }`}
+              >
+                {isSelected && (
+                  <motion.div
+                    layoutId="activeMeetingBg"
+                    className="absolute inset-0 bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/15 rounded-xl border border-cyber-purple/40 z-0 pointer-events-none"
+                    transition={{ type: "spring", stiffness: 120, damping: 18 }}
+                  />
+                )}
+                
+                <div className="relative z-10 font-semibold text-sm truncate">{m.title}</div>
+                <div className="relative z-10 text-[10px] font-mono mt-1.5 text-gray-500 flex items-center gap-1.5">
+                  <Clock className="h-3 w-3 text-gray-600" />
+                  {m.date}
+                </div>
+              </motion.button>
+            );
+          })}
+        </motion.div>
       </div>
 
       {/* Right Canvas Column */}
-      {meetingData ? (
-        <div className="lg:col-span-3 space-y-6">
-          
-          {/* Header Panel */}
-          <div className="p-6 rounded-2xl glass-panel relative overflow-hidden">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <span className="px-2.5 py-0.5 text-[9px] rounded-full bg-cyber-cyan/20 border border-cyber-cyan/35 text-cyber-cyan font-mono font-bold tracking-wider">
-                  STT WHISPER INDEX
-                </span>
-                <h2 className="text-xl font-bold text-white tracking-tight mt-1.5">{meetingData.title}</h2>
-                <div className="flex items-center gap-3 text-xs text-gray-400 mt-1 font-mono">
-                  <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {meetingData.date}</span>
-                  <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {formatTime(meetingData.duration)} min</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-cyber-purple/10 border border-cyber-purple/20 rounded-xl text-center min-w-[70px]">
-                  <p className="text-[9px] text-gray-400 uppercase tracking-widest font-mono">Efficiency</p>
-                  <p className="text-sm font-black text-cyber-purple font-mono">{meetingData.efficiency_score}%</p>
-                </div>
-                <div className="p-3 bg-cyber-rose/10 border border-cyber-rose/20 rounded-xl text-center min-w-[70px]">
-                  <p className="text-[9px] text-gray-400 uppercase tracking-widest font-mono">Tension</p>
-                  <p className="text-sm font-black text-cyber-rose font-mono">{meetingData.tension_score}%</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Core Analytics Blocks */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Left 2 Cols: Executive Summary & Decisions */}
-            <div className="md:col-span-2 space-y-6">
+      <div className="lg:col-span-3">
+        <AnimatePresence mode="wait">
+          {meetingData ? (
+            <motion.div
+              key={selectedId}
+              variants={rightColumnVariants}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, y: -15, transition: { duration: 0.2 } }}
+              className="space-y-6"
+            >
               
-              {/* Executive Summary */}
-              <div className="p-6 rounded-2xl glass-panel space-y-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Zap className="h-4.5 w-4.5 text-cyber-cyan animate-pulse" /> Executive AI Summary
-                </h3>
-                <p className="text-xs text-gray-300 leading-relaxed font-light">
-                  {meetingData.summary}
-                </p>
-              </div>
-
-              {/* Inconsistency/Contradiction Alert banner */}
-              {meetingData.contradictions && meetingData.contradictions.length > 0 && (
-                <div className="p-5 rounded-2xl bg-cyber-rose/10 border border-cyber-rose/30 space-y-3">
-                  <div className="flex items-center gap-2 text-cyber-rose">
-                    <ShieldAlert className="h-5 w-5 animate-pulse" />
-                    <span className="font-bold text-xs uppercase tracking-wider font-mono">Contradiction Detected!</span>
-                  </div>
-                  {meetingData.contradictions.map((c: any) => (
-                    <div key={c.id} className="space-y-2 text-xs">
-                      <p className="text-gray-300 leading-relaxed">{c.description}</p>
-                      <div className="p-3 bg-obsidian-dark/70 border border-cyber-rose/20 rounded-xl space-y-2">
-                        <div className="flex items-start gap-2">
-                          <span className="px-1.5 py-0.5 rounded bg-gray-700 text-[9px] font-mono shrink-0">OLD DECISION</span>
-                          <span className="text-gray-400 italic">"{c.old_decision_text}"</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="px-1.5 py-0.5 rounded bg-cyber-rose/20 text-cyber-rose text-[9px] font-mono shrink-0">NEW DECISION</span>
-                          <span className="text-white font-medium">"{c.new_decision_text}"</span>
-                        </div>
-                      </div>
+              {/* Header Panel */}
+              <motion.div 
+                variants={cardItemVariants}
+                className="p-6 rounded-2xl glass-panel relative overflow-hidden group hover:border-cyber-purple/35 transition-all duration-300"
+              >
+                {/* Visual Glow Layer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+                  <div>
+                    <span className="px-2.5 py-0.5 text-[9px] rounded-full bg-cyber-cyan/15 border border-cyber-cyan/25 text-cyber-cyan font-mono font-bold tracking-wider uppercase">
+                      STT WHISPER INDEX
+                    </span>
+                    <h2 className="text-xl font-black text-white tracking-tight mt-2.5">{meetingData.title}</h2>
+                    <div className="flex items-center gap-4 text-xs text-gray-400 mt-2 font-mono">
+                      <span className="flex items-center gap-1.5 text-gray-400">
+                        <Calendar className="h-3.5 w-3.5 text-cyber-purple" /> {meetingData.date}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-gray-400">
+                        <Clock className="h-3.5 w-3.5 text-cyber-cyan" /> {formatTime(meetingData.duration)} min
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Clickable Transcripts Viewer */}
-              <div className="p-6 rounded-2xl glass-panel space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-obsidian-border/50">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Users className="h-4.5 w-4.5 text-cyber-purple" /> Dynamic Transcript
-                  </h3>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search dialogue text..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-obsidian-dark border border-obsidian-border rounded-xl pl-9 pr-4 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all w-full sm:w-56"
-                    />
-                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500" />
                   </div>
-                </div>
-
-                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                  {getFilteredSegments().map((seg: any) => (
-                    <div
-                      key={seg.id}
-                      onClick={() => setHighlightedText(seg.text)}
-                      className={`p-3 rounded-xl transition-all cursor-pointer border ${
-                        highlightedText === seg.text
-                          ? "bg-cyber-purple/15 border-cyber-purple/40 text-white"
-                          : "bg-obsidian-light/20 hover:bg-obsidian-light/45 border-obsidian-border/40 text-gray-300"
-                      }`}
+                  <div className="flex items-center gap-3">
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="p-3 bg-cyber-purple/10 border border-cyber-purple/20 rounded-xl text-center min-w-[80px]"
                     >
-                      <div className="flex items-center justify-between gap-3 mb-1">
-                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                          <User className="h-3 w-3 text-cyber-cyan" /> {seg.speaker_label}
-                        </span>
-                        <span className="text-[10px] text-gray-500 font-mono">{formatTime(seg.start_time)}</span>
-                      </div>
-                      <p className="text-xs font-light leading-relaxed">{seg.text}</p>
-                    </div>
-                  ))}
-                  {getFilteredSegments().length === 0 && (
-                    <p className="text-xs text-gray-500 text-center py-6">No matching dialogues found.</p>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Right 1 Col: Speaker Breakdown, Decisions & Actions */}
-            <div className="space-y-6">
-              
-              {/* Speaker Breakdown Ring/Widget */}
-              <div className="p-6 rounded-2xl glass-panel space-y-4">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Speaker Distribution</h3>
-                <div className="space-y-3">
-                  {meetingData.speaker_stats && Object.entries(meetingData.speaker_stats).map(([name, pct]: any) => (
-                    <div key={name} className="space-y-1">
-                      <div className="flex justify-between text-xs font-mono">
-                        <span className="text-gray-400">{name}</span>
-                        <span className="text-white font-semibold">{pct}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Decided Line items */}
-              <div className="p-6 rounded-2xl glass-panel space-y-4">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Extracted Decisions</h3>
-                <div className="space-y-3">
-                  {meetingData.decisions && meetingData.decisions.map((d: any) => (
-                    <div key={d.id} className="p-3 bg-obsidian-light/50 border border-obsidian-border rounded-xl space-y-1">
-                      <p className="text-xs text-gray-200 leading-normal">{d.text}</p>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="px-1.5 py-0.5 rounded bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald text-[8px] uppercase font-mono font-bold">
-                          {d.status || "accepted"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tasks Assignee */}
-              <div className="p-6 rounded-2xl glass-panel space-y-4">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Assigned Tasks</h3>
-                <div className="space-y-3">
-                  {meetingData.tasks && meetingData.tasks.map((t: any) => (
-                    <div key={t.id} className="p-3 bg-obsidian-light/40 border border-obsidian-border rounded-xl space-y-1.5">
-                      <div className="flex items-center justify-between text-[10px] font-mono text-cyber-cyan">
-                        <span>Owner: {t.owner}</span>
-                        <span className="text-gray-500">Due: {t.deadline}</span>
-                      </div>
-                      <p className="text-xs text-white font-medium leading-relaxed">{t.title}</p>
-                      <div className="flex items-center justify-between pt-1">
-                        <span className={`text-[8px] uppercase font-mono px-1 rounded ${
-                          t.priority === "high" ? "bg-cyber-rose/10 text-cyber-rose" : "bg-gray-700 text-gray-400"
-                        }`}>{t.priority} priority</span>
-                        <span className="text-[8px] font-mono text-gray-500">{t.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Unresolved topics originating */}
-              {meetingData.unresolved_topics && meetingData.unresolved_topics.length > 0 && (
-                <div className="p-6 rounded-2xl glass-panel space-y-4">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Unresolved Topics</h3>
-                  <div className="space-y-3">
-                    {meetingData.unresolved_topics.map((ut: any) => (
-                      <div key={ut.id} className="p-3 bg-cyber-rose/5 border border-cyber-rose/15 rounded-xl space-y-1">
-                        <p className="text-xs text-white font-bold">{ut.topic_name}</p>
-                        <p className="text-[10px] text-gray-400 leading-relaxed">"{ut.context}"</p>
-                        <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border inline-block mt-1 ${
-                          ut.status === "resolved"
-                            ? "bg-cyber-emerald/10 border-cyber-emerald/20 text-cyber-emerald"
-                            : "bg-cyber-rose/10 border-cyber-rose/20 text-cyber-rose animate-pulse"
-                        }`}>
-                          {ut.status}
-                        </span>
-                      </div>
-                    ))}
+                      <p className="text-[9px] text-gray-400 uppercase tracking-widest font-mono font-bold">Efficiency</p>
+                      <p className="text-sm font-black text-cyber-purple font-mono mt-0.5">{meetingData.efficiency_score}%</p>
+                    </motion.div>
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="p-3 bg-cyber-rose/10 border border-cyber-rose/20 rounded-xl text-center min-w-[80px]"
+                    >
+                      <p className="text-[9px] text-gray-400 uppercase tracking-widest font-mono font-bold">Tension</p>
+                      <p className="text-sm font-black text-cyber-rose font-mono mt-0.5">{meetingData.tension_score}%</p>
+                    </motion.div>
                   </div>
                 </div>
-              )}
+              </motion.div>
 
-            </div>
-          </div>
+              {/* Core Analytics Blocks */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Left 2 Cols: Executive Summary & Decisions */}
+                <div className="md:col-span-2 space-y-6">
+                  
+                  {/* Executive Summary */}
+                  <motion.div 
+                    variants={cardItemVariants}
+                    className="p-6 rounded-2xl glass-panel space-y-3 relative overflow-hidden group hover:border-cyber-cyan/35 transition-all duration-300"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyber-cyan/[0.02] to-transparent pointer-events-none" />
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Zap className="h-4.5 w-4.5 text-cyber-cyan animate-pulse" /> Executive AI Summary
+                    </h3>
+                    <p className="text-xs text-gray-300 leading-relaxed font-light">
+                      {meetingData.summary}
+                    </p>
+                  </motion.div>
 
-        </div>
-      ) : (
-        <div className="lg:col-span-3 p-8 bg-obsidian-light/30 rounded-2xl text-center text-gray-500">
-          Loading meeting transcript logs...
-        </div>
-      )}
+                  {/* Inconsistency/Contradiction Alert banner */}
+                  {meetingData.contradictions && meetingData.contradictions.length > 0 && (
+                    <motion.div 
+                      variants={cardItemVariants}
+                      initial={{ scale: 0.98, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                      className="p-5 rounded-2xl bg-cyber-rose/10 border border-cyber-rose/30 space-y-3 shadow-lg shadow-cyber-rose/5"
+                    >
+                      <div className="flex items-center gap-2.5 text-cyber-rose">
+                        <ShieldAlert className="h-5 w-5 animate-pulse" />
+                        <span className="font-bold text-xs uppercase tracking-wider font-mono">Contradiction Detected!</span>
+                      </div>
+                      {meetingData.contradictions.map((c: any) => (
+                        <div key={c.id} className="space-y-2.5 text-xs">
+                          <p className="text-gray-300 leading-relaxed font-light">{c.description}</p>
+                          <div className="p-4 bg-obsidian-dark/70 border border-cyber-rose/25 rounded-xl space-y-3">
+                            <div className="flex items-start gap-2.5">
+                              <span className="px-2 py-0.5 rounded bg-gray-800 text-[8px] font-mono shrink-0 font-bold text-gray-400">OLD DECISION</span>
+                              <span className="text-gray-400 italic font-light">"{c.old_decision_text}"</span>
+                            </div>
+                            <div className="flex items-start gap-2.5">
+                              <span className="px-2 py-0.5 rounded bg-cyber-rose/25 text-cyber-rose text-[8px] font-mono shrink-0 font-bold">NEW DECISION</span>
+                              <span className="text-white font-semibold">"{c.new_decision_text}"</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {/* Clickable Transcripts Viewer */}
+                  <motion.div 
+                    variants={cardItemVariants}
+                    className="p-6 rounded-2xl glass-panel space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-obsidian-border/50">
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Users className="h-4.5 w-4.5 text-cyber-purple" /> Dynamic Transcript
+                      </h3>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search dialogue text..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="bg-obsidian-dark border border-obsidian-border rounded-xl pl-9 pr-4 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all w-full sm:w-56"
+                        />
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      <AnimatePresence mode="popLayout">
+                        {getFilteredSegments().map((seg: any) => {
+                          const isSelected = highlightedText === seg.text;
+                          return (
+                            <motion.div
+                              layout
+                              key={seg.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              whileHover={{ scale: 1.01, borderColor: "rgba(139, 92, 246, 0.4)" }}
+                              whileTap={{ scale: 0.99 }}
+                              onClick={() => setHighlightedText(seg.text)}
+                              className={`p-3.5 rounded-xl cursor-pointer border transition-all duration-300 relative overflow-hidden ${
+                                isSelected
+                                  ? "bg-cyber-purple/20 border-cyber-purple text-white shadow-[0_0_15px_rgba(139,92,246,0.15)]"
+                                  : "bg-obsidian-light/20 hover:bg-obsidian-light/40 border-obsidian-border/30 text-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <motion.div
+                                  layoutId="selectedSegmentGlow"
+                                  className="absolute inset-0 bg-cyber-purple/[0.02] z-0 pointer-events-none"
+                                />
+                              )}
+                              <div className="relative z-10">
+                                <div className="flex items-center justify-between gap-3 mb-1">
+                                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <User className="h-3.5 w-3.5 text-cyber-cyan" /> {seg.speaker_label}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 font-mono">{formatTime(seg.start_time)}</span>
+                                </div>
+                                <p className="text-xs font-light leading-relaxed">{seg.text}</p>
+                                
+                                {isSelected && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    transition={{ duration: 0.25 }}
+                                    className="mt-3 pt-2.5 border-t border-cyber-purple/20 flex justify-between items-center gap-3"
+                                  >
+                                    <span className="text-[9px] text-cyber-cyan font-mono flex items-center gap-1.5">
+                                      <Zap className="h-3 w-3 animate-pulse" /> Linked to Memory Node
+                                    </span>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(seg.text);
+                                      }}
+                                      className="px-2 py-1 bg-cyber-purple/35 hover:bg-cyber-purple/50 border border-cyber-purple/50 text-[9px] text-white font-mono font-bold rounded-lg transition-all"
+                                    >
+                                      Copy Snippet
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                      {getFilteredSegments().length === 0 && (
+                        <p className="text-xs text-gray-500 text-center py-8">No matching dialogues found.</p>
+                      )}
+                    </div>
+                  </motion.div>
+
+                </div>
+
+                {/* Right 1 Col: Speaker Breakdown, Decisions & Actions */}
+                <div className="space-y-6">
+                  
+                  {/* Speaker Breakdown Ring/Widget */}
+                  <motion.div 
+                    variants={cardItemVariants}
+                    className="p-6 rounded-2xl glass-panel space-y-4"
+                  >
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Speaker Distribution</h3>
+                    <div className="space-y-4">
+                      {meetingData.speaker_stats && Object.entries(meetingData.speaker_stats).map(([name, pct]: any) => (
+                        <div key={name} className="space-y-1.5">
+                          <div className="flex justify-between text-xs font-mono">
+                            <span className="text-gray-400">{name}</span>
+                            <span className="text-white font-semibold">{pct}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 1, ease: "easeOut" }}
+                              className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-full"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Decided Line items */}
+                  <motion.div 
+                    variants={cardItemVariants}
+                    className="p-6 rounded-2xl glass-panel space-y-4"
+                  >
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Extracted Decisions</h3>
+                    <div className="space-y-3">
+                      {meetingData.decisions && meetingData.decisions.map((d: any) => (
+                        <motion.div 
+                          key={d.id} 
+                          whileHover={{ scale: 1.02 }}
+                          className="p-3 bg-obsidian-light/50 border border-obsidian-border/50 rounded-xl space-y-1.5 hover:border-cyber-cyan/30 transition-colors"
+                        >
+                          <p className="text-xs text-gray-200 leading-normal font-light">{d.text}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="px-1.5 py-0.5 rounded bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald text-[8px] uppercase font-mono font-bold">
+                              {d.status || "accepted"}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Tasks Assignee */}
+                  <motion.div 
+                    variants={cardItemVariants}
+                    className="p-6 rounded-2xl glass-panel space-y-4"
+                  >
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Assigned Tasks</h3>
+                    <div className="space-y-3">
+                      {meetingData.tasks && meetingData.tasks.map((t: any) => (
+                        <motion.div 
+                          key={t.id} 
+                          whileHover={{ scale: 1.02 }}
+                          className="p-3.5 bg-obsidian-light/40 border border-obsidian-border/50 rounded-xl space-y-2 hover:border-cyber-purple/35 transition-colors"
+                        >
+                          <div className="flex items-center justify-between text-[9px] font-mono text-cyber-cyan">
+                            <span>Owner: {t.owner}</span>
+                            <span className="text-gray-500">Due: {t.deadline}</span>
+                          </div>
+                          <p className="text-xs text-white font-medium leading-relaxed">{t.title}</p>
+                          <div className="flex items-center justify-between pt-1.5 border-t border-obsidian-border/30">
+                            <span className={`text-[8px] uppercase font-mono px-1.5 py-0.5 rounded font-bold ${
+                              t.priority === "high" ? "bg-cyber-rose/15 text-cyber-rose border border-cyber-rose/20" : "bg-gray-800 text-gray-400 border border-transparent"
+                            }`}>{t.priority} priority</span>
+                            <span className="text-[8px] font-mono text-gray-500 font-semibold">{t.status}</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  {/* Unresolved topics originating */}
+                  {meetingData.unresolved_topics && meetingData.unresolved_topics.length > 0 && (
+                    <motion.div 
+                      variants={cardItemVariants}
+                      className="p-6 rounded-2xl glass-panel space-y-4"
+                    >
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Unresolved Topics</h3>
+                      <div className="space-y-3">
+                        {meetingData.unresolved_topics.map((ut: any) => (
+                          <motion.div 
+                            key={ut.id} 
+                            whileHover={{ scale: 1.02 }}
+                            className="p-3.5 bg-cyber-rose/5 border border-cyber-rose/15 rounded-xl space-y-1.5"
+                          >
+                            <p className="text-xs text-white font-bold">{ut.topic_name}</p>
+                            <p className="text-[10px] text-gray-400 leading-relaxed">"{ut.context}"</p>
+                            <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border inline-block mt-1 font-semibold ${
+                              ut.status === "resolved"
+                                ? "bg-cyber-emerald/15 border-cyber-emerald/20 text-cyber-emerald"
+                                : "bg-cyber-rose/15 border-cyber-rose/25 text-cyber-rose animate-pulse"
+                            }`}>
+                              {ut.status}
+                            </span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                </div>
+              </div>
+
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="p-12 bg-obsidian-light/20 rounded-2xl text-center text-gray-500 font-mono text-xs border border-obsidian-border/30 flex items-center justify-center min-h-[300px]"
+            >
+              Loading meeting transcript logs...
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

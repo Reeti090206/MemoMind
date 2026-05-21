@@ -16,6 +16,7 @@ import {
   Bookmark,
   FileText
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Suggestions list
 const SUGGESTED_QUERIES = [
@@ -24,6 +25,43 @@ const SUGGESTED_QUERIES = [
   "What tasks are assigned to Aman?",
   "Show decisions related to database selection."
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      type: "spring" as const, 
+      stiffness: 100, 
+      damping: 15 
+    } 
+  }
+};
+
+const neuralNodeVariants = {
+  pulse: (custom: number) => ({
+    scale: [1, 1.25, 1],
+    opacity: [0.6, 1, 0.6],
+    transition: {
+      duration: 1.8,
+      repeat: Infinity,
+      repeatType: "reverse" as const,
+      delay: custom * 0.2,
+      ease: "easeInOut" as const
+    }
+  })
+};
 
 export default function SemanticSearch() {
   const [query, setQuery] = useState("");
@@ -54,7 +92,7 @@ export default function SemanticSearch() {
       }
     } catch (err) {
       // High fidelity client-side mock search engine
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       const q = searchQuery.toLowerCase();
       
       let answer = "";
@@ -125,159 +163,291 @@ export default function SemanticSearch() {
               onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-2xl pl-12 pr-28 py-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all border-glow-purple"
             />
-            <BrainCircuit className="absolute left-4 top-3.5 h-6 w-6 text-cyber-purple" />
+            <BrainCircuit className="absolute left-4 top-3.5 h-6 w-6 text-cyber-purple animate-pulse" />
           </div>
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
-            className="absolute right-3 top-2.5 px-5 py-2 text-xs bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:from-cyber-purple hover:to-cyber-purple transition-all duration-300 rounded-xl text-white font-bold disabled:opacity-50 flex items-center gap-1.5"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="absolute right-3 top-2.5 px-5 py-2 text-xs bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:from-cyber-purple hover:to-cyber-purple transition-all duration-300 rounded-xl text-white font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_20px_rgba(168,85,247,0.55)]"
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <>Ask AI <ArrowRight className="h-3.5 w-3.5" /></>
             )}
-          </button>
+          </motion.button>
         </form>
 
         {/* Suggestion Prompts */}
-        {!results && !loading && (
-          <div className="space-y-2">
-            <p className="text-xs text-gray-500 font-mono">Suggested Prompt Prompts:</p>
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTED_QUERIES.map((sq, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => handleSubmit(e, sq)}
-                  className="px-3.5 py-2 text-[11px] text-gray-400 bg-obsidian-light/30 hover:bg-obsidian-light/70 hover:text-white border border-obsidian-border rounded-xl transition-all font-light"
-                >
-                  {sq}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {!results && !loading && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-2"
+            >
+              <p className="text-xs text-gray-500 font-mono">Suggested Prompt Prompts:</p>
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="flex flex-wrap gap-2"
+              >
+                {SUGGESTED_QUERIES.map((sq, idx) => (
+                  <motion.button
+                    key={idx}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.03, y: -1, borderColor: "rgba(168, 85, 247, 0.45)", backgroundColor: "rgba(25, 20, 35, 0.7)" }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={(e) => handleSubmit(e, sq)}
+                    className="px-3.5 py-2 text-[11px] text-gray-400 bg-obsidian-light/30 hover:text-white border border-obsidian-border rounded-xl transition-all font-light"
+                  >
+                    {sq}
+                  </motion.button>
+                ))}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Processing Loader */}
-      {loading && (
-        <div className="p-12 rounded-2xl glass-panel flex flex-col items-center justify-center gap-4 min-h-[300px]">
-          <Loader2 className="h-10 w-10 text-cyber-cyan animate-spin" />
-          <p className="text-xs font-mono text-cyber-cyan animate-pulse">Running semantic token matching & contradiction search...</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {loading && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            className="p-12 rounded-2xl glass-panel border border-obsidian-border/80 flex flex-col items-center justify-center gap-6 min-h-[320px] relative overflow-hidden bg-obsidian-dark/30"
+          >
+            {/* Ambient glows behind neural network */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyber-purple/10 blur-[80px] rounded-full pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-cyber-cyan/10 blur-[60px] rounded-full pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col items-center gap-6">
+              {/* Neural network SVG */}
+              <svg className="w-56 h-36 text-cyber-purple/80" viewBox="0 0 200 100" fill="none">
+                {/* Connection Paths */}
+                <motion.path d="M 30,50 L 80,20" stroke="rgba(168, 85, 247, 0.4)" strokeWidth="1.5" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }} />
+                <motion.path d="M 30,50 L 80,50" stroke="rgba(236, 72, 153, 0.4)" strokeWidth="1.5" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} />
+                <motion.path d="M 30,50 L 80,80" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1.5" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} />
+                
+                <motion.path d="M 80,20 L 140,35" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="1.2" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }} />
+                <motion.path d="M 80,50 L 140,35" stroke="rgba(236, 72, 153, 0.3)" strokeWidth="1.2" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1.3, ease: "linear" }} />
+                <motion.path d="M 80,50 L 140,65" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="1.2" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }} />
+                <motion.path d="M 80,80 L 140,65" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="1.2" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} />
+                
+                <motion.path d="M 140,35 L 175,50" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1.5" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }} />
+                <motion.path d="M 140,65 L 175,50" stroke="rgba(168, 85, 247, 0.4)" strokeWidth="1.5" strokeDasharray="5,5" animate={{ strokeDashoffset: [20, 0] }} transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }} />
+
+                {/* Nodes with pulsing scales */}
+                <motion.circle cx="30" cy="50" r="5" fill="#ec4899" custom={0} variants={neuralNodeVariants} animate="pulse" />
+                
+                <motion.circle cx="80" cy="20" r="4.5" fill="#a855f7" custom={1} variants={neuralNodeVariants} animate="pulse" />
+                <motion.circle cx="80" cy="50" r="4.5" fill="#a855f7" custom={2} variants={neuralNodeVariants} animate="pulse" />
+                <motion.circle cx="80" cy="80" r="4.5" fill="#a855f7" custom={3} variants={neuralNodeVariants} animate="pulse" />
+                
+                <motion.circle cx="140" cy="35" r="4.5" fill="#06b6d4" custom={4} variants={neuralNodeVariants} animate="pulse" />
+                <motion.circle cx="140" cy="65" r="4.5" fill="#06b6d4" custom={5} variants={neuralNodeVariants} animate="pulse" />
+                
+                <motion.circle cx="175" cy="50" r="5" fill="#00f2fe" custom={6} variants={neuralNodeVariants} animate="pulse" />
+              </svg>
+
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-sm font-semibold text-white tracking-wide">Synthesizing Semantic Graph Queries</span>
+                <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest animate-pulse">Running semantic token matching & contradiction search...</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Results Workspace Canvas */}
-      {results && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
-          
-          {/* Left Column: Conversational Answer and Snippets */}
-          <div className="lg:col-span-2 space-y-6">
+      <AnimatePresence mode="wait">
+        {results && (
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ type: "spring", stiffness: 100, damping: 18 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+          >
             
-            {/* Direct Answer */}
-            <div className="p-6 rounded-2xl bg-obsidian-light/65 border border-obsidian-border space-y-4">
-              <div className="flex items-center gap-2 text-cyber-purple">
-                <BrainCircuit className="h-5.5 w-5.5 animate-pulse" />
-                <span className="font-bold text-xs uppercase tracking-wider font-mono">AI Brain Response</span>
-              </div>
-              <div className="text-xs text-gray-200 leading-relaxed font-light space-y-2.5">
-                <p>{results.answer}</p>
-              </div>
-            </div>
-
-            {/* Speaking Snippets */}
-            {results.snippets && results.snippets.length > 0 && (
-              <div className="p-6 rounded-2xl glass-panel space-y-4">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Spoken Context Snippets</h3>
-                <div className="space-y-3">
-                  {results.snippets.map((snip: any, idx: number) => (
-                    <div key={idx} className="p-4 rounded-xl bg-obsidian-dark/50 border border-obsidian-border space-y-2">
-                      <div className="flex items-center justify-between gap-3 text-[10px] font-mono">
-                        <span className="text-white font-bold">{snip.speaker}</span>
-                        <span className="text-gray-500">Time: {snip.time} | in {snip.title}</span>
-                      </div>
-                      <p className="text-xs text-gray-300 italic">" {snip.text} "</p>
-                    </div>
-                  ))}
+            {/* Left Column: Conversational Answer and Snippets */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* Direct Answer */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ y: -2 }}
+                className="p-6 rounded-2xl bg-obsidian-light/65 border border-obsidian-border hover:border-cyber-purple/35 transition-all duration-300 relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-cyber-purple/5 blur-[40px] rounded-full pointer-events-none" />
+                <div className="flex items-center gap-2 text-cyber-purple">
+                  <BrainCircuit className="h-5.5 w-5.5 animate-pulse" />
+                  <span className="font-bold text-xs uppercase tracking-wider font-mono">AI Brain Response</span>
                 </div>
-              </div>
-            )}
+                <div className="text-xs text-gray-200 leading-relaxed font-light space-y-2.5 mt-4">
+                  <p className="whitespace-pre-line leading-relaxed">{results.answer}</p>
+                </div>
+              </motion.div>
 
-          </div>
-
-          {/* Right Column: Connected meeting entities, tasks, and decisions */}
-          <div className="space-y-6">
-            
-            {/* Linked Meetings */}
-            <div className="p-6 rounded-2xl glass-panel space-y-4">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Linked Meeting Feeds</h3>
-              <div className="space-y-2.5">
-                {results.meetings && results.meetings.map((m: any) => (
-                  <Link
-                    key={m.id}
-                    href={`/meetings?id=${m.id}`}
-                    className="flex items-center justify-between p-3 bg-obsidian-light/40 hover:bg-obsidian-light/65 border border-obsidian-border rounded-xl transition-all group"
+              {/* Speaking Snippets */}
+              {results.snippets && results.snippets.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="p-6 rounded-2xl glass-panel space-y-4"
+                >
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Spoken Context Snippets</h3>
+                  <motion.div 
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="space-y-3"
                   >
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-white truncate group-hover:text-cyber-cyan">{m.title}</p>
-                      <p className="text-[10px] text-gray-500 font-mono mt-0.5">{m.date}</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-gray-500 group-hover:translate-x-1 transition-transform shrink-0" />
-                  </Link>
-                ))}
-                {(!results.meetings || results.meetings.length === 0) && (
-                  <p className="text-xs text-gray-600 italic">No connected meetings found.</p>
-                )}
-              </div>
+                    {results.snippets.map((snip: any, idx: number) => (
+                      <motion.div 
+                        key={idx} 
+                        variants={itemVariants}
+                        whileHover={{ scale: 1.01, x: 2, borderColor: "rgba(6, 182, 212, 0.25)" }}
+                        className="p-4 rounded-xl bg-obsidian-dark/50 border border-obsidian-border space-y-2 transition-all duration-200"
+                      >
+                        <div className="flex items-center justify-between gap-3 text-[10px] font-mono">
+                          <span className="text-white font-bold">{snip.speaker}</span>
+                          <span className="text-gray-500 font-mono">Time: {snip.time} | in {snip.title}</span>
+                        </div>
+                        <p className="text-xs text-gray-300 italic">" {snip.text} "</p>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                </motion.div>
+              )}
+
             </div>
 
-            {/* Connected Decisions */}
-            <div className="p-6 rounded-2xl glass-panel space-y-4">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Related Decisions</h3>
-              <div className="space-y-2.5">
-                {results.decisions && results.decisions.map((d: any) => (
-                  <div key={d.id} className="p-3 bg-obsidian-light/30 border border-obsidian-border rounded-xl space-y-1">
-                    <p className="text-xs text-white leading-normal">{d.text}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className={`text-[8px] font-mono px-1 rounded ${
-                        d.status === "changed" ? "bg-cyber-rose/10 text-cyber-rose" : "bg-cyber-emerald/10 text-cyber-emerald"
-                      }`}>{d.status}</span>
-                      <Link href={`/meetings?id=${d.meeting_id}`} className="text-[8px] text-cyber-cyan hover:underline font-mono">
-                        View source
+            {/* Right Column: Connected meeting entities, tasks, and decisions */}
+            <div className="space-y-6">
+              
+              {/* Linked Meetings */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="p-6 rounded-2xl glass-panel space-y-4"
+              >
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Linked Meeting Feeds</h3>
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-2.5"
+                >
+                  {results.meetings && results.meetings.map((m: any) => (
+                    <motion.div key={m.id} variants={itemVariants}>
+                      <Link
+                        href={`/meetings?id=${m.id}`}
+                        className="flex items-center justify-between p-3 bg-obsidian-light/40 hover:bg-obsidian-light/65 border border-obsidian-border hover:border-cyber-cyan/35 rounded-xl transition-all group"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-white truncate group-hover:text-cyber-cyan">{m.title}</p>
+                          <p className="text-[10px] text-gray-500 font-mono mt-0.5">{m.date}</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-500 group-hover:translate-x-1 group-hover:text-cyber-cyan transition-all shrink-0" />
                       </Link>
-                    </div>
-                  </div>
-                ))}
-                {(!results.decisions || results.decisions.length === 0) && (
-                  <p className="text-xs text-gray-600 italic">No connected decisions resolved.</p>
-                )}
-              </div>
+                    </motion.div>
+                  ))}
+                  {(!results.meetings || results.meetings.length === 0) && (
+                    <p className="text-xs text-gray-600 italic">No connected meetings found.</p>
+                  )}
+                </motion.div>
+              </motion.div>
+
+              {/* Connected Decisions */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="p-6 rounded-2xl glass-panel space-y-4"
+              >
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Related Decisions</h3>
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-2.5"
+                >
+                  {results.decisions && results.decisions.map((d: any) => (
+                    <motion.div 
+                      key={d.id} 
+                      variants={itemVariants}
+                      whileHover={{ y: -1, borderColor: "rgba(168, 85, 247, 0.3)" }}
+                      className="p-3 bg-obsidian-light/30 border border-obsidian-border rounded-xl space-y-1 transition-all"
+                    >
+                      <p className="text-xs text-white leading-normal">{d.text}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={`text-[8px] font-mono px-1 rounded ${
+                          d.status === "changed" ? "bg-cyber-rose/10 text-cyber-rose border border-cyber-rose/20" : "bg-cyber-emerald/10 text-cyber-emerald border border-cyber-emerald/20"
+                        }`}>{d.status}</span>
+                        <Link href={`/meetings?id=${d.meeting_id}`} className="text-[8px] text-cyber-cyan hover:underline font-mono font-semibold">
+                          View source
+                        </Link>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {(!results.decisions || results.decisions.length === 0) && (
+                    <p className="text-xs text-gray-600 italic">No connected decisions resolved.</p>
+                  )}
+                </motion.div>
+              </motion.div>
+
+              {/* Connected tasks */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="p-6 rounded-2xl glass-panel space-y-4"
+              >
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Related Active Tasks</h3>
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-2.5"
+                >
+                  {results.tasks && results.tasks.map((t: any) => (
+                    <motion.div 
+                      key={t.id} 
+                      variants={itemVariants}
+                      whileHover={{ y: -1, borderColor: "rgba(6, 182, 212, 0.3)" }}
+                      className="p-3 bg-obsidian-light/30 border border-obsidian-border rounded-xl space-y-1 transition-all"
+                    >
+                      <div className="flex items-center justify-between text-[8px] text-gray-500 font-mono">
+                        <span>Owner: {t.owner}</span>
+                        <span>Due: {t.deadline}</span>
+                      </div>
+                      <p className="text-xs text-white font-medium truncate">{t.title}</p>
+                      <span className="text-[8px] font-mono text-cyber-cyan uppercase">{t.status}</span>
+                    </motion.div>
+                  ))}
+                  {(!results.tasks || results.tasks.length === 0) && (
+                    <p className="text-xs text-gray-600 italic">No tasks mapped to this topic.</p>
+                  )}
+                </motion.div>
+              </motion.div>
+
             </div>
 
-            {/* Connected tasks */}
-            <div className="p-6 rounded-2xl glass-panel space-y-4">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Related Active Tasks</h3>
-              <div className="space-y-2.5">
-                {results.tasks && results.tasks.map((t: any) => (
-                  <div key={t.id} className="p-3 bg-obsidian-light/30 border border-obsidian-border rounded-xl space-y-1">
-                    <div className="flex items-center justify-between text-[8px] text-gray-500 font-mono">
-                      <span>Owner: {t.owner}</span>
-                      <span>Due: {t.deadline}</span>
-                    </div>
-                    <p className="text-xs text-white font-medium truncate">{t.title}</p>
-                    <span className="text-[8px] font-mono text-cyber-cyan uppercase">{t.status}</span>
-                  </div>
-                ))}
-                {(!results.tasks || results.tasks.length === 0) && (
-                  <p className="text-xs text-gray-600 italic">No tasks mapped to this topic.</p>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

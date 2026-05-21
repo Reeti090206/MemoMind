@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Zap
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Robust Fallbacks
 const MOCK_DECISIONS = [
@@ -25,6 +26,21 @@ const MOCK_DECISIONS = [
   { id: 2, text: "Select PostgreSQL as the primary relational database platform instead of SQLite for production durability.", status: "accepted", meeting_id: 2, meeting_title: "Database & Auth Architecture Deep-Dive", date: "2026-05-14", related_options: ["SQLite", "MySQL"], overrides_decision_id: null },
   { id: 1, text: "Avoid microservices and build a unified monolithic backend to avoid API gateway and networking overhead.", status: "changed", meeting_id: 1, meeting_title: "Project Alpha Kickoff & DB Planning", date: "2026-05-10", related_options: ["Microservices cluster", "Serverless micro-routes"], overrides_decision_id: 3 }
 ];
+
+const listContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12
+    }
+  }
+};
+
+const decisionItemVariants = {
+  hidden: { opacity: 0, x: 20 },
+  show: { opacity: 1, x: 0, transition: { type: "spring" as const, stiffness: 90, damping: 14 } }
+};
 
 export default function DecisionTimeline() {
   const [decisions, setDecisions] = useState<any[]>(MOCK_DECISIONS);
@@ -94,122 +110,157 @@ export default function DecisionTimeline() {
       </div>
 
       {/* Decisions Timeline layout */}
-      <div className="relative border-l border-obsidian-border pl-6 ml-4 space-y-8 py-4">
-        {getFilteredDecisions().map((dec) => {
-          const isExpanded = expandedId === dec.id;
-          
-          return (
-            <div key={dec.id} className="relative">
-              {/* Timeline bubble bullet indicator */}
-              <div className={`absolute -left-[31px] top-1.5 h-4 w-4 rounded-full border-2 flex items-center justify-center bg-obsidian-dark ${
-                dec.status === "accepted"
-                  ? "border-cyber-emerald"
-                  : dec.status === "changed"
-                  ? "border-cyber-rose animate-pulse"
-                  : "border-cyber-cyan"
-              }`}>
-                <div className={`h-1.5 w-1.5 rounded-full ${
-                  dec.status === "accepted"
-                    ? "bg-cyber-emerald"
-                    : dec.status === "changed"
-                    ? "bg-cyber-rose"
-                    : "bg-cyber-cyan"
-                }`} />
-              </div>
+      <motion.div 
+        variants={listContainerVariants}
+        initial="hidden"
+        animate="show"
+        className="relative border-l border-obsidian-border/50 pl-6 ml-4 space-y-8 py-4"
+      >
+        <AnimatePresence mode="popLayout">
+          {getFilteredDecisions().map((dec) => {
+            const isExpanded = expandedId === dec.id;
+            
+            return (
+              <motion.div 
+                key={dec.id} 
+                variants={decisionItemVariants}
+                className="relative"
+              >
+                {/* Timeline bubble bullet indicator */}
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 150, damping: 10, delay: 0.1 }}
+                  className={`absolute -left-[31px] top-2 h-4 w-4 rounded-full border-2 flex items-center justify-center bg-obsidian-dark z-10 ${
+                    dec.status === "accepted"
+                      ? "border-cyber-emerald"
+                      : dec.status === "changed"
+                      ? "border-cyber-rose"
+                      : "border-cyber-cyan"
+                  }`}
+                >
+                  <div className={`h-1.5 w-1.5 rounded-full ${
+                    dec.status === "accepted"
+                      ? "bg-cyber-emerald"
+                      : dec.status === "changed"
+                      ? "bg-cyber-rose animate-pulse"
+                      : "bg-cyber-cyan"
+                  }`} />
+                </motion.div>
 
-              {/* Card content */}
-              <div className="glass-panel hover:border-cyber-purple/20 transition-all p-5 rounded-2xl space-y-4">
-                
-                {/* Upper line: meeting details & overrides warning */}
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-gray-400 font-mono">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{dec.date}</span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-gray-700" />
-                    <Link href={`/meetings?id=${dec.meeting_id}`} className="hover:underline flex items-center gap-0.5 text-cyber-cyan">
-                      {dec.meeting_title} <ExternalLink className="h-3 w-3" />
-                    </Link>
+                {/* Card content */}
+                <motion.div 
+                  whileHover={{ y: -2 }}
+                  className="glass-panel border border-obsidian-border/60 hover:border-cyber-purple/35 transition-all duration-300 p-5 rounded-2xl space-y-4"
+                >
+                  
+                  {/* Upper line: meeting details & overrides warning */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 text-gray-400 font-mono">
+                      <Calendar className="h-3.5 w-3.5 text-cyber-purple" />
+                      <span>{dec.date}</span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-gray-700" />
+                      <Link href={`/meetings?id=${dec.meeting_id}`} className="hover:underline flex items-center gap-1 text-cyber-cyan font-semibold">
+                        {dec.meeting_title} <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-mono font-bold border ${
+                        dec.status === "accepted"
+                          ? "bg-cyber-emerald/10 border-cyber-emerald/25 text-cyber-emerald"
+                          : dec.status === "changed"
+                          ? "bg-cyber-rose/10 border-cyber-rose/25 text-cyber-rose animate-pulse"
+                          : "bg-cyber-cyan/10 border-cyber-cyan/25 text-cyber-cyan"
+                      }`}>
+                        {dec.status}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-mono font-bold ${
-                      dec.status === "accepted"
-                        ? "bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald"
-                        : dec.status === "changed"
-                        ? "bg-cyber-rose/10 border border-cyber-rose/20 text-cyber-rose"
-                        : "bg-cyber-cyan/10 border border-cyber-cyan/20 text-cyber-cyan"
+                  {/* Main Statement */}
+                  <p className="text-sm font-semibold text-white leading-relaxed">
+                    {dec.text}
+                  </p>
+
+                  {/* Overriding Linage indicator */}
+                  {dec.overrides_decision_id && (
+                    <div className={`p-3 rounded-xl border text-[11px] font-mono leading-relaxed flex items-center gap-2.5 ${
+                      dec.status === "changed"
+                        ? "bg-cyber-rose/5 border-cyber-rose/15 text-cyber-rose"
+                        : "bg-cyber-emerald/5 border-cyber-emerald/15 text-cyber-emerald"
                     }`}>
-                      {dec.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Main Statement */}
-                <p className="text-sm font-semibold text-white leading-relaxed">
-                  {dec.text}
-                </p>
-
-                {/* Overriding Linage indicator */}
-                {dec.overrides_decision_id && (
-                  <div className={`p-3 rounded-xl border text-[11px] font-mono leading-relaxed flex items-center gap-2.5 ${
-                    dec.status === "changed"
-                      ? "bg-cyber-rose/5 border-cyber-rose/15 text-cyber-rose"
-                      : "bg-cyber-emerald/5 border-cyber-emerald/15 text-cyber-emerald"
-                  }`}>
-                    {dec.status === "changed" ? (
-                      <>
-                        <ArrowLeftRight className="h-4.5 w-4.5 shrink-0" />
-                        <span>
-                          Overridden: Shuffled in Meeting #3 to Dec decided to migrate to microservices.
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="h-4.5 w-4.5 shrink-0" />
-                        <span>
-                          Overrides past decision: Shifted from avoiding microservices (Meeting #1).
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Accordion detail drawer: alternative options discussed */}
-                <div className="border-t border-obsidian-border/50 pt-3">
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : dec.id)}
-                    className="flex items-center justify-between w-full text-xs text-gray-400 hover:text-white"
-                  >
-                    <span>Examine dismissed options</span>
-                    <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
-                  </button>
-
-                  {isExpanded && (
-                    <div className="mt-3 p-3 bg-obsidian-dark/50 border border-obsidian-border rounded-xl space-y-2">
-                      <h4 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Options Debated & Rejected</h4>
-                      <div className="space-y-1.5 pl-2 border-l border-obsidian-border">
-                        {dec.related_options && dec.related_options.map((opt: string, idx: number) => (
-                          <div key={idx} className="text-xs text-gray-400 flex items-center gap-1.5 font-light">
-                            <span className="text-cyber-rose">✕</span>
-                            <span>{opt}</span>
-                          </div>
-                        ))}
-                        {(!dec.related_options || dec.related_options.length === 0) && (
-                          <span className="text-[10px] text-gray-600 italic">No alternative routes indexed.</span>
-                        )}
-                      </div>
+                      {dec.status === "changed" ? (
+                        <>
+                          <ArrowLeftRight className="h-4.5 w-4.5 shrink-0 animate-pulse" />
+                          <span>
+                            Overridden: Shuffled in Meeting #3 to Dec decided to migrate to microservices.
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="h-4.5 w-4.5 shrink-0" />
+                          <span>
+                            Overrides past decision: Shifted from avoiding microservices (Meeting #1).
+                          </span>
+                        </>
+                      )}
                     </div>
                   )}
-                </div>
 
-              </div>
-            </div>
-          );
-        })}
+                  {/* Accordion detail drawer: alternative options discussed */}
+                  <div className="border-t border-obsidian-border/50 pt-3">
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : dec.id)}
+                      className="flex items-center justify-between w-full text-xs text-gray-400 hover:text-white transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5"><History className="h-3.5 w-3.5 text-cyber-cyan" /> Examine dismissed options</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180 text-white" : ""}`} />
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: "easeInOut" as const }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-3.5 p-4 bg-obsidian-dark/50 border border-obsidian-border/80 rounded-xl space-y-2.5">
+                            <h4 className="text-[9px] uppercase font-bold text-gray-500 tracking-widest font-mono">Options Debated & Rejected</h4>
+                            <div className="space-y-2 pl-2 border-l border-cyber-rose/30">
+                              {dec.related_options && dec.related_options.map((opt: string, idx: number) => (
+                                <motion.div 
+                                  key={idx} 
+                                  initial={{ x: -5, opacity: 0 }}
+                                  animate={{ x: 0, opacity: 1 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  className="text-xs text-gray-400 flex items-center gap-2 font-light"
+                                >
+                                  <span className="text-cyber-rose font-bold">✕</span>
+                                  <span>{opt}</span>
+                                </motion.div>
+                              ))}
+                              {(!dec.related_options || dec.related_options.length === 0) && (
+                                <span className="text-[10px] text-gray-600 italic font-mono">No alternative routes indexed.</span>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                </motion.div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
         {getFilteredDecisions().length === 0 && (
-          <p className="text-xs text-gray-500 text-center py-8">No historical decisions matched your criteria.</p>
+          <p className="text-xs text-gray-500 text-center py-10 border border-dashed border-obsidian-border/30 rounded-2xl">No historical decisions matched your criteria.</p>
         )}
-      </div>
+      </motion.div>
 
     </div>
   );

@@ -15,6 +15,7 @@ import {
   Terminal,
   Volume2
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MeetingUpload() {
   const router = useRouter();
@@ -218,11 +219,14 @@ export default function MeetingUpload() {
               <div className="p-6 rounded-2xl glass-panel space-y-4">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">2. Upload Audio File</h3>
                 
-                <div
+                <motion.div
                   onDragEnter={handleDrag}
                   onDragOver={handleDrag}
                   onDragLeave={handleDrag}
                   onDrop={handleDrop}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  animate={dragActive ? { scale: 1.02, borderColor: "rgba(139, 92, 246, 0.8)", backgroundColor: "rgba(139, 92, 246, 0.05)" } : { scale: 1 }}
                   className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
                     dragActive
                       ? "border-cyber-purple bg-cyber-purple/5"
@@ -237,9 +241,12 @@ export default function MeetingUpload() {
                     className="hidden"
                   />
                   <label htmlFor="audio-upload" className="flex flex-col items-center gap-3 cursor-pointer">
-                    <div className="h-12 w-12 rounded-xl bg-cyber-purple/10 flex items-center justify-center border border-cyber-purple/20">
+                    <motion.div 
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      className="h-12 w-12 rounded-xl bg-cyber-purple/10 flex items-center justify-center border border-cyber-purple/20"
+                    >
                       <Upload className="h-6 w-6 text-cyber-purple" />
-                    </div>
+                    </motion.div>
                     <div className="text-center">
                       <p className="text-sm font-bold text-white">Drag & drop files or click to upload</p>
                       <p className="text-xs text-gray-500 mt-1">Accepts MP3, WAV, M4A, or MP4 containers (Max 150MB)</p>
@@ -247,23 +254,31 @@ export default function MeetingUpload() {
                   </label>
 
                   {file && (
-                    <div className="mt-4 px-4 py-2 bg-cyber-purple/10 border border-cyber-purple/25 rounded-xl flex items-center gap-3 w-full max-w-md">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 px-4 py-2 bg-cyber-purple/10 border border-cyber-purple/25 rounded-xl flex items-center gap-3 w-full max-w-md"
+                    >
                       <FileCheck className="h-4.5 w-4.5 text-cyber-cyan" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-white truncate">{file.name}</p>
                         <p className="text-[10px] text-gray-500 font-mono">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
-                </div>
+                </motion.div>
 
                 {file && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={processFile}
                     className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:from-cyber-purple hover:to-cyber-purple rounded-xl text-white font-bold text-sm shadow-lg shadow-cyber-purple/10 transition-all duration-300 mt-2"
                   >
                     Deploy to Memory Node <Play className="h-4 w-4 fill-current" />
-                  </button>
+                  </motion.button>
                 )}
               </div>
 
@@ -274,13 +289,22 @@ export default function MeetingUpload() {
                 <div className="flex flex-col items-center justify-center p-6 border border-obsidian-border bg-obsidian-light/25 rounded-2xl gap-4">
                   {isRecording ? (
                     <div className="flex flex-col items-center gap-4 w-full">
-                      {/* Recording waveform pulse */}
-                      <div className="flex items-center justify-center gap-1.5 h-16 w-full max-w-xs">
-                        <div className="w-1.5 bg-cyber-rose rounded-full animate-pulse-record" style={{ height: "40%" }} />
-                        <div className="w-1.5 bg-cyber-rose rounded-full animate-pulse-record" style={{ height: "80%", animationDelay: "0.2s" }} />
-                        <div className="w-1.5 bg-cyber-rose rounded-full animate-pulse-record" style={{ height: "50%", animationDelay: "0.4s" }} />
-                        <div className="w-1.5 bg-cyber-rose rounded-full animate-pulse-record" style={{ height: "90%", animationDelay: "0.1s" }} />
-                        <div className="w-1.5 bg-cyber-rose rounded-full animate-pulse-record" style={{ height: "60%", animationDelay: "0.3s" }} />
+                      {/* Interactive voice waveform visualization */}
+                      <div className="flex items-end justify-center gap-1 h-16 w-full max-w-xs px-4">
+                        {[0.5, 0.35, 0.8, 0.25, 0.7, 0.45, 0.85, 0.4, 0.65, 0.3, 0.55, 0.8, 0.45, 0.9, 0.35].map((mult, idx) => (
+                          <motion.div
+                            key={idx}
+                            animate={{
+                              height: ["20%", `${mult * 100}%`, "20%"]
+                            }}
+                            transition={{
+                              duration: 0.6 + (idx % 3) * 0.15,
+                              repeat: Infinity,
+                              ease: "easeInOut"
+                            }}
+                            className="w-1.5 bg-cyber-rose rounded-full"
+                          />
+                        ))}
                       </div>
 
                       <div className="text-center">
@@ -290,29 +314,36 @@ export default function MeetingUpload() {
                         <p className="text-xs text-gray-400 mt-2 font-mono">Streaming chunks via secure socket protocol...</p>
                       </div>
 
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
                         onClick={stopRecording}
                         className="flex items-center justify-center gap-2 px-6 py-2.5 bg-cyber-rose hover:bg-cyber-rose/90 rounded-xl text-white font-bold text-xs shadow-lg shadow-cyber-rose/15 transition-all mt-2"
                       >
                         <Square className="h-4.5 w-4.5 fill-current" /> Terminate & Extract
-                      </button>
+                      </motion.button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-3">
-                      <div className="h-16 w-16 rounded-full bg-cyber-rose/10 flex items-center justify-center border border-cyber-rose/20 relative group hover:border-cyber-rose/50 transition-all">
+                      <motion.div 
+                        whileHover={{ scale: 1.08 }}
+                        className="h-16 w-16 rounded-full bg-cyber-rose/10 flex items-center justify-center border border-cyber-rose/20 relative group hover:border-cyber-rose/50 transition-all cursor-pointer"
+                      >
                         <div className="absolute inset-0 rounded-full bg-cyber-rose/5 scale-0 group-hover:scale-105 transition-transform" />
                         <Mic className="h-7 w-7 text-cyber-rose relative" />
-                      </div>
+                      </motion.div>
                       <div className="text-center">
                         <p className="text-sm font-bold text-white">Initialize Live Stream</p>
                         <p className="text-xs text-gray-500 mt-0.5">Stream direct speech from microphone or speaker systems</p>
                       </div>
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
                         onClick={startRecording}
                         className="px-6 py-2 bg-cyber-rose/20 border border-cyber-rose/30 hover:bg-cyber-rose/30 text-cyber-rose rounded-xl font-bold text-xs tracking-wide transition-all mt-2"
                       >
                         Start Streaming
-                      </button>
+                      </motion.button>
                     </div>
                   )}
                 </div>
@@ -321,24 +352,43 @@ export default function MeetingUpload() {
             </div>
           ) : (
             /* Uploading Processing State */
-            <div className="p-8 rounded-2xl glass-panel flex flex-col items-center justify-center gap-6 min-h-[400px]">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-8 rounded-2xl glass-panel flex flex-col items-center justify-center gap-6 min-h-[400px]"
+            >
               <Loader2 className="h-10 w-10 text-cyber-purple animate-spin" />
               <div className="text-center space-y-1 w-full max-w-md">
                 <p className="text-sm font-bold text-white tracking-wide">Processing meeting nodes...</p>
-                <p className="text-xs text-cyber-cyan font-mono">{stage}</p>
+                <AnimatePresence mode="wait">
+                  <motion.p 
+                    key={stage}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs text-cyber-cyan font-mono"
+                  >
+                    {stage}
+                  </motion.p>
+                </AnimatePresence>
               </div>
 
               {/* Progress Slider */}
               <div className="w-full max-w-md space-y-1.5">
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan transition-all duration-100" style={{ width: `${progress}%` }} />
+                  <motion.div 
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.1 }}
+                    className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan" 
+                  />
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-500 font-mono">
                   <span>STAGES ACTIVE</span>
                   <span>{progress}% COMPLETE</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -354,19 +404,31 @@ export default function MeetingUpload() {
             </div>
 
             <div className="bg-obsidian-dark border border-obsidian-border rounded-xl p-4 h-64 font-mono text-[10px] text-cyber-cyan/85 overflow-y-auto space-y-2.5">
-              {recordedLogs.length > 0 ? (
-                recordedLogs.map((log, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-gray-600">[{idx+1}]</span>
-                    <span className="text-gray-300">{log}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-600 text-center flex flex-col items-center justify-center h-full gap-2">
-                  <Volume2 className="h-8 w-8 text-gray-700 animate-pulse" />
-                  <span>No active stream detected. Ingestion idle.</span>
-                </div>
-              )}
+              <AnimatePresence initial={false}>
+                {recordedLogs.length > 0 ? (
+                  recordedLogs.map((log, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex gap-2"
+                    >
+                      <span className="text-gray-600">[{idx+1}]</span>
+                      <span className="text-gray-300">{log}</span>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-gray-600 text-center flex flex-col items-center justify-center h-full gap-2"
+                  >
+                    <Volume2 className="h-8 w-8 text-gray-700 animate-pulse" />
+                    <span>No active stream detected. Ingestion idle.</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[10px] text-gray-400 leading-relaxed font-mono">

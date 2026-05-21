@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   Sparkles
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Pre-calculated force coordinates for stable rendering & interactive feeling
 const GRAPH_NODES = [
@@ -68,6 +69,29 @@ const GRAPH_EDGES = [
   // Overrides decision conflict path (Dotted pulsing red path!)
   { source: "dec_3", target: "dec_1", label: "overrides", pulse: true, isOverride: true }
 ];
+
+const pageContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      type: "spring" as const, 
+      stiffness: 90, 
+      damping: 14 
+    } 
+  }
+};
 
 export default function MemoryGraph() {
   const [nodes, setNodes] = useState(GRAPH_NODES);
@@ -126,13 +150,6 @@ export default function MemoryGraph() {
     setIsDragging(false);
   };
 
-  // Node Drag Handler (interactive simulation)
-  const handleNodeDrag = (nodeId: string, deltaX: number, deltaY: number) => {
-    setNodes((prev) =>
-      prev.map((n) => (n.id === nodeId ? { ...n, x: n.x + deltaX, y: n.y + deltaY } : n))
-    );
-  };
-
   const getNodeColor = (type: string) => {
     switch (type) {
       case "meeting": return "fill-cyber-purple stroke-cyber-purple/40";
@@ -144,56 +161,77 @@ export default function MemoryGraph() {
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col justify-between">
+    <motion.div 
+      variants={pageContainerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6 h-full flex flex-col justify-between"
+    >
       
       {/* Upper header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <motion.div 
+        variants={fadeUpVariants}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Organizational Memory Graph</h2>
           <p className="text-gray-400 text-sm mt-0.5">
             Interactive spatial trace map displaying Meeting → Decision → Task overrides and owner connections.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch flex-1">
         
         {/* SVG Graph visualizer canvas */}
-        <div className="lg:col-span-3 glass-panel rounded-2xl relative min-h-[500px] overflow-hidden flex flex-col justify-between select-none">
+        <motion.div 
+          variants={fadeUpVariants}
+          className="lg:col-span-3 glass-panel rounded-2xl relative min-h-[500px] overflow-hidden flex flex-col justify-between select-none border border-obsidian-border bg-obsidian-dark/20"
+        >
           
           {/* Legend widget */}
-          <div className="absolute top-4 left-4 p-3 bg-obsidian-dark/95 border border-obsidian-border rounded-xl flex flex-wrap gap-3 z-10 text-[9px] font-mono font-bold uppercase tracking-wider">
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-purple" /> Meetings</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-cyber-cyan" /> Decisions</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-emerald" /> Tasks</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-rose" /> Members</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Pending</div>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="absolute top-4 left-4 p-3 bg-obsidian-dark/95 border border-obsidian-border rounded-xl flex flex-wrap gap-3 z-10 text-[9px] font-mono font-bold uppercase tracking-wider"
+          >
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-purple shadow-[0_0_8px_#a855f7]" /> Meetings</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-cyber-cyan shadow-[0_0_8px_#06b6d4]" /> Decisions</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-emerald shadow-[0_0_8px_#10b981]" /> Tasks</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-rose shadow-[0_0_8px_#f43f5e]" /> Members</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" /> Pending</div>
+          </motion.div>
 
           {/* Canvas Controller Zoom widget */}
-          <div className="absolute bottom-4 left-4 flex gap-1.5 z-10">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="absolute bottom-4 left-4 flex gap-1.5 z-10"
+          >
             <button
               onClick={() => setZoom((z) => Math.min(1.8, z + 0.1))}
-              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center font-bold text-xs"
+              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center font-bold text-xs hover:border-cyber-purple transition-all"
               title="Zoom In"
             >
               +
             </button>
             <button
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center font-bold text-xs"
+              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center font-bold text-xs hover:border-cyber-purple transition-all"
               title="Zoom Out"
             >
               -
             </button>
             <button
               onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }}
-              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center text-[10px] font-mono font-bold"
+              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center text-[10px] font-mono font-bold hover:border-cyber-purple transition-all"
               title="Reset view"
             >
               RST
             </button>
-          </div>
+          </motion.div>
 
           {/* Interactive Core Canvas */}
           <div
@@ -228,11 +266,14 @@ export default function MemoryGraph() {
 
                   return (
                     <g key={idx}>
-                      <line
+                      <motion.line
                         x1={srcNode.x}
                         y1={srcNode.y}
                         x2={tgtNode.x}
                         y2={tgtNode.y}
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{ duration: 1, ease: "easeOut" as const, delay: idx * 0.02 }}
                         className={`stroke-2 ${
                           edge.isOverride
                             ? "stroke-cyber-rose graph-edge-pulse"
@@ -246,7 +287,7 @@ export default function MemoryGraph() {
                         <circle
                           r="3"
                           fill={edge.isOverride ? "#f43f5e" : "#06b6d4"}
-                          className="graph-edge-pulse"
+                          className="graph-edge-pulse animate-pulse"
                         >
                           <animateMotion
                             dur="2.5s"
@@ -260,7 +301,7 @@ export default function MemoryGraph() {
                 })}
 
                 {/* 2. RENDER NODES */}
-                {nodes.map((node) => {
+                {nodes.map((node, idx) => {
                   const isSelected = selectedNode?.id === node.id;
                   
                   return (
@@ -278,7 +319,7 @@ export default function MemoryGraph() {
                         r={isSelected ? "18" : "14"}
                         className={`fill-none stroke-2 transition-all duration-300 ${
                           isSelected
-                            ? "stroke-cyber-purple animate-ping duration-1000"
+                            ? "stroke-cyber-purple/60"
                             : "stroke-transparent group-hover:stroke-white/10"
                         }`}
                       />
@@ -286,31 +327,37 @@ export default function MemoryGraph() {
                       {/* Main Node base */}
                       {node.type === "decision" ? (
                         /* Diamonds for decisions */
-                        <rect
+                        <motion.rect
                           x="-8"
                           y="-8"
                           width="16"
                           height="16"
                           transform="rotate(45)"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 180, damping: 10, delay: idx * 0.02 }}
                           className={`stroke-2 transition-all duration-300 ${getNodeColor(node.type)} ${
-                            isSelected ? "stroke-white border-glow-cyan" : "group-hover:stroke-cyber-cyan"
+                            isSelected ? "stroke-white shadow-[0_0_12px_#06b6d4]" : "group-hover:stroke-cyber-cyan"
                           }`}
                         />
                       ) : (
-                        <circle
+                        <motion.circle
                           r="9"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 180, damping: 10, delay: idx * 0.02 }}
                           className={`stroke-2 transition-all duration-300 ${getNodeColor(node.type)} ${
-                            isSelected ? "stroke-white" : "group-hover:stroke-white/30"
+                            isSelected ? "stroke-white shadow-[0_0_12px_#a855f7]" : "group-hover:stroke-white/30"
                           }`}
                         />
                       )}
 
                       {/* Label Text */}
                       <text
-                        y="20"
+                        y="21"
                         textAnchor="middle"
                         fill="#fff"
-                        className="text-[8px] font-mono font-bold pointer-events-none drop-shadow-md select-none tracking-tight"
+                        className="text-[8px] font-mono font-bold pointer-events-none drop-shadow-md select-none tracking-tight fill-gray-200 group-hover:fill-white transition-colors"
                       >
                         {node.label}
                       </text>
@@ -321,74 +368,93 @@ export default function MemoryGraph() {
             </svg>
           </div>
 
-        </div>
+        </motion.div>
 
         {/* Right drawer / properties panel */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl glass-panel h-full flex flex-col justify-between space-y-4">
+        <motion.div 
+          variants={fadeUpVariants}
+          className="space-y-6"
+        >
+          <div className="p-6 rounded-2xl glass-panel h-full flex flex-col justify-between space-y-4 border border-obsidian-border bg-obsidian-dark/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-purple/5 blur-[50px] rounded-full pointer-events-none" />
             
-            <div>
+            <div className="relative z-10">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Layers className="h-4.5 w-4.5 text-cyber-purple" /> Node Inspector
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">Click any graph element to inspect its memory trace details.</p>
             </div>
 
-            {selectedNode ? (
-              <div className="flex-1 space-y-4 pt-4 border-t border-obsidian-border/50">
-                <div>
-                  <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-mono font-bold ${
-                    selectedNode.type === "meeting"
-                      ? "bg-cyber-purple/20 text-cyber-purple"
-                      : selectedNode.type === "decision"
-                      ? "bg-cyber-cyan/20 text-cyber-cyan"
-                      : selectedNode.type === "task"
-                      ? "bg-cyber-emerald/20 text-cyber-emerald"
-                      : "bg-cyber-rose/20 text-cyber-rose"
-                  }`}>
-                    {selectedNode.type} Node
-                  </span>
-                  <h4 className="font-bold text-white text-base mt-2">{selectedNode.label}</h4>
-                </div>
-
-                <div className="p-3 bg-obsidian-dark border border-obsidian-border rounded-xl text-xs font-light text-gray-300 leading-relaxed">
-                  {selectedNode.details || "No metadata trace recorded."}
-                </div>
-
-                {selectedNode.type === "decision" && (
-                  <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 font-mono">STATUS STATE</p>
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold inline-block ${
-                      selectedNode.status === "accepted" ? "bg-cyber-emerald/20 text-cyber-emerald" : "bg-cyber-rose/20 text-cyber-rose animate-pulse"
+            <AnimatePresence mode="wait">
+              {selectedNode ? (
+                <motion.div
+                  key={selectedNode.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ type: "spring", stiffness: 120, damping: 16 }}
+                  className="flex-1 space-y-4 pt-4 border-t border-obsidian-border/50 relative z-10"
+                >
+                  <div>
+                    <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-mono font-bold border ${
+                      selectedNode.type === "meeting"
+                        ? "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/20"
+                        : selectedNode.type === "decision"
+                        ? "bg-cyber-cyan/15 text-cyber-cyan border-cyber-cyan/20"
+                        : selectedNode.type === "task"
+                        ? "bg-cyber-emerald/15 text-cyber-emerald border-cyber-emerald/20"
+                        : "bg-cyber-rose/15 text-cyber-rose border-cyber-rose/20"
                     }`}>
-                      {selectedNode.status || "Accepted"}
+                      {selectedNode.type} Node
                     </span>
+                    <h4 className="font-bold text-white text-base mt-2 leading-tight">{selectedNode.label}</h4>
                   </div>
-                )}
 
-                {selectedNode.type === "meeting" && (
-                  <Link
-                    href={`/meetings?id=${selectedNode.id.split("_")[1]}`}
-                    className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-white font-bold"
-                  >
-                    Open Meeting feed <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-600 text-xs py-12 gap-2">
-                <Info className="h-8 w-8 text-gray-700 animate-pulse" />
-                <span>No node selected.<br />Select a node on the canvas to audit its memory path.</span>
-              </div>
-            )}
+                  <div className="p-3 bg-obsidian-dark/70 border border-obsidian-border rounded-xl text-xs font-light text-gray-300 leading-relaxed">
+                    {selectedNode.details || "No metadata trace recorded."}
+                  </div>
 
-            <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[9px] text-gray-400 font-mono leading-relaxed">
+                  {selectedNode.type === "decision" && (
+                    <div className="space-y-1 text-xs">
+                      <p className="text-gray-500 font-mono text-[9px] tracking-wider font-semibold">STATUS STATE</p>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold inline-block border ${
+                        selectedNode.status === "accepted" ? "bg-cyber-emerald/10 border-cyber-emerald/20 text-cyber-emerald" : "bg-cyber-rose/10 border-cyber-rose/20 text-cyber-rose animate-pulse"
+                      }`}>
+                        {selectedNode.status || "Accepted"}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedNode.type === "meeting" && (
+                    <Link
+                      href={`/meetings?id=${selectedNode.id.split("_")[1]}`}
+                      className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-white font-bold hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] transition-all duration-300"
+                    >
+                      Open Meeting feed <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex-1 flex flex-col items-center justify-center text-center text-gray-600 text-xs py-12 gap-2 relative z-10"
+                >
+                  <Info className="h-8 w-8 text-gray-700 animate-pulse" />
+                  <span>No node selected.<br />Select a node on the canvas to audit its memory path.</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[9px] text-gray-400 font-mono leading-relaxed relative z-10">
               Trace paths show Decision lines override past meetings (marked in red dashed arcs). Pulses show open unresolved items.
             </div>
           </div>
-        </div>
+        </motion.div>
 
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
+import { motion } from "framer-motion";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -73,38 +74,60 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="space-y-1.5">
+        <motion.nav 
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.04 }
+            }
+          }}
+          initial="hidden"
+          animate="show"
+          className="space-y-1.5"
+        >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
             
             return (
-              <Link
+              <motion.div
                 key={item.name}
-                href={item.href}
-                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group ${
-                  isActive
-                    ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border-l-2 border-cyber-purple text-white font-medium"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
+                variants={{
+                  hidden: { opacity: 0, x: -12 },
+                  show: { opacity: 1, x: 0 }
+                }}
               >
-                <div className="flex items-center gap-3">
-                  <Icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110 ${
-                    isActive ? "text-cyber-cyan" : "text-gray-400 group-hover:text-cyber-purple"
-                  }`} />
-                  <span className="text-sm">{item.name}</span>
-                </div>
-                
-                {/* Special Notification Badge for Decision overrides */}
-                {item.name === "Decision History" && contradictionCount > 0 && (
-                  <span className="px-2 py-0.5 text-[10px] rounded-full bg-cyber-rose/20 border border-cyber-rose/30 text-cyber-rose font-mono animate-pulse">
-                    {contradictionCount} Conflict{contradictionCount !== 1 ? "s" : ""}
-                  </span>
-                )}
-              </Link>
+                <Link
+                  href={item.href}
+                  className="relative flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group overflow-hidden"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNavBg"
+                      className="absolute inset-0 bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border-l-2 border-cyber-purple -z-10"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+
+                  <div className="flex items-center gap-3 relative z-10">
+                    <Icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110 ${
+                      isActive ? "text-cyber-cyan" : "text-gray-400 group-hover:text-cyber-purple"
+                    }`} />
+                    <span className={`text-sm ${isActive ? "text-white font-medium animate-fadeIn" : "text-gray-400 group-hover:text-white"}`}>{item.name}</span>
+                  </div>
+                  
+                  {/* Special Notification Badge for Decision overrides */}
+                  {item.name === "Decision History" && contradictionCount > 0 && (
+                    <span className="relative z-10 px-2 py-0.5 text-[10px] rounded-full bg-cyber-rose/20 border border-cyber-rose/30 text-cyber-rose font-mono animate-pulse">
+                      {contradictionCount} Conflict{contradictionCount !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </Link>
+              </motion.div>
             );
           })}
-        </nav>
+        </motion.nav>
       </div>
 
       {/* Dynamic User Profile Card & Logout */}

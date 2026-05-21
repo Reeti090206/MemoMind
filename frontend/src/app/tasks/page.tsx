@@ -15,6 +15,7 @@ import {
   Filter,
   UserCheck
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Robust Fallbacks
 const MOCK_TASKS = [
@@ -23,6 +24,21 @@ const MOCK_TASKS = [
   { id: 2, title: "Configure production PostgreSQL clusters and connection pooling", owner: "Aman", deadline: "2026-05-30", priority: "high", status: "in_progress", meeting_id: 2, meeting_title: "Database & Auth Architecture Deep-Dive" },
   { id: 1, title: "Implement core database migrations", owner: "Aman", deadline: "2026-05-28", priority: "high", status: "done", meeting_id: 1, meeting_title: "Project Alpha Kickoff & DB Planning" }
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const columnVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 85, damping: 14 } }
+};
 
 export default function TaskBoard() {
   const [tasks, setTasks] = useState<any[]>(MOCK_TASKS);
@@ -161,165 +177,214 @@ export default function TaskBoard() {
       </div>
 
       {/* Kanban Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
         {columns.map((col) => {
           const colTasks = filteredTasks.filter((t) => t.status === col.id);
           
           return (
-            <div key={col.id} className="space-y-4">
-              {/* Header */}
+            <motion.div 
+              key={col.id} 
+              variants={columnVariants}
+              className="space-y-4"
+            >
+              {/* Column Header */}
               <div className={`p-3 rounded-xl border flex items-center justify-between ${col.color}`}>
                 <span className="text-xs font-bold uppercase tracking-wider font-mono">{col.name}</span>
                 <span className="px-2 py-0.5 rounded bg-black/30 text-[10px] font-mono font-bold">{colTasks.length}</span>
               </div>
 
-              {/* Tasks List */}
-              <div className="space-y-3 min-h-[450px] bg-obsidian-light/10 border border-obsidian-border/40 rounded-2xl p-3">
-                {colTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => setSelectedTask(task)}
-                    className="p-4 rounded-xl glass-card border border-obsidian-border/70 hover:border-cyber-purple/30 cursor-pointer space-y-3 transition-all duration-300"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-mono font-bold ${
-                        task.priority === "high"
-                          ? "bg-cyber-rose/10 border border-cyber-rose/25 text-cyber-rose"
-                          : "bg-white/5 border border-white/10 text-gray-400"
-                      }`}>
-                        {task.priority}
-                      </span>
-                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono">
-                        <User className="h-3 w-3 text-cyber-cyan" /> {task.owner}
+              {/* Tasks List Container */}
+              <div className="space-y-3 min-h-[480px] bg-obsidian-light/10 border border-obsidian-border/40 rounded-2xl p-3 flex flex-col">
+                <AnimatePresence mode="popLayout">
+                  {colTasks.map((task) => (
+                    <motion.div
+                      layout
+                      key={task.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      whileHover={{ scale: 1.02, y: -2, borderColor: "rgba(139, 92, 246, 0.4)" }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedTask(task)}
+                      className="p-4 rounded-xl glass-card border border-obsidian-border/70 cursor-pointer space-y-3 transition-colors duration-300 relative overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-mono font-bold ${
+                          task.priority === "high"
+                            ? "bg-cyber-rose/10 border border-cyber-rose/25 text-cyber-rose"
+                            : "bg-white/5 border border-white/10 text-gray-400"
+                        }`}>
+                          {task.priority}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono">
+                          <User className="h-3 w-3 text-cyber-cyan" /> {task.owner}
+                        </div>
                       </div>
-                    </div>
 
-                    <p className="text-xs text-white font-medium leading-relaxed">
-                      {task.title}
-                    </p>
+                      <p className="text-xs text-white font-medium leading-relaxed">
+                        {task.title}
+                      </p>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-obsidian-border/50 text-[10px] text-gray-500 font-mono">
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {task.deadline}</span>
-                      
-                      {/* Simple Quick Movers */}
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        {col.id !== "todo" && (
-                          <button
-                            onClick={() => updateTaskStatus(task.id, col.id === "done" ? "in_progress" : "todo")}
-                            className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white"
-                            title="Move Left"
-                          >
-                            ◀
-                          </button>
-                        )}
-                        {col.id !== "done" && (
-                          <button
-                            onClick={() => updateTaskStatus(task.id, col.id === "todo" ? "in_progress" : "done")}
-                            className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white"
-                            title="Move Right"
-                          >
-                            ▶
-                          </button>
-                        )}
+                      <div className="flex items-center justify-between pt-2.5 border-t border-obsidian-border/50 text-[10px] text-gray-500 font-mono">
+                        <span className="flex items-center gap-1 text-[9px]"><Calendar className="h-3 w-3 text-cyber-purple" /> {task.deadline}</span>
+                        
+                        {/* Quick Movers */}
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          {col.id !== "todo" && (
+                            <motion.button
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.8 }}
+                              onClick={() => updateTaskStatus(task.id, col.id === "done" ? "in_progress" : "todo")}
+                              className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white"
+                              title="Move Left"
+                            >
+                              ◀
+                            </motion.button>
+                          )}
+                          {col.id !== "done" && (
+                            <motion.button
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.8 }}
+                              onClick={() => updateTaskStatus(task.id, col.id === "todo" ? "in_progress" : "done")}
+                              className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white"
+                              title="Move Right"
+                            >
+                              ▶
+                            </motion.button>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Deep Lineage Retro Link */}
-                    <div className="pt-2 text-[9px] text-cyber-cyan flex items-center justify-between">
-                      <Link href={`/meetings?id=${task.meeting_id}`} className="hover:underline flex items-center gap-0.5">
-                        Assigned in {task.meeting_title.split("&")[0]} <ChevronRight className="h-3 w-3" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                      {/* Lineage retro link */}
+                      <div className="pt-2 text-[9px] text-cyber-cyan flex items-center justify-between border-t border-dashed border-obsidian-border/30">
+                        <Link href={`/meetings?id=${task.meeting_id}`} className="hover:underline flex items-center gap-0.5">
+                          Assigned in {task.meeting_title.split("&")[0]} <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
                 
                 {colTasks.length === 0 && (
-                  <div className="text-center py-12 text-gray-600 text-xs font-mono">
+                  <div className="text-center py-16 text-gray-600 text-xs font-mono my-auto">
                     Empty column
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
-      {/* Dynamic Task Editor Drawer Modal */}
-      {selectedTask && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-2xl glass-panel space-y-4 border border-cyber-purple/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="px-2 py-0.5 rounded bg-cyber-purple/20 text-cyber-purple border border-cyber-purple/20 text-[9px] uppercase font-mono tracking-wider">
-                  Lineage Node #{selectedTask.id}
-                </span>
-                <h3 className="font-bold text-white text-base mt-2">{selectedTask.title}</h3>
+      {/* Elastic Task Editor Drawer panel */}
+      <AnimatePresence>
+        {selectedTask && (
+          <>
+            {/* Backdrop Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedTask(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            
+            {/* Slide-out Drawer Panel */}
+            <motion.div
+              initial={{ x: "100%", opacity: 0.9 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0.9 }}
+              transition={{ type: "spring", damping: 22, stiffness: 150 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-obsidian-dark/95 border-l border-obsidian-border/80 backdrop-blur-xl z-50 p-6 flex flex-col justify-between shadow-2xl"
+            >
+              <div className="space-y-6">
+                <div className="flex justify-between items-center pb-4 border-b border-obsidian-border/50">
+                  <span className="px-2.5 py-0.5 rounded bg-cyber-purple/20 text-cyber-purple border border-cyber-purple/20 text-[9px] uppercase font-mono tracking-wider font-bold">
+                    Lineage Node #{selectedTask.id}
+                  </span>
+                  <button
+                    onClick={() => setSelectedTask(null)}
+                    className="h-8 w-8 rounded-full hover:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-black text-white text-lg leading-snug">{selectedTask.title}</h3>
+                  <p className="text-[10px] text-cyber-cyan font-mono flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 animate-pulse" /> Origin: {selectedTask.meeting_title}
+                  </p>
+                </div>
+                
+                <form onSubmit={saveTaskDetails} className="space-y-5 pt-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] uppercase font-mono tracking-wider text-gray-400">Assignee</label>
+                    <select
+                      value={selectedTask.owner}
+                      onChange={(e) => setSelectedTask({ ...selectedTask, owner: e.target.value })}
+                      className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyber-purple transition-all"
+                    >
+                      <option value="Aman">Aman (Backend)</option>
+                      <option value="Reeti">Reeti (Frontend)</option>
+                      <option value="Sarah">Sarah (Product)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] uppercase font-mono tracking-wider text-gray-400">Deadline Date</label>
+                    <input
+                      type="text"
+                      value={selectedTask.deadline}
+                      onChange={(e) => setSelectedTask({ ...selectedTask, deadline: e.target.value })}
+                      className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyber-purple transition-all font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] uppercase font-mono tracking-wider text-gray-400">Priority</label>
+                    <select
+                      value={selectedTask.priority}
+                      onChange={(e) => setSelectedTask({ ...selectedTask, priority: e.target.value })}
+                      className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyber-purple transition-all"
+                    >
+                      <option value="high">High Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="low">Low Priority</option>
+                    </select>
+                  </div>
+
+                  <div className="pt-4 flex items-center justify-between gap-3">
+                    <Link
+                      href={`/meetings?id=${selectedTask.meeting_id}`}
+                      onClick={() => setSelectedTask(null)}
+                      className="px-4 py-2.5 border border-obsidian-border hover:bg-white/5 hover:border-cyber-cyan/30 rounded-xl text-xs text-gray-300 font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      Open Meeting <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:from-cyber-purple hover:to-cyber-purple rounded-xl text-xs text-white font-bold shadow-lg shadow-cyber-purple/10 transition-all"
+                    >
+                      Commit Updates
+                    </button>
+                  </div>
+                </form>
               </div>
-              <button
-                onClick={() => setSelectedTask(null)}
-                className="text-gray-400 hover:text-white text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={saveTaskDetails} className="space-y-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Assignee</label>
-                <select
-                  value={selectedTask.owner}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, owner: e.target.value })}
-                  className="w-full bg-obsidian-dark border border-obsidian-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                >
-                  <option value="Aman">Aman (Backend)</option>
-                  <option value="Reeti">Reeti (Frontend)</option>
-                  <option value="Sarah">Sarah (Product)</option>
-                </select>
+              
+              <div className="p-4 bg-cyber-purple/5 border border-cyber-purple/10 rounded-xl text-[10px] text-gray-400 leading-relaxed font-mono mt-auto">
+                This task is mathematically tracked in our Organizational Memory Graph. Modifying it maintains linear trace updates on Decisions alignment metrics.
               </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Deadline Date</label>
-                <input
-                  type="text"
-                  value={selectedTask.deadline}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, deadline: e.target.value })}
-                  className="w-full bg-obsidian-dark border border-obsidian-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Priority</label>
-                <select
-                  value={selectedTask.priority}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, priority: e.target.value })}
-                  className="w-full bg-obsidian-dark border border-obsidian-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                >
-                  <option value="high">High Priority</option>
-                  <option value="medium">Medium Priority</option>
-                  <option value="low">Low Priority</option>
-                </select>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between gap-3">
-                <Link
-                  href={`/meetings?id=${selectedTask.meeting_id}`}
-                  onClick={() => setSelectedTask(null)}
-                  className="px-4 py-2 border border-obsidian-border hover:bg-white/5 rounded-xl text-xs text-gray-300 font-bold flex items-center gap-1"
-                >
-                  Open Meeting <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-white font-bold"
-                >
-                  Commit Updates
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+ 
     </div>
   );
 }
