@@ -38,7 +38,9 @@ interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  loginWithGoogle: (profileKey?: string) => Promise<void>;
+  loginWithGoogle: (profileKey?: string, customUser?: UserProfile) => Promise<void>;
+  loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUpWithCredentials: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isClerkEnabled: boolean;
 }
@@ -68,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Standard Login (Google OAuth simulator / Sandbox Profile)
-  const loginWithGoogle = async (profileKey?: string) => {
+  const loginWithGoogle = async (profileKey?: string, customUser?: UserProfile) => {
     setIsLoading(true);
     
     // Simulate a minor network request or Google OAuth redirect authorization latency
@@ -78,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (profileKey && SEED_PROFILES[profileKey]) {
       selectedUser = SEED_PROFILES[profileKey];
+    } else if (customUser) {
+      selectedUser = customUser;
     } else {
       // General Google OAuth sign-in fallback
       selectedUser = {
@@ -94,6 +98,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   };
 
+  // Credentials Login
+  const loginWithCredentials = async (email: string, password: string) => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const registeredUsersStr = localStorage.getItem("meetgraph_registered_users");
+    let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
+
+    const allUsers = {
+      "aman.g@meetgraph.ai": { ...SEED_PROFILES.aman, password: "password" },
+      "reeti.s@meetgraph.ai": { ...SEED_PROFILES.reeti, password: "password" },
+      "sarah.j@meetgraph.ai": { ...SEED_PROFILES.sarah, password: "password" },
+      ...registeredUsers
+    };
+
+    const targetUser = allUsers[email.toLowerCase().trim()];
+    if (!targetUser) {
+      setIsLoading(false);
+      return { success: false, error: "No account found with this email." };
+    }
+
+    if (targetUser.password !== password) {
+      setIsLoading(false);
+      return { success: false, error: "Incorrect password. Please try again." };
+    }
+
+    const { password: _, ...userProfile } = targetUser;
+    setUser(userProfile);
+    localStorage.setItem("meetgraph_session", JSON.stringify(userProfile));
+    setIsLoading(false);
+    return { success: true };
+  };
+
+  // Credentials Sign Up
+  const signUpWithCredentials = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const emailKey = email.toLowerCase().trim();
+
+    const registeredUsersStr = localStorage.getItem("meetgraph_registered_users");
+    let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
+
+    if (registeredUsers[emailKey] || ["aman.g@meetgraph.ai", "reeti.s@meetgraph.ai", "sarah.j@meetgraph.ai"].includes(emailKey)) {
+      setIsLoading(false);
+      return { success: false, error: "An account with this email already exists." };
+    }
+
+    const randomAvatarSeed = name.replace(/\s+/g, "");
+    const newUser = {
+      name,
+      email: emailKey,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomAvatarSeed}`,
+      role: "Workspace Contributor",
+      color: "from-cyber-purple to-cyber-cyan",
+      password
+    };
+
+    registeredUsers[emailKey] = newUser;
+    localStorage.setItem("meetgraph_registered_users", JSON.stringify(registeredUsers));
+
+    const { password: _, ...userProfile } = newUser;
+    setUser(userProfile);
+    localStorage.setItem("meetgraph_session", JSON.stringify(userProfile));
+    setIsLoading(false);
+    return { success: true };
+  };
+
   // Sign out / clear state
   const logout = () => {
     setUser(null);
@@ -107,6 +179,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         loginWithGoogle,
+        loginWithCredentials,
+        signUpWithCredentials,
         logout,
         isClerkEnabled,
       }}

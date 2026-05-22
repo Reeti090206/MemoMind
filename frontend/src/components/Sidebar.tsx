@@ -13,7 +13,9 @@ import {
   Network, 
   Cpu, 
   Flame,
-  LogOut
+  LogOut,
+  Users,
+  Settings
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
@@ -45,18 +47,20 @@ export default function Sidebar() {
   }, []);
 
   const navItems = [
-    { name: "Dashboard", href: "/", icon: LayoutGrid },
-    { name: "Meeting Upload", href: "/upload", icon: Upload },
-    { name: "Transcript Viewer", href: "/meetings", icon: FileText },
-    { name: "Task Board", href: "/tasks", icon: CheckSquare },
-    { name: "Decision History", href: "/decisions", icon: History },
-    { name: "AI Search", href: "/search", icon: Search },
-    { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    { name: "Memory Graph", href: "/graph", icon: Network },
+    { name: "Overview", href: "/", icon: LayoutGrid },
+    { name: "Add Meeting", href: "/upload", icon: Upload },
+    { name: "Read Meetings", href: "/meetings", icon: FileText },
+    { name: "Task List", href: "/tasks", icon: CheckSquare },
+    { name: "Decisions", href: "/decisions", icon: History },
+    { name: "Search", href: "/search", icon: Search },
+    { name: "Success Stats", href: "/analytics", icon: BarChart3 },
+    { name: "Connection Map", href: "/graph", icon: Network },
+    { name: "Team", href: "/team", icon: Users },
+    { name: "Setup & API", href: "/settings", icon: Settings },
   ];
 
   return (
-    <aside className="w-64 border-r border-obsidian-border bg-obsidian-medium/70 backdrop-blur-xl h-screen sticky top-0 flex flex-col justify-between p-4 z-40">
+    <aside className="w-64 my-4 ml-4 rounded-2xl glass-panel shadow-2xl h-[calc(100vh-2rem)] sticky top-4 flex flex-col justify-between p-4 z-40 bg-transparent shrink-0">
       <div>
         {/* Logo / Branding */}
         <div className="flex items-center gap-3 px-2 py-4 mb-6">
@@ -105,7 +109,7 @@ export default function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeNavBg"
-                      className="absolute inset-0 bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border-l-2 border-cyber-purple -z-10"
+                      className="absolute inset-0 bg-gradient-to-r from-cyber-purple/25 to-cyber-cyan/15 border-l-2 border-cyber-purple -z-10"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -118,7 +122,7 @@ export default function Sidebar() {
                   </div>
                   
                   {/* Special Notification Badge for Decision overrides */}
-                  {item.name === "Decision History" && contradictionCount > 0 && (
+                  {item.name === "Decisions" && contradictionCount > 0 && (
                     <span className="relative z-10 px-2 py-0.5 text-[10px] rounded-full bg-cyber-rose/20 border border-cyber-rose/30 text-cyber-rose font-mono animate-pulse">
                       {contradictionCount} Conflict{contradictionCount !== 1 ? "s" : ""}
                     </span>
