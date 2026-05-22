@@ -96,7 +96,7 @@ export default function Dashboard() {
     if (rawInsight.toLowerCase().includes("contradiction")) {
       return (
         <span>
-          <strong>Decision Shift Detected:</strong> Your team recently decided to <span className="text-white font-semibold">migrate to microservices</span> (in SaaS Scaling), which changes the earlier plan to <span className="text-gray-400 line-through">avoid microservices</span> discussed during your Project Kickoff.
+          <strong>Plan Change Warning:</strong> Your team recently agreed to <span className="text-white font-semibold">use microservices</span> (in SaaS Scaling & Microservices Shift), which changes the earlier plan to <span className="text-gray-400 line-through">avoid microservices</span> from the Kickoff meeting.
         </span>
       );
     }
@@ -114,22 +114,22 @@ export default function Dashboard() {
       {/* 1. Header Hero Panel */}
       <motion.div 
         variants={itemVariants}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8 bg-gradient-to-r from-obsidian-light/80 via-obsidian-light/40 to-cyber-purple/5 border border-white/5 rounded-3xl backdrop-blur-2xl relative overflow-hidden"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8 bg-white/[0.01] border border-white/5 rounded-3xl backdrop-blur-2xl relative overflow-hidden shadow-2xl"
       >
         {/* Subtle ambient circle inside hero */}
-        <div className="absolute -right-16 -top-16 w-48 h-48 bg-cyber-purple/10 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -right-16 -top-16 w-48 h-48 bg-cyber-purple/5 rounded-full blur-[80px] pointer-events-none" />
         
         <div className="relative z-10 space-y-2 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
-              <Sparkles className="h-3 w-3 animate-pulse" /> Team Brain Online
+              <Sparkles className="h-3 w-3 animate-pulse" /> AI Assistant Online
             </span>
           </div>
-          <h2 className="text-3xl font-black text-white tracking-tight leading-none">
-            Team Memory Hub
+          <h2 className="text-3xl font-black text-white tracking-tight leading-none text-glow-cyber">
+            Team Memory Overview
           </h2>
           <p className="text-gray-400 text-sm leading-relaxed">
-            Your shared organizational memory. We automatically track key decisions, action items, and pending debates from every meeting so your team stays aligned.
+            Your team's shared memory bank. We keep track of your agreements, action plans, and key decisions from past syncs so you can find them instantly.
           </p>
         </div>
         
@@ -139,7 +139,7 @@ export default function Dashboard() {
               href="/upload" 
               className="flex items-center gap-2 px-5 py-3 text-xs bg-gradient-to-tr from-cyber-purple to-cyber-cyan hover:shadow-[0_0_20px_rgba(139,92,246,0.35)] transition-all duration-300 rounded-xl text-white font-bold tracking-wider uppercase border border-white/10"
             >
-              <Plus className="h-4 w-4" /> Upload Meeting
+              <Plus className="h-4 w-4" /> Add Meeting
             </Link>
           </motion.div>
           
@@ -148,7 +148,7 @@ export default function Dashboard() {
               href="/search" 
               className="flex items-center gap-2 px-5 py-3 text-xs bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all duration-300 rounded-xl text-gray-200 font-bold tracking-wider uppercase"
             >
-              <HelpCircle className="h-4 w-4 text-cyber-cyan" /> Search Memory
+              <HelpCircle className="h-4 w-4 text-cyber-cyan" /> Ask AI
             </Link>
           </motion.div>
         </div>
@@ -166,14 +166,14 @@ export default function Dashboard() {
           </div>
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-cyber-rose uppercase tracking-wider font-mono flex items-center gap-1.5">
-              <span>💡 Smart Assistant Notification</span>
+              <span>💡 Plan Conflict Alert</span>
             </h4>
             <p className="text-gray-300 text-sm leading-relaxed mt-0.5">
               {getFriendlyAlertText(widgets.latest_insight)}
             </p>
             <div className="pt-2 flex gap-3 text-[11px] font-semibold text-cyber-cyan hover:text-white transition-colors cursor-pointer items-center">
               <Link href="/decisions" className="flex items-center gap-1">
-                View connected decision lineage <ArrowRight className="h-3 w-3 animate-pulse" />
+                See decision details <ArrowRight className="h-3 w-3 animate-pulse" />
               </Link>
             </div>
           </div>
@@ -187,12 +187,12 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(139, 92, 246, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer"
+          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-purple/5 rounded-full blur-2xl group-hover:bg-cyber-purple/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-500 font-bold font-mono uppercase tracking-wider">Meetings Tracked</span>
+            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Meetings Stored</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-purple/10 flex items-center justify-center border border-cyber-purple/20 shadow-sm shrink-0">
               <Calendar className="h-4.5 w-4.5 text-cyber-purple" />
             </div>
@@ -201,7 +201,7 @@ export default function Dashboard() {
             {widgets.total_meetings}
           </p>
           <p className="text-[10px] text-cyber-emerald mt-2 font-mono flex items-center gap-1 font-semibold">
-            <TrendingUp className="h-3.5 w-3.5" /> Indexed & searchable
+            <TrendingUp className="h-3.5 w-3.5" /> Ready to search
           </p>
         </motion.div>
 
@@ -209,12 +209,12 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(6, 182, 212, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer"
+          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-cyan/5 rounded-full blur-2xl group-hover:bg-cyber-cyan/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-500 font-bold font-mono uppercase tracking-wider">Pending Debates</span>
+            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Open Questions</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-cyan/10 flex items-center justify-center border border-cyber-cyan/20 shadow-sm shrink-0">
               <HelpCircle className="h-4.5 w-4.5 text-cyber-cyan" />
             </div>
@@ -223,7 +223,7 @@ export default function Dashboard() {
             {widgets.unresolved_discussions}
           </p>
           <p className="text-[10px] text-amber-400 mt-2 font-mono flex items-center gap-1 font-semibold">
-            <Info className="h-3.5 w-3.5" /> Awaiting team resolution
+            <Info className="h-3.5 w-3.5" /> Needs an answer
           </p>
         </motion.div>
 
@@ -231,12 +231,12 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(16, 185, 129, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer"
+          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-emerald/5 rounded-full blur-2xl group-hover:bg-cyber-emerald/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-500 font-bold font-mono uppercase tracking-wider">Assigned Tasks</span>
+            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Tasks We Are Doing</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-emerald/10 flex items-center justify-center border border-cyber-emerald/20 shadow-sm shrink-0">
               <CheckCircle2 className="h-4.5 w-4.5 text-cyber-emerald" />
             </div>
@@ -245,7 +245,7 @@ export default function Dashboard() {
             {widgets.active_tasks}
           </p>
           <p className="text-[10px] text-cyber-cyan mt-2 font-mono flex items-center gap-1 font-semibold">
-            <Clock className="h-3.5 w-3.5" /> Currently in progress
+            <Clock className="h-3.5 w-3.5" /> Currently running
           </p>
         </motion.div>
 
@@ -253,12 +253,12 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(244, 63, 94, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer"
+          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-rose/5 rounded-full blur-2xl group-hover:bg-cyber-rose/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-500 font-bold font-mono uppercase tracking-wider">Action Required</span>
+            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Items Needing Action</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-rose/10 flex items-center justify-center border border-cyber-rose/20 shadow-sm shrink-0">
               <AlertTriangle className="h-4.5 w-4.5 text-cyber-rose" />
             </div>
@@ -267,7 +267,7 @@ export default function Dashboard() {
             {widgets.overdue_items}
           </p>
           <p className="text-[10px] text-cyber-rose mt-2 font-mono flex items-center gap-1 font-semibold animate-pulse">
-            <ShieldAlert className="h-3.5 w-3.5" /> Action items overdue
+            <ShieldAlert className="h-3.5 w-3.5" /> Past deadline
           </p>
         </motion.div>
 
@@ -282,14 +282,14 @@ export default function Dashboard() {
           {/* Timeline of Decisions */}
           <motion.div 
             variants={itemVariants}
-            className="p-6 border border-white/5 bg-white/[0.01] backdrop-blur-md rounded-3xl space-y-6"
+            className="p-6 border border-white/5 bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
           >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2.5">
-                  <Award className="h-5 w-5 text-cyber-purple" /> Saved Team Decisions
+                  <Award className="h-5 w-5 text-cyber-purple" /> Saved Decisions
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Timeline of alignments, tech stacks, and direction shifts.</p>
+                <p className="text-xs text-gray-400 mt-0.5">A history of what your team agreed on and key updates.</p>
               </div>
               <Link href="/decisions" className="text-xs text-cyber-cyan hover:text-white flex items-center gap-1 transition-colors font-semibold">
                 Explore Decisions <ChevronRight className="h-3.5 w-3.5" />
@@ -308,7 +308,7 @@ export default function Dashboard() {
                     className={`p-5 rounded-2xl border transition-all duration-300 ${
                       isActive 
                         ? "bg-white/[0.01] border-white/5" 
-                        : "bg-obsidian-light/20 border-white/5 opacity-60"
+                        : "bg-white/[0.005] border-white/5 opacity-60"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-5">
@@ -343,14 +343,14 @@ export default function Dashboard() {
           {/* Recent Synced Meetings List */}
           <motion.div 
             variants={itemVariants}
-            className="p-6 border border-white/5 bg-white/[0.01] backdrop-blur-md rounded-3xl space-y-6"
+            className="p-6 border border-white/5 bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
           >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2.5">
-                  <Clock className="h-5 w-5 text-cyber-cyan" /> Recent Meeting Feeds
+                  <Clock className="h-5 w-5 text-cyber-cyan" /> Recent Meetings
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Click a session to review transcripts, speaker diarization, and notes.</p>
+                <p className="text-xs text-gray-400 mt-0.5">Click any meeting to review what was discussed, read transcripts, and see summaries.</p>
               </div>
               <Link href="/meetings" className="text-xs text-cyber-cyan hover:text-white flex items-center gap-1 transition-colors font-semibold">
                 All Meetings <ChevronRight className="h-3.5 w-3.5" />
@@ -384,7 +384,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1 text-[10px] font-mono text-gray-500">
                       <span>{meet.date.split(" ")[0]}</span>
                       <span className="px-2 py-0.5 rounded-lg bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple font-semibold">
-                        Productivity: {meet.efficiency_score}%
+                        Meeting Smoothness: {meet.efficiency_score}%
                       </span>
                     </div>
                   </Link>
@@ -400,10 +400,10 @@ export default function Dashboard() {
           
           <motion.div 
             variants={itemVariants}
-            className="p-6 border border-white/5 bg-white/[0.01] backdrop-blur-md rounded-3xl space-y-6"
+            className="p-6 border border-white/5 bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
           >
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-cyber-emerald" /> Team Alignment Metrics
+              <TrendingUp className="h-5 w-5 text-cyber-emerald" /> Team Success Stats
             </h3>
 
             {/* Turnaround speed widget */}
@@ -412,10 +412,10 @@ export default function Dashboard() {
               className="p-5 rounded-2xl border border-white/5 bg-white/5 text-center relative overflow-hidden group cursor-pointer shadow-md"
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-cyber-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-mono">Average Decision Speed</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-mono">Average Agreement Speed</p>
               <p className="text-4xl font-black text-white mt-2 font-mono tracking-tighter">20.1 hrs</p>
               <p className="text-[10px] text-cyber-emerald font-mono mt-1 font-semibold flex items-center justify-center gap-1">
-                ▲ 8% faster alignment than last week
+                ▲ 8% faster agreement than last week
               </p>
             </motion.div>
 
@@ -424,7 +424,7 @@ export default function Dashboard() {
               
               <div>
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-gray-400">Meeting Consistency Rate</span>
+                  <span className="text-gray-400">Consistency with Past Decisions</span>
                   <span className="font-bold text-cyber-purple font-mono">85.5%</span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
@@ -435,12 +435,12 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-full" 
                   />
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Percentage of new decisions that successfully align with historic logs.</p>
+                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Percentage of new agreements that fit smoothly with our past logs.</p>
               </div>
 
               <div>
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-gray-400">Meeting Productivity Score</span>
+                  <span className="text-gray-400">Meeting Smoothness</span>
                   <span className="font-bold text-cyber-cyan font-mono">85.3%</span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
@@ -451,12 +451,12 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-cyber-cyan to-cyber-emerald rounded-full" 
                   />
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Average efficiency scored across speaker distribution and resolved items.</p>
+                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Measures speaker distribution and clarity of decisions resolved.</p>
               </div>
 
               <div>
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-gray-400">Discussion Debate Intensity</span>
+                  <span className="text-gray-400">Team Atmosphere (Debate Level)</span>
                   <span className="font-bold text-cyber-rose font-mono">15.7%</span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
@@ -467,7 +467,7 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-cyber-rose to-cyber-purple rounded-full" 
                   />
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Measures conflicting opinions or arguments logged during syncs.</p>
+                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Tracks constructive debates or differing views discussed in meetings.</p>
               </div>
 
             </div>
