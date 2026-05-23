@@ -81,6 +81,16 @@ python run.py
 
 The FastAPI backend runs on `http://127.0.0.1:8000`. You can inspect the Swagger documentation at `http://127.0.0.1:8000/docs`.
 
+### 1.1 Welcome Email Configuration
+To enable the backend to send real welcome emails upon user registration or sign-in:
+1. In `backend/.env`, configure the email parameters:
+   - `SENDER_EMAIL=reetikhandelwal09@gmail.com`
+   - `SMTP_HOST=smtp.gmail.com`
+   - `SMTP_PORT=587`
+   - `SMTP_USER=reetikhandelwal09@gmail.com`
+   - `SMTP_PASSWORD="your_google_app_password"`
+2. Set up a 16-character App Password via your Google Account's Security panel.
+
 ### 2. Frontend Setup (Next.js & Tailwind CSS)
 
 Make sure you have Node v22.16+ installed. Open a separate terminal and run:

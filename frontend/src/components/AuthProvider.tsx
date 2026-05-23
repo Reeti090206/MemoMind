@@ -39,10 +39,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   loginWithGoogle: (profileKey?: string, customUser?: UserProfile) => Promise<void>;
+  loginWithOAuth: (provider: string, profileKey?: string, customUser?: UserProfile) => Promise<void>;
+  loginWithPhone: (phoneNumber: string, verificationCode: string) => Promise<{ success: boolean; error?: string }>;
   loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithCredentials: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isClerkEnabled: boolean;
+  welcomeEmail: { html: string; filePath: string } | null;
+  clearWelcomeEmail: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,30 +54,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [welcomeEmail, setWelcomeEmail] = useState<{ html: string; filePath: string } | null>(null);
 
   // Check if Clerk env variables are configured
   const isClerkEnabled = 
     !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "";
 
-  // Load session from localStorage on client-side mount
+  // Always show the login page first, even after browser refresh.
   useEffect(() => {
-    const savedSession = localStorage.getItem("meetgraph_session");
-    if (savedSession) {
-      try {
-        setUser(JSON.parse(savedSession));
-      } catch (err) {
-        localStorage.removeItem("meetgraph_session");
-      }
-    }
+    localStorage.removeItem("meetgraph_session");
     setIsLoading(false);
   }, []);
+
+  const triggerWelcomeEmail = async (email: string, name: string) => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/auth/welcome-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, name }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === "success") {
+          setWelcomeEmail({
+            html: data.html_content,
+            filePath: data.file_path
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send welcome email:", err);
+    }
+  };
+
+  const clearWelcomeEmail = () => {
+    setWelcomeEmail(null);
+  };
 
   // Standard Login (Google OAuth simulator / Sandbox Profile)
   const loginWithGoogle = async (profileKey?: string, customUser?: UserProfile) => {
     setIsLoading(true);
-    
-    // Simulate a minor network request or Google OAuth redirect authorization latency
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     let selectedUser: UserProfile;
@@ -83,7 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else if (customUser) {
       selectedUser = customUser;
     } else {
-      // General Google OAuth sign-in fallback
       selectedUser = {
         name: "Developer Guest",
         email: "guest.developer@meetgraph.ai",
@@ -94,8 +116,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setUser(selectedUser);
-    localStorage.setItem("meetgraph_session", JSON.stringify(selectedUser));
     setIsLoading(false);
+    
+    // Trigger welcome email
+    await triggerWelcomeEmail(selectedUser.email, selectedUser.name);
+  };
+
+  // Generic OAuth Login (Google, Apple, GitHub, Hugging Face)
+  const loginWithOAuth = async (provider: string, profileKey?: string, customUser?: UserProfile) => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    let selectedUser: UserProfile;
+
+    if (profileKey && SEED_PROFILES[profileKey]) {
+      selectedUser = SEED_PROFILES[profileKey];
+    } else if (customUser) {
+      selectedUser = customUser;
+    } else {
+      let name = "OAuth User";
+      let email = `oauth.user@meetgraph.ai`;
+      let avatarSeed = "oauth";
+      let role = "Collaborator";
+      let color = "from-gray-400 to-slate-600";
+
+      if (provider === "apple") {
+        name = "Apple Developer";
+        email = "apple.dev@meetgraph.ai";
+        avatarSeed = "Apple";
+        role = "iOS Integration Specialist";
+        color = "from-zinc-200 to-zinc-600";
+      } else if (provider === "github") {
+        name = "GitHub Contributor";
+        email = "github.dev@meetgraph.ai";
+        avatarSeed = "Github";
+        role = "DevOps Engineer";
+        color = "from-indigo-900 to-slate-800";
+      } else if (provider === "huggingface") {
+        name = "HuggingFace Researcher";
+        email = "hf.research@meetgraph.ai";
+        avatarSeed = "HuggingFace";
+        role = "AI/ML Engineer";
+        color = "from-amber-400 to-amber-600";
+      }
+
+      selectedUser = {
+        name,
+        email,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`,
+        role,
+        color,
+      };
+    }
+
+    setUser(selectedUser);
+    setIsLoading(false);
+    
+    // Trigger welcome email
+    await triggerWelcomeEmail(selectedUser.email, selectedUser.name);
+  };
+
+  // Phone Login simulation
+  const loginWithPhone = async (phoneNumber: string, verificationCode: string) => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    if (verificationCode !== "123456" && verificationCode !== "1234") {
+      setIsLoading(false);
+      return { success: false, error: "Incorrect verification code. Try '123456'." };
+    }
+
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
+    const selectedUser: UserProfile = {
+      name: `Phone User (${cleanPhone.slice(-4)})`,
+      email: `phone.${cleanPhone}@meetgraph.ai`,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=phone_${cleanPhone}`,
+      role: "Mobile Collaborator",
+      color: "from-teal-400 to-emerald-600",
+    };
+
+    setUser(selectedUser);
+    setIsLoading(false);
+    
+    // Trigger welcome email
+    await triggerWelcomeEmail(selectedUser.email, selectedUser.name);
+    return { success: true };
   };
 
   // Credentials Login
@@ -126,8 +231,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { password: _, ...userProfile } = targetUser;
     setUser(userProfile);
-    localStorage.setItem("meetgraph_session", JSON.stringify(userProfile));
     setIsLoading(false);
+
+    // Trigger welcome email
+    await triggerWelcomeEmail(userProfile.email, userProfile.name);
     return { success: true };
   };
 
@@ -161,8 +268,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { password: _, ...userProfile } = newUser;
     setUser(userProfile);
-    localStorage.setItem("meetgraph_session", JSON.stringify(userProfile));
     setIsLoading(false);
+
+    // Trigger welcome email
+    await triggerWelcomeEmail(userProfile.email, userProfile.name);
     return { success: true };
   };
 
@@ -179,10 +288,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         loginWithGoogle,
+        loginWithOAuth,
+        loginWithPhone,
         loginWithCredentials,
         signUpWithCredentials,
         logout,
         isClerkEnabled,
+        welcomeEmail,
+        clearWelcomeEmail,
       }}
     >
       {children}

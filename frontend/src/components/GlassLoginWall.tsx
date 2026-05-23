@@ -15,16 +15,60 @@ import {
   UserPlus, 
   LogIn, 
   KeyRound, 
-  CheckCircle2 
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Phone,
+  ArrowRightLeft,
+  MailCheck,
+  FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function GlassLoginWall() {
-  const { loginWithGoogle, loginWithCredentials, signUpWithCredentials } = useAuth();
+  const { 
+    loginWithGoogle, 
+    loginWithOAuth, 
+    loginWithPhone, 
+    loginWithCredentials, 
+    signUpWithCredentials,
+    welcomeEmail,
+    clearWelcomeEmail
+  } = useAuth();
   
-  // Navigation Flow: initial -> login | signup
-  const [flowStep, setFlowStep] = useState<"initial" | "login" | "signup" | "forgot_password">("initial");
+  // Navigation Flow: signup | login | phone | forgot_password
+  const [flowStep, setFlowStep] = useState<"signup" | "login" | "phone" | "forgot_password">("signup");
   
+  // Password Visibility toggles
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Error & loading states
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Form inputs
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Phone Login inputs
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+
+  // Forgot password inputs
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotStatus, setForgotStatus] = useState<"idle" | "sending" | "sent">("idle");
+
+  // Reset errors on flow step change
+  useEffect(() => {
+    setErrorMsg("");
+    setForgotStatus("idle");
+    setCodeSent(false);
+  }, [flowStep]);
+
   // Google Native Chooser States
   const [showGoogleChooser, setShowGoogleChooser] = useState(false);
   const [googleChooserStep, setGoogleChooserStep] = useState<"choose" | "enter_email" | "enter_password">("choose");
@@ -39,25 +83,6 @@ export default function GlassLoginWall() {
 
   // Custom Registered Accounts list for chooser
   const [customRegisteredAccounts, setCustomRegisteredAccounts] = useState<UserProfile[]>([]);
-
-  // Login credentials state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // Signup credentials state
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
-  const [signupError, setSignupError] = useState("");
-  const [isSigningUp, setIsSigningUp] = useState(false);
-
-  // Forgot password state
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotStatus, setForgotStatus] = useState<"idle" | "sending" | "sent">("idle");
-  const [forgotError, setForgotError] = useState("");
 
   // Load custom accounts from localStorage for suggestion
   useEffect(() => {
@@ -173,61 +198,119 @@ export default function GlassLoginWall() {
     setIsAuthorizing(false);
   };
 
-  // Custom Form Login
-  const handleCredentialsLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-
-    if (!loginEmail || !loginPassword) {
-      setLoginError("Please enter both your email address and password.");
+  // Social Login handler
+  const handleSocialLogin = async (provider: "google" | "apple" | "github" | "huggingface") => {
+    setErrorMsg("");
+    if (provider === "google") {
+      setGoogleChooserStep("choose");
+      setGoogleError("");
+      setGoogleEmailInput("");
+      setGooglePasswordInput("");
+      setShowGoogleChooser(true);
       return;
     }
-
-    setIsLoggingIn(true);
-    const result = await loginWithCredentials(loginEmail, loginPassword);
-    setIsLoggingIn(false);
-
-    if (!result.success) {
-      setLoginError(result.error || "Authentication failed.");
+    
+    setLoading(true);
+    try {
+      await loginWithOAuth(provider);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to log in with social provider.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Custom Form Signup
-  const handleCredentialsSignup = async (e: React.FormEvent) => {
+  // Email / Password Signup
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSignupError("");
+    setErrorMsg("");
 
-    if (!signupName || !signupEmail || !signupPassword || !signupConfirmPassword) {
-      setSignupError("Please fill out all input fields.");
+    if (!firstName || !lastName || !email || !password) {
+      setErrorMsg("Please fill out all fields.");
       return;
     }
 
-    if (signupPassword !== signupConfirmPassword) {
-      setSignupError("Passwords do not match. Please double check.");
+    if (!agreeTerms) {
+      setErrorMsg("You must agree to the Terms & Conditions.");
       return;
     }
 
-    if (signupPassword.length < 6) {
-      setSignupError("Password must be at least 6 characters long.");
+    if (password.length < 6) {
+      setErrorMsg("Password must be at least 6 characters long.");
       return;
     }
 
-    setIsSigningUp(true);
-    const result = await signUpWithCredentials(signupName, signupEmail, signupPassword);
-    setIsSigningUp(false);
+    setLoading(true);
+    const fullName = `${firstName} ${lastName}`;
+    const result = await signUpWithCredentials(fullName, email, password);
+    setLoading(false);
 
     if (!result.success) {
-      setSignupError(result.error || "Failed to create account.");
+      setErrorMsg(result.error || "Failed to create account.");
     }
   };
 
-  // Forgot password flow
+  // Email / Password Login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!email || !password) {
+      setErrorMsg("Please enter both email and password.");
+      return;
+    }
+
+    setLoading(true);
+    const result = await loginWithCredentials(email, password);
+    setLoading(false);
+
+    if (!result.success) {
+      setErrorMsg(result.error || "Authentication failed.");
+    }
+  };
+
+  // Phone Login Code Send
+  const handleSendCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!phoneNumber) {
+      setErrorMsg("Please enter your phone number.");
+      return;
+    }
+
+    setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setLoading(false);
+    setCodeSent(true);
+  };
+
+  // Phone Login Code Verify
+  const handleVerifyPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!verificationCode) {
+      setErrorMsg("Please enter the verification code.");
+      return;
+    }
+
+    setLoading(true);
+    const result = await loginWithPhone(phoneNumber, verificationCode);
+    setLoading(false);
+
+    if (!result.success) {
+      setErrorMsg(result.error || "Verification failed.");
+    }
+  };
+
+  // Forgot Password submit
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotError("");
+    setErrorMsg("");
 
     if (!forgotEmail) {
-      setForgotError("Please enter your email address to continue.");
+      setErrorMsg("Please enter your email address.");
       return;
     }
 
@@ -237,504 +320,614 @@ export default function GlassLoginWall() {
   };
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-transparent text-white flex items-center justify-center overflow-hidden z-50">
-      {/* Subtle background ambient overlay to boost readability */}
-      <div className="absolute inset-0 bg-[#020204]/40 backdrop-blur-[2px]" />
+    <div className="fixed inset-0 w-screen h-screen bg-[#110e1a] text-white flex items-center justify-center overflow-y-auto z-50 px-4 py-8 select-none font-sans">
+      
+      {/* Subtle ambient lighting overlays to match premium dark/purple style */}
+      <div className="absolute inset-0 bg-[#0d0a15]/95 z-0" />
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[150px] pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-indigo-900/10 rounded-full blur-[150px] pointer-events-none z-0" />
 
-      <div className="max-w-5xl w-full mx-4 grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10">
-        
-        {/* Left Hand Visual: Interactive memory graph preview */}
-        <div className="hidden md:flex md:col-span-5 flex-col justify-center pr-6">
-          <div className="relative mb-6">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border-glow-purple shadow-[0_0_20px_rgba(168,85,247,0.4)]">
-              <Network className="h-6 w-6 text-white" />
-            </div>
-          </div>
-          
-          <h2 className="text-3xl font-black tracking-tight text-white leading-tight">
-            Meet<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan via-cyber-purple to-cyber-rose">Graph</span>
-          </h2>
-          
-          <p className="text-gray-400 font-mono text-[10px] uppercase tracking-widest mt-1.5 mb-6">
-            Memory Intelligence
-          </p>
-
-          <p className="text-gray-400 text-sm leading-relaxed mb-8">
-            We capture your meetings, track decisions, and organize task lists automatically, so your team stays perfectly in sync without extra typing.
-          </p>
-
-          {/* SVG Rotating Memory Graph Graphic */}
-          <div className="relative h-60 w-full border border-white/5 bg-white/5 backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center group">
-            <div className="absolute inset-0 bg-gradient-to-t from-[#020204]/80 via-transparent to-transparent z-10" />
+      {/* Login Page Main Container */}
+      <AnimatePresence mode="wait">
+        {!welcomeEmail ? (
+          <div className="max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10 items-center justify-center">
             
-            {/* Pulsing Core */}
-            <motion.div 
-              animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.5, 0.3] }}
-              transition={{ repeat: Infinity, duration: 4 }}
-              className="absolute h-40 w-40 bg-cyber-purple/10 rounded-full blur-2xl" 
-            />
+            {/* Left Hand Visual: Interactive rotating nodes memory graph preview */}
+            <div className="hidden md:flex md:col-span-5 flex-col justify-center pr-6">
+              <div className="relative mb-6">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-teal-400 flex items-center justify-center border border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                  <Network className="h-6 w-6 text-white animate-pulse" />
+                </div>
+              </div>
+              
+              <h2 className="text-3xl font-black tracking-tight text-white leading-tight">
+                Meet<span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-purple-500 to-pink-500">Graph</span>
+              </h2>
+              
+              <p className="text-gray-400 font-mono text-[10px] uppercase tracking-widest mt-1.5 mb-6">
+                Memory Intelligence
+              </p>
 
-            {/* SVG Interactive Lines & Nodes */}
-            <svg width="240" height="200" viewBox="0 0 240 200" className="relative z-20">
-              <motion.g
-                animate={{ rotate: 360 }}
-                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                style={{ transformOrigin: "120px 100px" }}
+              <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                We capture your meetings, track decisions, and organize task lists automatically, so your team stays perfectly in sync without extra typing.
+              </p>
+
+              {/* SVG Rotating Memory Graph Graphic */}
+              <div className="relative h-60 w-full border border-white/[0.05] bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center group shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a15]/90 via-transparent to-transparent z-10" />
+                
+                {/* Pulsing Core */}
+                <motion.div 
+                  animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.4, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 4 }}
+                  className="absolute h-40 w-40 bg-purple-500/10 rounded-full blur-2xl animate-pulse" 
+                />
+
+                {/* SVG Interactive Lines & Nodes */}
+                <svg width="240" height="200" viewBox="0 0 240 200" className="relative z-20">
+                  <motion.g
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                    style={{ transformOrigin: "120px 100px" }}
+                  >
+                    {/* Connections */}
+                    <line x1="120" y1="100" x2="60" y2="60" stroke="rgba(20,184,166,0.3)" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <line x1="120" y1="100" x2="180" y2="70" stroke="rgba(168,85,247,0.3)" strokeWidth="1.5" />
+                    <line x1="120" y1="100" x2="130" y2="160" stroke="rgba(244,63,94,0.3)" strokeWidth="1.5" />
+                    <line x1="60" y1="60" x2="180" y2="70" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    <line x1="180" y1="70" x2="130" y2="160" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    <line x1="130" y1="160" x2="60" y2="60" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+
+                    {/* Nodes */}
+                    <circle cx="120" cy="100" r="10" fill="url(#coreGradient)" className="filter drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                    <circle cx="60" cy="60" r="6" fill="#14b8a6" />
+                    <circle cx="180" cy="70" r="7" fill="#a855f7" />
+                    <circle cx="130" cy="160" r="5" fill="#f43f5e" />
+                  </motion.g>
+                  
+                  <defs>
+                    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#a855f7" />
+                      <stop offset="100%" stopColor="#14b8a6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                
+                <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-center text-[10px] font-mono text-gray-500">
+                  <span>Nodes: 34 Active</span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 opacity-75 animate-ping" />
+                    Live Index Sync
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Hand Visual: Redesigned Premium Glassmorphic Card */}
+            <div className="col-span-1 md:col-span-7 flex justify-center w-full">
+              <motion.div 
+                key="auth-card"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full max-w-[420px] bg-[#1a1625]/85 border border-white/[0.06] rounded-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.7)] backdrop-blur-2xl relative z-10 flex flex-col justify-between overflow-hidden"
               >
-                {/* Connections */}
-                <line x1="120" y1="100" x2="60" y2="60" stroke="rgba(6,182,212,0.3)" strokeWidth="1.5" strokeDasharray="3 3" />
-                <line x1="120" y1="100" x2="180" y2="70" stroke="rgba(168,85,247,0.3)" strokeWidth="1.5" />
-                <line x1="120" y1="100" x2="130" y2="160" stroke="rgba(244,63,94,0.3)" strokeWidth="1.5" />
-                <line x1="60" y1="60" x2="180" y2="70" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                <line x1="180" y1="70" x2="130" y2="160" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                <line x1="130" y1="160" x2="60" y2="60" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+            {/* Upper Edge Glowing Accent */}
+            <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
 
-                {/* Nodes */}
-                <circle cx="120" cy="100" r="10" fill="url(#coreGradient)" className="filter drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
-                <circle cx="60" cy="60" r="6" fill="#06b6d4" />
-                <circle cx="180" cy="70" r="7" fill="#a855f7" />
-                <circle cx="130" cy="160" r="5" fill="#f43f5e" />
-              </motion.g>
-              
-              <defs>
-                <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#a855f7" />
-                  <stop offset="100%" stopColor="#06b6d4" />
-                </linearGradient>
-              </defs>
-            </svg>
-            
-            <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-center text-[10px] font-mono text-gray-500">
-              <span>Nodes: 34 Active</span>
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyber-emerald opacity-75" />
-                Live Index Sync
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Hand Visual: Premium Glassmorphic Card Container */}
-        <div className="col-span-1 md:col-span-7 flex flex-col justify-center">
-          <div className="border border-white/5 bg-white/[0.02] backdrop-blur-2xl rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden min-h-[500px] flex flex-col justify-between">
-            {/* Top accent glow line */}
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-            {/* Render different cards dynamically based on flowStep */}
-            <AnimatePresence mode="wait">
-              
-              {/* STEP 1: INITIAL QUESTION WORKSPACE QUESTION */}
-              {flowStep === "initial" && (
-                <motion.div
-                  key="initial"
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 15 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col justify-between h-full flex-grow"
-                >
-                  <div>
-                    <div className="mb-6">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple mb-3">
-                        <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                        Workspace Setup
-                      </span>
-                      <h3 className="text-2xl font-bold text-white tracking-tight">Do you already have an account?</h3>
-                      <p className="text-gray-400 text-sm mt-1">Please select an option below to guide your experience.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                      {/* OPTION A: Already Registered */}
-                      <button
+            <div>
+              {/* Header Titles */}
+              <div className="mb-8 text-left">
+                <h2 className="text-3xl font-bold tracking-tight text-white mb-2 font-sans">
+                  {flowStep === "signup" && "Create an account"}
+                  {flowStep === "login" && "Log in to account"}
+                  {flowStep === "phone" && "Sign in with Phone"}
+                  {flowStep === "forgot_password" && "Reset password"}
+                </h2>
+                
+                <p className="text-xs text-gray-400">
+                  {flowStep === "signup" && (
+                    <>
+                      Already have an account?{" "}
+                      <button 
                         onClick={() => setFlowStep("login")}
-                        className="group flex flex-col text-left p-5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-cyber-purple/30 transition-all duration-300 relative overflow-hidden"
+                        className="text-purple-400 hover:text-purple-300 font-medium underline underline-offset-4 transition-colors"
                       >
-                        <div className="absolute -inset-0.5 bg-gradient-to-tr from-cyber-purple/10 to-cyber-cyan/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm -z-10" />
-                        <div className="h-9 w-9 rounded-xl bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                          <LogIn className="h-5 w-5" />
-                        </div>
-                        <span className="text-sm font-bold text-white block">Yes, I have an account</span>
-                        <span className="text-xs text-gray-400 mt-2 leading-relaxed">Sign in with Google SSO, sandbox seeds, or your personal credentials.</span>
-                        <div className="mt-4 flex items-center gap-1.5 text-xs text-cyber-purple font-semibold group-hover:translate-x-1 transition-transform">
-                          Access Workspace <ArrowRight className="h-3.5 w-3.5" />
-                        </div>
+                        Log in
                       </button>
-
-                      {/* OPTION B: New User Registration */}
-                      <button
+                    </>
+                  )}
+                  {flowStep === "login" && (
+                    <>
+                      Don't have an account?{" "}
+                      <button 
                         onClick={() => setFlowStep("signup")}
-                        className="group flex flex-col text-left p-5 rounded-2xl border border-white/5 bg-cyber-cyan/5 hover:bg-white/10 hover:border-cyber-cyan/30 transition-all duration-300 relative overflow-hidden"
+                        className="text-purple-400 hover:text-purple-300 font-medium underline underline-offset-4 transition-colors"
                       >
-                        <div className="absolute -inset-0.5 bg-gradient-to-tr from-cyber-cyan/10 to-cyber-purple/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm -z-10" />
-                        <div className="h-9 w-9 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/20 text-cyber-cyan flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                          <UserPlus className="h-5 w-5" />
-                        </div>
-                        <span className="text-sm font-bold text-white block">No, I am new here</span>
-                        <span className="text-xs text-gray-400 mt-2 leading-relaxed">Create a brand new profile and configure your local team assistant nodes.</span>
-                        <div className="mt-4 flex items-center gap-1.5 text-xs text-cyber-cyan font-semibold group-hover:translate-x-1 transition-transform">
-                          Register Account <ArrowRight className="h-3.5 w-3.5" />
-                        </div>
+                        Sign up
                       </button>
-                    </div>
-                  </div>
+                    </>
+                  )}
+                  {flowStep === "phone" && (
+                    <>
+                      Prefer credentials?{" "}
+                      <button 
+                        onClick={() => setFlowStep("login")}
+                        className="text-purple-400 hover:text-purple-300 font-medium underline underline-offset-4 transition-colors"
+                      >
+                        Email Login
+                      </button>
+                    </>
+                  )}
+                  {flowStep === "forgot_password" && "Enter your email to receive a recovery link"}
+                </p>
+              </div>
 
-                  {/* Seed Sandbox bypass indicator (maintained for rapid developer entry) */}
-                  <div className="mt-8 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-500">
-                    <span className="font-mono">Local Host Safe Environment</span>
-                    <button 
-                      onClick={() => setFlowStep("login")}
-                      className="text-cyber-purple hover:underline font-semibold"
-                    >
-                      Quick Developer Bypass &rarr;
-                    </button>
-                  </div>
+              {/* Error messages */}
+              {errorMsg && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-5 p-3 rounded-xl bg-red-500/5 border border-red-500/15 text-xs text-red-400 flex items-start gap-2.5"
+                >
+                  <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+                  <span>{errorMsg}</span>
                 </motion.div>
               )}
 
-              {/* STEP 2: DYNAMIC LOGIN WORKSPACE CARD */}
-              {flowStep === "login" && (
-                <motion.div
-                  key="login"
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 15 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col h-full flex-grow"
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <button 
-                      onClick={() => setFlowStep("initial")}
-                      className="p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs text-gray-400 font-mono">Back to choices</span>
-                  </div>
-
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-white tracking-tight">Access Workspace</h3>
-                    <p className="text-gray-400 text-xs mt-1">Sign in with Google SSO or custom credentials.</p>
-                  </div>
-
-                  {/* Standardized Form + Google login */}
-                  <form onSubmit={handleCredentialsLogin} className="space-y-4">
-                    {loginError && (
-                      <div className="p-3 rounded-xl bg-cyber-rose/5 border border-cyber-rose/15 text-xs text-cyber-rose flex items-start gap-2.5">
-                        <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
-                        <span>{loginError}</span>
-                      </div>
-                    )}
-
-                    {/* Email Input */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-gray-500 block">Email Address</label>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-500" />
+              {/* FORM AREA */}
+              <AnimatePresence mode="wait">
+                {/* SIGN UP FORM */}
+                {flowStep === "signup" && (
+                  <motion.form
+                    key="signup-form"
+                    onSubmit={handleSignup}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    {/* First & Last name row */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
                         <input
-                          type="email"
-                          placeholder="e.g. reeti.s@meetgraph.ai"
-                          value={loginEmail}
-                          onChange={(e) => setLoginEmail(e.target.value)}
-                          className="w-full bg-black/45 border border-white/5 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyber-purple font-sans"
+                          type="text"
+                          placeholder="Fletcher"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          placeholder="Last name"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
                         />
                       </div>
                     </div>
 
-                    {/* Password Input */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-gray-500 block">Password</label>
-                        <button
-                          type="button"
-                          onClick={() => setFlowStep("forgot_password")}
-                          className="text-[10px] text-cyber-purple hover:underline font-mono"
-                        >
-                          Forgot Password?
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-500" />
+                    {/* Email */}
+                    <div className="space-y-1">
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
+                      />
+                    </div>
+
+                    {/* Password */}
+                    <div className="space-y-1 relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl pl-4 pr-11 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-3.5 text-gray-400 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                      </button>
+                    </div>
+
+                    {/* Terms Checkbox */}
+                    <div className="flex items-center gap-3 pt-1">
+                      <label className="relative flex items-center cursor-pointer">
                         <input
-                          type="password"
-                          placeholder="••••••••"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          className="w-full bg-black/45 border border-white/5 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyber-purple font-sans"
+                          type="checkbox"
+                          checked={agreeTerms}
+                          onChange={(e) => setAgreeTerms(e.target.checked)}
+                          className="sr-only peer"
                         />
-                      </div>
+                        <div className="w-5 h-5 bg-[#272134]/70 border border-white/[0.06] rounded-md peer-checked:bg-purple-600 peer-checked:border-purple-500 flex items-center justify-center transition-all">
+                          {agreeTerms && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </label>
+                      <span className="text-xs text-gray-400">
+                        I agree to the <span className="text-purple-400 font-medium hover:underline cursor-pointer">Terms & Conditions</span>
+                      </span>
                     </div>
 
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isLoggingIn}
-                      className="w-full bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:brightness-110 active:scale-[0.98] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyber-purple/20"
+                      disabled={loading}
+                      className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-purple-900/20"
                     >
-                      {isLoggingIn ? (
-                        <>
-                          <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-                          <span>Checking Identity...</span>
-                        </>
+                      {loading ? (
+                        <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
                       ) : (
-                        <>
-                          <LogIn className="h-4.5 w-4.5" />
-                          <span>Yes, Sign In</span>
-                        </>
+                        "Create account"
                       )}
                     </button>
-                  </form>
+                  </motion.form>
+                )}
 
-                  {/* Or divider */}
-                  <div className="relative flex py-4 items-center">
-                    <div className="flex-grow border-t border-white/5"></div>
-                    <span className="flex-shrink mx-4 text-gray-600 text-[9px] font-mono uppercase tracking-widest">or sign in with</span>
-                    <div className="flex-grow border-t border-white/5"></div>
-                  </div>
-
-                  {/* Simulated Google Button */}
-                  <button
-                    onClick={() => {
-                      setGoogleChooserStep("choose");
-                      setGoogleError("");
-                      setGoogleEmailInput("");
-                      setGooglePasswordInput("");
-                      setShowGoogleChooser(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 text-white text-xs font-semibold transition-all duration-300 shadow-md group relative overflow-hidden"
+                {/* LOGIN FORM */}
+                {flowStep === "login" && (
+                  <motion.form
+                    key="login-form"
+                    onSubmit={handleLogin}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyber-cyan/5 to-cyber-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <svg className="h-4.5 w-4.5 group-hover:scale-110 transition-transform duration-300 shrink-0" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    <span>Login with Google Account SSO</span>
-                  </button>
-                </motion.div>
-              )}
-
-              {/* STEP 3: DYNAMIC SIGNUP REGISTRATION CARD */}
-              {flowStep === "signup" && (
-                <motion.div
-                  key="signup"
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 15 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col h-full flex-grow"
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <button 
-                      onClick={() => setFlowStep("initial")}
-                      className="p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs text-gray-400 font-mono">Back to choices</span>
-                  </div>
-
-                  <div className="mb-4">
-                    <h3 className="text-2xl font-bold text-white tracking-tight">Create Account</h3>
-                    <p className="text-gray-400 text-xs mt-1">Register a new profile to configure your workspace node.</p>
-                  </div>
-
-                  <form onSubmit={handleCredentialsSignup} className="space-y-3">
-                    {signupError && (
-                      <div className="p-2.5 rounded-xl bg-cyber-rose/5 border border-cyber-rose/15 text-xs text-cyber-rose flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                        <span>{signupError}</span>
-                      </div>
-                    )}
-
-                    {/* Name Input */}
+                    {/* Email */}
                     <div className="space-y-1">
-                      <label className="text-[9px] font-mono uppercase tracking-wider text-gray-500 block">Full Name</label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                        <input
-                          type="text"
-                          placeholder="e.g. Elena Rostova"
-                          value={signupName}
-                          onChange={(e) => setSignupName(e.target.value)}
-                          className="w-full bg-black/45 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-gray-650 focus:outline-none focus:border-cyber-cyan font-sans"
-                        />
-                      </div>
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
+                      />
                     </div>
 
-                    {/* Email Input */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-mono uppercase tracking-wider text-gray-500 block">Email Address</label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                        <input
-                          type="email"
-                          placeholder="e.g. elena.r@meetgraph.ai"
-                          value={signupEmail}
-                          onChange={(e) => setSignupEmail(e.target.value)}
-                          className="w-full bg-black/45 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-gray-650 focus:outline-none focus:border-cyber-cyan font-sans"
-                        />
-                      </div>
+                    {/* Password */}
+                    <div className="space-y-1 relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl pl-4 pr-11 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-3.5 text-gray-400 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                      </button>
                     </div>
 
-                    {/* Password Fields in a row */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-gray-500 block">Password</label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                          <input
-                            type="password"
-                            placeholder="••••••"
-                            value={signupPassword}
-                            onChange={(e) => setSignupPassword(e.target.value)}
-                            className="w-full bg-black/45 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-gray-650 focus:outline-none focus:border-cyber-cyan font-sans"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-gray-500 block">Confirm</label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                          <input
-                            type="password"
-                            placeholder="••••••"
-                            value={signupConfirmPassword}
-                            onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                            className="w-full bg-black/45 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-gray-650 focus:outline-none focus:border-cyber-cyan font-sans"
-                          />
-                        </div>
-                      </div>
+                    {/* Forgot password bypass */}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setFlowStep("forgot_password")}
+                        className="text-xs text-purple-400 hover:text-purple-300 hover:underline"
+                      >
+                        Forgot password?
+                      </button>
                     </div>
 
-                    {/* Submit Register Button */}
+                    {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSigningUp}
-                      className="w-full bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-110 active:scale-[0.98] text-white font-medium py-2.5 px-4 rounded-xl transition-all duration-200 text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyber-cyan/20 mt-4"
+                      disabled={loading}
+                      className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-purple-900/20"
                     >
-                      {isSigningUp ? (
-                        <>
-                          <div className="h-3.5 w-3.5 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-                          <span>Provisioning Profile...</span>
-                        </>
+                      {loading ? (
+                        <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
                       ) : (
-                        <>
-                          <UserPlus className="h-4 w-4" />
-                          <span>Register New Profile</span>
-                        </>
+                        "Log in"
                       )}
                     </button>
-                  </form>
-                </motion.div>
-              )}
+                  </motion.form>
+                )}
 
-              {/* STEP 4: DYNAMIC FORGOT PASSWORD RECOVERY CARD */}
-              {flowStep === "forgot_password" && (
-                <motion.div
-                  key="forgot"
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 15 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col h-full flex-grow"
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <button 
-                      onClick={() => setFlowStep("login")}
-                      className="p-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs text-gray-400 font-mono">Back to Sign In</span>
-                  </div>
-
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-white tracking-tight">Recover Password</h3>
-                    <p className="text-gray-400 text-xs mt-1">We will send a secure bypass token to restore your session.</p>
-                  </div>
-
-                  {forgotStatus === "sent" ? (
-                    <div className="p-6 rounded-2xl bg-cyber-emerald/5 border border-cyber-emerald/15 flex flex-col items-center justify-center text-center space-y-4">
-                      <div className="h-12 w-12 rounded-full bg-cyber-emerald/10 border border-cyber-emerald/20 flex items-center justify-center text-cyber-emerald animate-bounce">
-                        <CheckCircle2 className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-white">Recovery Token Dispatched</h4>
-                        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                          A local session override link was sent to <strong className="text-cyber-cyan">{forgotEmail}</strong>. Select the link to automatically log back in.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setForgotStatus("idle");
-                          setFlowStep("login");
-                        }}
-                        className="mt-2 text-xs text-cyber-purple font-semibold hover:underline"
-                      >
-                        Return to login form &rarr;
-                      </button>
+                {/* PHONE LOGIN FORM */}
+                {flowStep === "phone" && (
+                  <motion.form
+                    key="phone-form"
+                    onSubmit={codeSent ? handleVerifyPhone : handleSendCode}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    {/* Phone field */}
+                    <div className="space-y-1">
+                      <input
+                        type="tel"
+                        placeholder="+1 (555) 000-0000"
+                        disabled={codeSent}
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30 disabled:opacity-60"
+                      />
                     </div>
-                  ) : (
-                    <form onSubmit={handleForgotPassword} className="space-y-4">
-                      {forgotError && (
-                        <div className="p-3 rounded-xl bg-cyber-rose/5 border border-cyber-rose/15 text-xs text-cyber-rose flex items-start gap-2.5">
-                          <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
-                          <span>{forgotError}</span>
-                        </div>
-                      )}
 
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-gray-500 block">Registered Email Address</label>
-                        <div className="relative">
-                          <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-500" />
+                    {/* OTP Code field (conditionally rendered) */}
+                    {codeSent && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="space-y-1"
+                      >
+                        <input
+                          type="text"
+                          placeholder="Verification Code (e.g. 123456)"
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value)}
+                          className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
+                        />
+                        <div className="flex justify-between items-center text-[11px] text-gray-400 pt-1">
+                          <span>Simulated Code: <strong>123456</strong></span>
+                          <button
+                            type="button"
+                            onClick={() => setCodeSent(false)}
+                            className="text-purple-400 hover:text-purple-300 font-semibold"
+                          >
+                            Change Number
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-purple-900/20"
+                    >
+                      {loading ? (
+                        <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                      ) : (
+                        codeSent ? "Verify & Log in" : "Send Verification Code"
+                      )}
+                    </button>
+                  </motion.form>
+                )}
+
+                {/* FORGOT PASSWORD FORM */}
+                {flowStep === "forgot_password" && (
+                  <motion.form
+                    key="forgot-form"
+                    onSubmit={handleForgotPassword}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    {forgotStatus === "sent" ? (
+                      <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/15 flex flex-col items-center justify-center text-center space-y-3">
+                        <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xs text-white">Recovery Email Dispatched</h4>
+                          <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
+                            A password reset link was sent to <strong className="text-purple-400">{forgotEmail}</strong>.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFlowStep("login");
+                          }}
+                          className="mt-1 text-xs text-purple-400 font-semibold hover:underline"
+                        >
+                          Return to login form &rarr;
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-1">
                           <input
                             type="email"
-                            placeholder="e.g. reeti.s@meetgraph.ai"
+                            placeholder="Registered Email"
                             value={forgotEmail}
                             onChange={(e) => setForgotEmail(e.target.value)}
-                            className="w-full bg-black/45 border border-white/5 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-650 focus:outline-none focus:border-cyber-purple font-sans"
+                            className="w-full bg-[#272134]/70 border border-white/[0.04] focus:border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-purple-500/30"
                           />
                         </div>
-                      </div>
 
-                      <button
-                        type="submit"
-                        disabled={forgotStatus === "sending"}
-                        className="w-full bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:brightness-110 active:scale-[0.98] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyber-purple/20"
-                      >
-                        {forgotStatus === "sending" ? (
-                          <>
+                        <button
+                          type="submit"
+                          disabled={forgotStatus === "sending"}
+                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98]"
+                        >
+                          {forgotStatus === "sending" ? (
                             <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-                            <span>Locating account records...</span>
-                          </>
-                        ) : (
-                          <>
-                            <KeyRound className="h-4.5 w-4.5" />
-                            <span>Request Recovery Link</span>
-                          </>
-                        )}
-                      </button>
-                    </form>
-                  )}
-                </motion.div>
-              )}
+                          ) : (
+                            "Request Recovery Link"
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </motion.form>
+                )}
+              </AnimatePresence>
 
-            </AnimatePresence>
+              {/* Separator Line */}
+              <div className="relative flex py-6 items-center">
+                <div className="flex-grow border-t border-white/[0.04]"></div>
+                <span className="flex-shrink mx-4 text-gray-500 text-[10px] font-mono uppercase tracking-wider">
+                  {flowStep === "signup" ? "Or register with" : "Or sign in with"}
+                </span>
+                <div className="flex-grow border-t border-white/[0.04]"></div>
+              </div>
 
-            {/* Systems compliance footer */}
-            <div className="mt-8 flex items-center justify-between text-[9px] font-mono text-gray-500 border-t border-white/5 pt-4">
+              {/* SOCIAL LOGINS GRID */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("google")}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#272134]/40 hover:bg-[#272134]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  <span>Google</span>
+                </button>
+
+                {/* Apple Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("apple")}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#272134]/40 hover:bg-[#272134]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4 shrink-0 fill-white" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.21.67-2.93 1.49-.62.69-1.16 1.84-1.01 2.96 1.12.09 2.27-.57 2.95-1.39z"/>
+                  </svg>
+                  <span>Apple</span>
+                </button>
+
+                {/* GitHub Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("github")}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#272134]/40 hover:bg-[#272134]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4 shrink-0 fill-white" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.577.688.479C19.138 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                  <span>GitHub</span>
+                </button>
+
+                {/* Hugging Face Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("huggingface")}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#272134]/40 hover:bg-[#272134]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                >
+                  <span className="text-sm select-none">🤗</span>
+                  <span>Hugging Face</span>
+                </button>
+
+                {/* Phone Login Toggle Button */}
+                {flowStep !== "phone" && (
+                  <button
+                    type="button"
+                    onClick={() => setFlowStep("phone")}
+                    className="col-span-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#272134]/40 hover:bg-[#272134]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98] mt-1.5"
+                  >
+                    <Phone className="h-4 w-4 text-purple-400 shrink-0" />
+                    <span>Login using Phone Number</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Compliance Footer */}
+            <div className="mt-8 flex items-center justify-between text-[9px] font-mono text-gray-500 border-t border-white/[0.04] pt-4">
               <span className="flex items-center gap-1">
-                <ShieldCheck className="h-3.5 w-3.5 text-cyber-emerald" />
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                 TLS 1.3 Encryption Secured
               </span>
               <span>v1.2.6-stable</span>
             </div>
+              </motion.div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* STEP 5: WELCOME EMAIL DISPATCH INTERSTITIAL MODAL */
+          <motion.div
+            key="email-dispatch-preview"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-[850px] bg-[#120f1b]/95 border border-white/[0.06] rounded-3xl p-6 md:p-8 shadow-[0_30px_70px_rgba(0,0,0,0.8)] backdrop-blur-2xl relative z-10 flex flex-col justify-between overflow-hidden"
+          >
+            {/* Top glowing line */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-teal-500/40 via-purple-500/40 to-pink-500/40" />
 
-      </div>
+            {/* Header info */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/5 pb-5">
+              <div className="flex items-center gap-3.5">
+                <div className="h-11 w-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
+                  <MailCheck className="h-5.5 w-5.5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-1.5">
+                    Welcome Email Dispatched! <Sparkles className="h-4.5 w-4.5 text-purple-400 animate-pulse" />
+                  </h3>
+                  <p className="text-xs text-gray-400">An onboard email was processed successfully and logged to disk.</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={clearWelcomeEmail}
+                className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-xs bg-purple-600 hover:bg-purple-500 transition-all rounded-xl text-white font-bold tracking-wider uppercase active:scale-[0.98] shadow-md shadow-purple-900/30"
+              >
+                Enter Workspace <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Email Client Mock Frame */}
+            <div className="flex-1 flex flex-col bg-[#0b0b10] border border-white/[0.04] rounded-2xl overflow-hidden shadow-inner mb-5">
+              
+              {/* Email details bar */}
+              <div className="bg-[#181523] px-5 py-4 border-b border-white/[0.04] text-xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">Subject:</span>
+                  <span className="text-white font-medium">Welcome to MeetGraph AI!</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">From:</span>
+                  <span className="text-gray-300">system@meetgraph.ai &lt;MeetGraph AI Onboarding&gt;</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">To:</span>
+                  <span className="text-purple-400 font-medium">{welcomeEmail.filePath.split("welcome_")[1]?.split("_at_")[0] + "@" + welcomeEmail.filePath.split("_at_")[1]?.split("_")[0]}</span>
+                </div>
+              </div>
+
+              {/* HTML Email viewport */}
+              <div className="p-4 md:p-6 overflow-y-auto max-h-[380px] bg-[#0b0b10] flex justify-center">
+                <div 
+                  className="w-full text-left"
+                  dangerouslySetInnerHTML={{ __html: welcomeEmail.html }} 
+                />
+              </div>
+            </div>
+
+            {/* Log path location reference */}
+            <div className="flex flex-col sm:flex-row items-center justify-between text-[10px] font-mono text-gray-500 border-t border-white/5 pt-4 gap-2">
+              <span className="flex items-center gap-1.5 text-gray-400">
+                <FileText className="h-3.5 w-3.5 text-purple-400" />
+                Logged Location: <span className="text-purple-300 select-all truncate max-w-sm sm:max-w-md md:max-w-lg">{welcomeEmail.filePath}</span>
+              </span>
+              <span>TLS 1.3 Secured</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* DYNAMIC HIGH-FIDELITY NATIVE GOOGLE ACCOUNT CHOOSER WINDOW */}
       <AnimatePresence>
@@ -743,7 +936,7 @@ export default function GlassLoginWall() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#020204]/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-sans"
+            className="fixed inset-0 bg-[#020204]/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-sans text-left"
           >
             <motion.div
               initial={{ scale: 0.95, y: 15 }}
@@ -769,10 +962,10 @@ export default function GlassLoginWall() {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
-                      className="w-full"
+                      className="w-full text-left"
                     >
-                      <h4 className="text-xl text-white font-medium tracking-tight">Choose an account</h4>
-                      <p className="text-gray-300 text-sm mt-1 mb-6">to continue to <span className="text-cyber-cyan font-bold">MeetGraph AI</span></p>
+                      <h4 className="text-xl text-white font-medium tracking-tight text-center">Choose an account</h4>
+                      <p className="text-gray-300 text-sm mt-1 mb-6 text-center">to continue to <span className="text-purple-400 font-bold">MeetGraph AI</span></p>
                       
                       {/* Chooser account listings */}
                       <div className="space-y-0.5 border-y border-white/10 py-1.5 w-full text-left max-h-[220px] overflow-y-auto pr-1">
@@ -781,8 +974,9 @@ export default function GlassLoginWall() {
                         {Object.entries(SEED_PROFILES).map(([key, profile]) => (
                           <button
                             key={key}
+                            type="button"
                             onClick={() => handleGoogleChooserSelect(key)}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors"
+                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors text-left"
                           >
                             <img
                               src={profile.avatar}
@@ -800,8 +994,9 @@ export default function GlassLoginWall() {
                         {customRegisteredAccounts.map((acc, idx) => (
                           <button
                             key={`custom-${idx}`}
+                            type="button"
                             onClick={() => handleGoogleChooserSelect(undefined, acc)}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors"
+                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors text-left"
                           >
                             <img
                               src={acc.avatar}
@@ -817,18 +1012,19 @@ export default function GlassLoginWall() {
 
                         {/* USE ANOTHER ACCOUNT BUTTON */}
                         <button
+                          type="button"
                           onClick={() => {
                             setGoogleError("");
                             setGoogleEmailInput("");
                             setGoogleChooserStep("enter_email");
                           }}
-                          className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors border-t border-white/5 mt-1"
+                          className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors border-t border-white/5 mt-1 text-left"
                         >
-                          <div className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-350 shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 shrink-0">
                             <User className="h-4.5 w-4.5" />
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-gray-250 block">Use another account</span>
+                            <span className="text-xs font-bold text-gray-200 block">Use another account</span>
                           </div>
                         </button>
                       </div>
@@ -983,7 +1179,7 @@ export default function GlassLoginWall() {
               )}
 
               {/* Sub-footer compliance links */}
-              <div className="flex justify-between text-[11px] text-gray-500 mt-6 pt-4 border-t border-white/5">
+              <div className="flex justify-between text-[11px] text-gray-500 mt-6 pt-4 border-t border-white/5 w-full">
                 <span className="cursor-pointer hover:text-gray-400">English (United States)</span>
                 <div className="flex gap-3">
                   <span className="cursor-pointer hover:text-gray-400">Help</span>
@@ -994,6 +1190,7 @@ export default function GlassLoginWall() {
 
               {/* Native window cancel trigger */}
               <button
+                type="button"
                 onClick={() => setShowGoogleChooser(false)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
               >
@@ -1013,7 +1210,7 @@ export default function GlassLoginWall() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#020204]/90 backdrop-blur-xl z-50 flex items-center justify-center flex-col p-4"
+            className="fixed inset-0 bg-[#020204]/90 backdrop-blur-xl z-50 flex items-center justify-center flex-col p-4 text-left"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 15 }}
@@ -1021,7 +1218,7 @@ export default function GlassLoginWall() {
               exit={{ scale: 0.9, y: 15 }}
               className="max-w-md w-full border border-white/5 bg-[#08080c] p-6 rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-cyber-cyan via-cyber-purple to-cyber-rose animate-pulse" />
+              <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 animate-pulse" />
               
               <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-4">
                 <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center border border-white/10 shrink-0 shadow-sm">
@@ -1041,8 +1238,8 @@ export default function GlassLoginWall() {
               <div className="space-y-4 py-3 flex flex-col items-center justify-center">
                 {/* Dynamic Loader */}
                 <div className="relative h-12 w-12 flex items-center justify-center mb-1">
-                  <div className="h-10 w-10 rounded-full border-2 border-white/5 border-t-cyber-purple animate-spin" />
-                  <div className="absolute h-4 w-4 bg-cyber-cyan rounded-full animate-ping" />
+                  <div className="h-10 w-10 rounded-full border-2 border-white/5 border-t-purple-500 animate-spin" />
+                  <div className="absolute h-4 w-4 bg-teal-400 rounded-full animate-ping" />
                 </div>
                 
                 {selectedOAuthUser && (
