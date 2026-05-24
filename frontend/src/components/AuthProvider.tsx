@@ -19,8 +19,8 @@ export const SEED_PROFILES: Record<string, UserProfile> = {
     color: "from-cyber-cyan to-blue-500",
   },
   reeti: {
-    name: "Reeti Sharma",
-    email: "reeti.s@MemoMind.ai",
+    name: "Reeti Khandelwal",
+    email: "reeti.s@meetgraph.ai",
     avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Reeti",
     role: "Frontend Engineer",
     color: "from-[#eca72c] to-[#ee5622]",
@@ -58,13 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [welcomeEmail, setWelcomeEmail] = useState<{ html: string; filePath: string } | null>(null);
 
   // Check if Clerk env variables are configured
-  const isClerkEnabled = 
-    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
+  const isClerkEnabled =
+    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "";
 
   // Always show the login page first, even after browser refresh.
   useEffect(() => {
     localStorage.removeItem("MemoMind_session");
+    localStorage.removeItem("meetgraph_session");
     setIsLoading(false);
   }, []);
 
@@ -118,6 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Standard Login (Google OAuth simulator / Sandbox Profile)
   const loginWithGoogle = async (profileKey?: string, customUser?: UserProfile) => {
     setIsLoading(true);
+
+    // Simulate a minor network request or Google OAuth redirect authorization latency
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     let selectedUser: UserProfile;
