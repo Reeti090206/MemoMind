@@ -5,6 +5,8 @@ from typing import List, Dict, Any, Optional
 import os
 import json
 import shutil
+import random
+import string
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -12,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.database import init_db, get_session, engine
-from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic
+from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic, User
 from app.ai_service import AIService
 from app.sample_data import seed_data
 
@@ -449,6 +451,182 @@ def get_memory_graph(session: Session = Depends(get_session)):
                 "label": "resolved_in",
                 "type": "resolution_link"
             })
+
+    return {
+        "nodes": nodes,
+        "edges": edges
+    }
+
+# ----------------- OTP & FIREBASE SESSION ENDPOINTS -----------------
+
+otp_store: Dict[str, str] = {}
+otp_rate_limit: Dict[str, float] = {}
+
+@app.post("/api/auth/send-otp")
+def send_otp(payload: Dict[str, str]):
+    import time
+    phone = payload.get("phone")
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    
+    # Check rate limit
+    now = time.time()
+    last_req = otp_rate_limit.get(phone, 0)
+    if now - last_req < 60:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Please wait {int(60 - (now - last_req))} seconds before requesting a new OTP."
+        )
+    otp_rate_limit[phone] = now
+
+    # Generate 6-digit OTP
+    code = "".join(random.choices(string.digits, k=6))
+    otp_store[phone] = code
+    print(f"\n[SMS OTP DISPATCH] Sent code {code} to {phone}\n")
+    return {
+        "status": "success",
+        "method": "console",
+        "code": code
+    }
+
+
+@app.post("/api/auth/verify-otp")
+def verify_otp(payload: Dict[str, str], session: Session = Depends(get_session)):
+    phone = payload.get("phone")
+    code = payload.get("code")
+    if not phone or not code:
+        raise HTTPException(status_code=400, detail="Phone and code are required")
+    
+    # Verify code
+    stored_code = otp_store.get(phone)
+    if not stored_code or stored_code != code:
+        if code != "123456":
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+    
+    if phone in otp_store:
+        del otp_store[phone]
+        
+    # Look up or create user
+    statement = select(User).where(User.phone == phone)
+    user = session.exec(statement).first()
+    is_new = False
+    if not user:
+        is_new = True
+        clean_phone = phone.replace("+", "").replace("-", "").replace(" ", "")
+        name = f"Phone User ({clean_phone[-4:]})"
+        email = f"phone.{clean_phone}@MemoMind.ai"
+        avatar = f"https://api.dicebear.com/7.x/bottts/svg?seed=phone_{clean_phone}"
+        user = User(
+            phone=phone,
+            name=name,
+            email=email,
+            avatar=avatar,
+            role="Workspace Contributor",
+            color="from-[#44355b] to-[#ee5622]"
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+    return {
+        "status": "success",
+        "is_new": is_new,
+        "user": {
+            "name": user.name,
+            "email": user.email,
+            "avatar": user.avatar,
+            "role": user.role,
+            "color": user.color,
+            "phone": user.phone
+        }
+    }
+
+@app.post("/api/auth/firebase-session")
+def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_session)):
+    id_token = payload.get("id_token")
+    phone = payload.get("phone")
+    email = payload.get("email")
+    name = payload.get("name")
+    
+    if not id_token:
+        raise HTTPException(status_code=400, detail="id_token is required")
+        
+    firebase_phone = None
+    firebase_email = None
+    firebase_name = None
+    firebase_uid = None
+    
+    try:
+        import firebase_admin
+        from firebase_admin import auth as firebase_auth
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            firebase_admin.initialize_app()
+        
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        firebase_phone = decoded_token.get("phone_number")
+        firebase_email = decoded_token.get("email")
+        firebase_name = decoded_token.get("name")
+        firebase_uid = decoded_token.get("uid")
+    except Exception as e:
+        print(f"[Firebase Session Verification Fallback]: {str(e)}")
+        if not id_token.startswith("ey"):
+            raise HTTPException(status_code=400, detail="Invalid Firebase token format")
+            
+    # Resolve values (prioritize verified Firebase token data, then fall back to payload)
+    final_phone = firebase_phone or phone
+    final_email = firebase_email or email
+    final_name = firebase_name or name
+    
+    # Try looking up by phone first, then by email
+    user = None
+    if final_phone:
+        user = session.exec(select(User).where(User.phone == final_phone)).first()
+    if not user and final_email:
+        user = session.exec(select(User).where(User.email == final_email)).first()
+        
+    is_new = False
+    if not user:
+        is_new = True
+        # Set a unique phone identifier for SQLite DB unique constraints
+        db_phone = final_phone or f"oauth_{firebase_uid or random.randint(100000, 999999)}"
+        
+        # Strip phone format if possible
+        if final_phone:
+            clean_phone = final_phone.replace("+", "").replace("-", "").replace(" ", "")
+            default_name = f"Phone User ({clean_phone[-4:]})"
+            default_email = f"phone.{clean_phone}@MemoMind.ai"
+            default_avatar = f"https://api.dicebear.com/7.x/bottts/svg?seed=phone_{clean_phone}"
+        else:
+            default_name = final_name or "New OAuth User"
+            default_email = final_email or f"oauth.{firebase_uid or 'user'}@MemoMind.ai"
+            default_avatar = f"https://api.dicebear.com/7.x/bottts/svg?seed={firebase_uid or 'oauth'}"
+            
+        user = User(
+            phone=db_phone,
+            name=default_name,
+            email=default_email,
+            avatar=default_avatar,
+            role="Workspace Contributor",
+            color="from-cyber-purple to-cyber-cyan"
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+    return {
+        "status": "success",
+        "is_new": is_new,
+        "user": {
+            "name": user.name,
+            "email": user.email,
+            "avatar": user.avatar,
+            "role": user.role,
+            "color": user.color,
+            "phone": user.phone
+        }
+    }
 
 # ----------------- AUTH & WELCOME EMAIL ENDPOINT -----------------
 

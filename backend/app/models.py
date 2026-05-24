@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from sqlmodel import SQLModel, Field, Relationship
+from datetime import datetime
 import json
 
 # Global JSON Helper
@@ -103,3 +104,13 @@ class UnresolvedTopic(SQLModel, table=True):
     resolved_in_meeting: Optional[Meeting] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "UnresolvedTopic.resolved_in_meeting_id"}
     )
+
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    phone: str = Field(unique=True, index=True)
+    name: str = Field(default="New User")
+    email: Optional[str] = None
+    avatar: Optional[str] = None
+    role: str = Field(default="Workspace Contributor")
+    color: str = Field(default="from-cyber-purple to-cyber-cyan")
+    created_at: datetime = Field(default_factory=datetime.utcnow)

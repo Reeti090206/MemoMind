@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, welcomeEmail } = useAuth();
   const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
@@ -76,7 +76,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || welcomeEmail) {
     return <GlassLoginWall />;
   }
 
