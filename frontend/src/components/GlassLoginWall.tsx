@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth, SEED_PROFILES, UserProfile } from "./AuthProvider";
+import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import { RecaptchaVerifier } from "firebase/auth";
 import { 
   Network, 
   ArrowRight, 
@@ -21,7 +23,9 @@ import {
   Phone,
   ArrowRightLeft,
   MailCheck,
-  FileText
+  FileText,
+  ChevronDown,
+  RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -60,6 +64,97 @@ export default function GlassLoginWall() {
   const [codeSent, setCodeSent] = useState(false);
   const [sentMethod, setSentMethod] = useState<string | null>(null);
   const [sentCode, setSentCode] = useState<string | null>(null);
+
+  // Modern Phone OTP inputs
+  const COUNTRIES = [
+    { code: "+1", name: "United States", flag: "🇺🇸" },
+    { code: "+91", name: "India", flag: "🇮🇳" },
+    { code: "+44", name: "United Kingdom", flag: "🇬🇧" },
+    { code: "+1", name: "Canada", flag: "🇨🇦" },
+    { code: "+61", name: "Australia", flag: "🇦🇺" },
+    { code: "+49", name: "Germany", flag: "🇩🇪" },
+    { code: "+33", name: "France", flag: "🇫🇷" },
+    { code: "+81", name: "Japan", flag: "🇯🇵" },
+    { code: "+86", name: "China", flag: "🇨🇳" },
+    { code: "+7", name: "Russia", flag: "🇷🇺" },
+    { code: "+55", name: "Brazil", flag: "🇧🇷" },
+    { code: "+27", name: "South Africa", flag: "🇿🇦" },
+    { code: "+34", name: "Spain", flag: "🇪🇸" },
+    { code: "+39", name: "Italy", flag: "🇮🇹" },
+    { code: "+65", name: "Singapore", flag: "🇸🇬" },
+    { code: "+971", name: "UAE", flag: "🇦🇪" }
+  ];
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [phoneRaw, setPhoneRaw] = useState("");
+  const [otpCodeArray, setOtpCodeArray] = useState<string[]>(Array(6).fill(""));
+  const [timer, setTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [showSuccessCheck, setShowSuccessCheck] = useState(false);
+  
+  const otpInputRefs = useRef<HTMLInputElement[]>([]);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close country dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
+        setShowCountryDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Auto-detect country code from IP
+  useEffect(() => {
+    const fetchUserCountry = async () => {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        if (res.ok) {
+          const data = await res.json();
+          const userCallingCode = data.country_calling_code;
+          if (userCallingCode) {
+            const matched = COUNTRIES.find(c => c.code === userCallingCode);
+            if (matched) {
+              setSelectedCountry(matched);
+            } else {
+              const customCountry = {
+                code: userCallingCode,
+                name: data.country_name || "Detected",
+                flag: data.country_code ? getFlagEmoji(data.country_code) : "🌐"
+              };
+              setSelectedCountry(customCountry);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Unable to auto-detect country calling code:", err);
+      }
+    };
+    fetchUserCountry();
+  }, []);
+
+  const getFlagEmoji = (countryCode: string) => {
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+  };
+
+  // OTP Countdown timer
+  useEffect(() => {
+    let intervalId: any;
+    if (codeSent && timer > 0) {
+      intervalId = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(intervalId);
+  }, [codeSent, timer]);
 
   // Forgot password inputs
   const [forgotEmail, setForgotEmail] = useState("");
@@ -201,8 +296,8 @@ export default function GlassLoginWall() {
     setIsAuthorizing(false);
   };
 
-  // Social Login handler (Google only)
-  const handleSocialLogin = async (provider: "google") => {
+  // Social Login handler (Google & GitHub)
+  const handleSocialLogin = async (provider: "google" | "github") => {
     setErrorMsg("");
     if (provider === "google") {
       setGoogleChooserStep("choose");
@@ -211,6 +306,15 @@ export default function GlassLoginWall() {
       setGooglePasswordInput("");
       setShowGoogleChooser(true);
       return;
+    }
+    if (provider === "github") {
+      setLoading(true);
+      try {
+        await loginWithOAuth("github");
+      } catch (err: any) {
+        setErrorMsg(err.message || "GitHub Authentication failed");
+      }
+      setLoading(false);
     }
   };
 
@@ -263,24 +367,79 @@ export default function GlassLoginWall() {
     }
   };
 
+  // Setup invisible Recaptcha Verifier
+  const setupRecaptcha = () => {
+    if (hasFirebaseConfig && auth && !(window as any).recaptchaVerifier) {
+      try {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            // reCAPTCHA solved
+          }
+        });
+      } catch (err: any) {
+        console.error("Failed to initialize reCAPTCHA verifier:", err);
+      }
+    }
+  };
+
   // Phone Login Code Send
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!phoneNumber) {
+    if (!phoneRaw) {
       setErrorMsg("Please enter your phone number.");
       return;
     }
 
-    setLoading(true);
-    const res = await sendOtp(phoneNumber);
-    setLoading(false);
-    if (!res.success) {
-      setErrorMsg(res.error || "Failed to send verification code.");
+    const cleanedRaw = phoneRaw.replace(/\D/g, "");
+    if (cleanedRaw.length < 7) {
+      setErrorMsg("Please enter a valid phone number.");
       return;
     }
+
+    const fullPhone = `${selectedCountry.code}${cleanedRaw}`;
+    setPhoneNumber(fullPhone);
+    setLoading(true);
+
+    let appVerifier = null;
+    if (hasFirebaseConfig && auth) {
+      setupRecaptcha();
+      appVerifier = (window as any).recaptchaVerifier;
+    }
+
+    const res = await sendOtp(fullPhone, appVerifier);
+    setLoading(false);
+
+    if (!res.success) {
+      if (res.error && res.error.includes("billing-not-enabled")) {
+        setErrorMsg("Firebase Billing Not Enabled. SMS requires a pay-as-you-go plan. Switching to Sandbox Demo Mode...");
+        setTimeout(async () => {
+          setErrorMsg("");
+          setLoading(true);
+          // Force simulated local mock OTP flow
+          const sandboxRes = await sendOtp(fullPhone);
+          setLoading(false);
+          if (sandboxRes.success) {
+            setCodeSent(true);
+            setTimer(60);
+            setCanResend(false);
+            setOtpCodeArray(Array(6).fill(""));
+            setSentMethod(sandboxRes.method || null);
+            if (sandboxRes.code) setSentCode(sandboxRes.code);
+          }
+        }, 3000);
+      } else {
+        setErrorMsg(res.error || "Failed to send verification code.");
+      }
+      return;
+    }
+
     setCodeSent(true);
+    setTimer(60);
+    setCanResend(false);
+    setOtpCodeArray(Array(6).fill(""));
     setSentMethod(res.method || null);
     if (res.code) setSentCode(res.code);
   };
@@ -290,17 +449,96 @@ export default function GlassLoginWall() {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!verificationCode) {
-      setErrorMsg("Please enter the verification code.");
+    const code = otpCodeArray.join("");
+    if (code.length < 6) {
+      setErrorMsg("Please enter all 6 digits.");
       return;
     }
 
     setLoading(true);
-    const result = await loginWithPhone(phoneNumber, verificationCode);
+    const fullPhone = `${selectedCountry.code}${phoneRaw.replace(/\D/g, "")}`;
+    const result = await loginWithPhone(fullPhone, code);
     setLoading(false);
 
-    if (!result.success) {
-      setErrorMsg(result.error || "Verification failed.");
+    if (result.success) {
+      setShowSuccessCheck(true);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // AuthProvider triggers layout shift or welcome email modal
+    } else {
+      setErrorMsg(result.error || "Verification failed. Please try again.");
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!canResend) return;
+    setErrorMsg("");
+    setTimer(60);
+    setCanResend(false);
+    setOtpCodeArray(Array(6).fill(""));
+
+    let appVerifier = null;
+    if (hasFirebaseConfig && auth) {
+      setupRecaptcha();
+      appVerifier = (window as any).recaptchaVerifier;
+    }
+
+    const fullPhone = `${selectedCountry.code}${phoneRaw.replace(/\D/g, "")}`;
+    setLoading(true);
+    const res = await sendOtp(fullPhone, appVerifier);
+    setLoading(false);
+
+    if (!res.success) {
+      setErrorMsg(res.error || "Failed to resend code.");
+      setCanResend(true);
+    } else {
+      setCodeSent(true);
+      setSentMethod(res.method || null);
+      if (res.code) setSentCode(res.code);
+    }
+  };
+
+  const handleOtpChange = (index: number, val: string) => {
+    const cleaned = val.replace(/\D/g, "");
+    if (!cleaned) {
+      const newArr = [...otpCodeArray];
+      newArr[index] = "";
+      setOtpCodeArray(newArr);
+      return;
+    }
+    
+    const digit = cleaned[cleaned.length - 1];
+    const newArr = [...otpCodeArray];
+    newArr[index] = digit;
+    setOtpCodeArray(newArr);
+
+    // Auto-focus next field
+    if (index < 5 && digit) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!otpCodeArray[index] && index > 0) {
+        const newArr = [...otpCodeArray];
+        newArr[index - 1] = "";
+        setOtpCodeArray(newArr);
+        otpInputRefs.current[index - 1]?.focus();
+      } else {
+        const newArr = [...otpCodeArray];
+        newArr[index] = "";
+        setOtpCodeArray(newArr);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pastedData)) {
+      const digits = pastedData.split("");
+      setOtpCodeArray(digits);
+      otpInputRefs.current[5]?.focus();
     }
   };
 
@@ -650,63 +888,198 @@ export default function GlassLoginWall() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
-                    className="space-y-4"
+                    className="space-y-5"
                   >
-                    {/* Phone field */}
-                    <div className="space-y-1">
-                      <input
-                        type="tel"
-                        placeholder="+1 (555) 000-0000"
-                        disabled={codeSent}
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 disabled:opacity-60"
-                      />
-                    </div>
+                    {/* reCAPTCHA anchor container */}
+                    <div id="recaptcha-container" className="hidden"></div>
 
-                    {/* OTP Code field (conditionally rendered) */}
-                    {codeSent && (
+                    {showSuccessCheck ? (
+                      /* SUCCESS STATE CHECKMARK ANIMATION */
                       <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="space-y-1"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="py-10 flex flex-col items-center justify-center space-y-4"
                       >
-                        <input
-                          type="text"
-                          placeholder="Verification Code (e.g. 123456)"
-                          value={verificationCode}
-                          onChange={(e) => setVerificationCode(e.target.value)}
-                          className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
-                        />
-                        <div className="flex justify-between items-center text-[11px] text-gray-400 pt-1">
-                          {sentMethod === "console" && sentCode ? (
-                            <span>Simulated Code: <strong>{sentCode}</strong></span>
+                        <div className="h-16 w-16 rounded-full bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald shadow-[0_0_25px_rgba(16,185,129,0.2)]">
+                          <motion.svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={3}
+                            stroke="currentColor"
+                            className="w-8 h-8"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </motion.svg>
+                        </div>
+                        <div className="text-center">
+                          <h4 className="text-lg font-bold text-white tracking-tight">Security Code Verified</h4>
+                          <p className="text-xs text-gray-400 mt-1 font-mono">Restoring encrypted memory layers...</p>
+                        </div>
+                      </motion.div>
+                    ) : !codeSent ? (
+                      /* STEP 1: PHONE NUMBER INPUT */
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs text-gray-400 font-mono uppercase tracking-wider">Mobile Number</label>
+                          <div className="flex gap-2.5 relative">
+                            {/* Country dropdown trigger */}
+                            <div className="relative" ref={countryDropdownRef}>
+                              <button
+                                type="button"
+                                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                                className="flex items-center gap-1.5 h-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-3 text-sm text-white focus:outline-none transition-all active:scale-[0.98]"
+                              >
+                                <span className="text-base select-none">{selectedCountry.flag}</span>
+                                <span className="font-mono text-xs text-gray-300">{selectedCountry.code}</span>
+                                <ChevronDown className="h-3 w-3 text-gray-400 shrink-0" />
+                              </button>
+
+                              {/* Country list dropdown */}
+                              <AnimatePresence>
+                                {showCountryDropdown && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute left-0 mt-2 w-56 max-h-60 overflow-y-auto bg-[#1e1929] border border-white/[0.08] rounded-xl shadow-2xl z-50 p-1.5 scrollbar-thin scrollbar-thumb-white/10"
+                                  >
+                                    {COUNTRIES.map((country, idx) => (
+                                      <button
+                                        key={`${country.code}-${idx}`}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedCountry(country);
+                                          setShowCountryDropdown(false);
+                                        }}
+                                        className="w-full flex items-center justify-between p-2.5 hover:bg-white/5 active:bg-white/10 rounded-lg text-left transition-colors text-xs text-white"
+                                      >
+                                        <div className="flex items-center gap-2 truncate">
+                                          <span>{country.flag}</span>
+                                          <span className="truncate">{country.name}</span>
+                                        </div>
+                                        <span className="font-mono text-gray-400 shrink-0">{country.code}</span>
+                                      </button>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+
+                            {/* Phone number input */}
+                            <input
+                              type="tel"
+                              placeholder="(555) 000-0000"
+                              value={phoneRaw}
+                              onChange={(e) => setPhoneRaw(e.target.value)}
+                              className="flex-1 bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 font-mono"
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+
+                        {/* Send SMS Button */}
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
+                        >
+                          {loading ? (
+                            <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
                           ) : (
-                            <span className="italic">A verification code was sent to your phone.</span>
+                            <>
+                              <span>Verify Phone Number</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </>
                           )}
+                        </button>
+                      </div>
+                    ) : (
+                      /* STEP 2: OTP DIGITS INPUT */
+                      <div className="space-y-6">
+                        <div className="space-y-2 text-center md:text-left">
+                          <label className="text-xs text-gray-400 font-mono uppercase tracking-wider block">Enter Security Code</label>
+                          <p className="text-[11px] text-gray-500 leading-normal">
+                            A verification code has been dispatched to <strong className="text-white font-mono">{selectedCountry.code} {phoneRaw.replace(/\D/g, "")}</strong>
+                          </p>
+                        </div>
+
+                        {/* Interactive OTP fields grid */}
+                        <div className="flex justify-between gap-2.5 py-1">
+                          {otpCodeArray.map((digit, idx) => (
+                            <input
+                              key={idx}
+                              type="text"
+                              maxLength={1}
+                              pattern="\d*"
+                              value={digit}
+                              ref={(el) => { if (el) otpInputRefs.current[idx] = el; }}
+                              onChange={(e) => handleOtpChange(idx, e.target.value)}
+                              onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                              onPaste={idx === 0 ? handleOtpPaste : undefined}
+                              className="w-12 h-14 text-center bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/60 focus:bg-[#31263e]/90 rounded-xl text-lg font-bold text-white focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 font-mono"
+                              autoFocus={idx === 0}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Timer / Resend section */}
+                        <div className="flex justify-between items-center text-[11px] text-gray-400">
+                          {canResend ? (
+                            <button
+                              type="button"
+                              onClick={handleResendCode}
+                              disabled={loading}
+                              className="text-[#eca72c] hover:text-[#f4c56e] font-bold flex items-center gap-1 active:scale-[0.98]"
+                            >
+                              <RefreshCw className="h-3 w-3 shrink-0" />
+                              <span>Resend SMS Code</span>
+                            </button>
+                          ) : (
+                            <span className="font-mono text-gray-500">
+                              Resend code in <strong className="text-gray-300">0:{timer.toString().padStart(2, "0")}</strong>
+                            </span>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => { setCodeSent(false); setSentCode(null); setSentMethod(null); }}
-                            className="text-[#eca72c] hover:text-[#f4c56e] font-semibold"
+                            onClick={() => { setCodeSent(false); setOtpCodeArray(Array(6).fill("")); setErrorMsg(""); }}
+                            className="text-gray-400 hover:text-white font-medium hover:underline flex items-center gap-1"
                           >
+                            <ArrowLeft className="h-3 w-3" />
                             Change Number
                           </button>
                         </div>
-                      </motion.div>
-                    )}
 
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
-                    >
-                      {loading ? (
-                        <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-                      ) : (
-                        codeSent ? "Verify & Log in" : "Send Verification Code"
-                      )}
-                    </button>
+                        {/* Simulated Code display for Sandbox Mock mode */}
+                        {sentMethod === "console" && sentCode && (
+                          <div className="p-3 bg-[#eca72c]/5 border border-[#eca72c]/10 rounded-xl text-center">
+                            <span className="text-[11px] text-[#f4c56e] font-mono">
+                              [Sandbox Mock Code]: <strong className="text-white text-xs select-all">{sentCode}</strong>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Verify Button */}
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
+                        >
+                          {loading ? (
+                            <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                          ) : (
+                            <>
+                              <span>Verify Security Code</span>
+                              <LogIn className="h-4 w-4" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </motion.form>
                 )}
 
@@ -781,12 +1154,12 @@ export default function GlassLoginWall() {
               </div>
 
               {/* SOCIAL LOGINS GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Google Button */}
                 <button
                   type="button"
                   onClick={() => handleSocialLogin("google")}
-                  className="col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#31263e]/40 hover:bg-[#31263e]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                  className="col-span-1 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#31263e]/40 hover:bg-[#31263e]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
                 >
                   <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" width="24" height="24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -797,7 +1170,17 @@ export default function GlassLoginWall() {
                   <span>Google</span>
                 </button>
 
-                {/* (Apple, GitHub, and Hugging Face buttons removed per request) */}
+                {/* GitHub Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin("github")}
+                  className="col-span-1 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#31263e]/40 hover:bg-[#31263e]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" width="24" height="24">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.197 22 16.44 22 12.017 22 6.484 17.522 2 12 2z" />
+                  </svg>
+                  <span>GitHub</span>
+                </button>
 
                 {/* Phone Login Toggle Button */}
                 {flowStep !== "phone" && (

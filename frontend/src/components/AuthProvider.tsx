@@ -1,6 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import { 
+  signInWithPhoneNumber, 
+  signOut, 
+  onAuthStateChanged,
+  ConfirmationResult
+} from "firebase/auth";
 
 export interface UserProfile {
   name: string;
@@ -41,10 +48,10 @@ interface AuthContextType {
   loginWithGoogle: (profileKey?: string, customUser?: UserProfile) => Promise<void>;
   loginWithOAuth: (provider: string, profileKey?: string, customUser?: UserProfile) => Promise<void>;
   loginWithPhone: (phoneNumber: string, verificationCode: string) => Promise<{ success: boolean; error?: string }>;
-  sendOtp: (phoneNumber: string) => Promise<{ success: boolean; error?: string; method?: string; code?: string }>;
+  sendOtp: (phoneNumber: string, appVerifier?: any) => Promise<{ success: boolean; error?: string; method?: string; code?: string }>;
   loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithCredentials: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isClerkEnabled: boolean;
   welcomeEmail: { html: string; filePath: string } | null;
   clearWelcomeEmail: () => void;
@@ -56,16 +63,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [welcomeEmail, setWelcomeEmail] = useState<{ html: string; filePath: string } | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // Check if Clerk env variables are configured
   const isClerkEnabled =
     !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "";
 
+  // Firebase auth state listener + Mock session restoration
   useEffect(() => {
-    localStorage.removeItem("MemoMind_session");
-    localStorage.removeItem("memomind_session");
-    setIsLoading(false);
+    if (hasFirebaseConfig && auth) {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setIsLoading(true);
+        if (firebaseUser) {
+          try {
+            const idToken = await firebaseUser.getIdToken(true);
+            const phone = firebaseUser.phoneNumber || "";
+
+            const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id_token: idToken, phone }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              setUser(data.user);
+              if (data.is_new) {
+                await triggerWelcomeEmail(data.user.email, data.user.name);
+              }
+            } else {
+              console.error("Backend failed to verify Firebase session");
+              setUser(null);
+            }
+          } catch (err) {
+            console.error("Failed to sync Firebase session:", err);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      // Local Sandbox Mock Session Loader
+      try {
+        const stored = localStorage.getItem("MemoMind_session");
+        if (stored) {
+          setUser(JSON.parse(stored));
+        }
+      } catch (err) {
+        console.warn("Failed to load local sandbox session:", err);
+      }
+      setIsLoading(false);
+    }
   }, []);
 
   const triggerWelcomeEmail = async (email: string, name: string) => {
@@ -78,6 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, name }),
       });
       if (res.ok) {
+        const data = await res.json();
+        setWelcomeEmail({ html: data.html_content, filePath: data.file_path });
         console.log("Welcome email triggered successfully.");
       } else {
         console.warn("Failed to trigger welcome email via API.");
@@ -87,23 +141,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Send OTP via backend
-  const sendOtp = async (phoneNumber: string) => {
+  // Send OTP
+  const sendOtp = async (phoneNumber: string, appVerifier?: any) => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneNumber })
-      });
-      if (res.ok) {
-        const j = await res.json().catch(() => ({}));
-        return { success: true, method: j.method || "console", code: j.code };
+      if (hasFirebaseConfig && auth && appVerifier) {
+        // Real Firebase Phone Auth code dispatch
+        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        setConfirmationResult(result);
+        return { success: true, method: "firebase" };
+      } else {
+        // Local Mock Mode fallback
+        const res = await fetch("http://127.0.0.1:8000/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phoneNumber }),
+        });
+        if (res.ok) {
+          const j = await res.json().catch(() => ({}));
+          return { success: true, method: j.method || "console", code: j.code };
+        }
+        return { success: true, method: "console", code: "123456" };
       }
-      console.warn("sendOtp server returned error, falling back to local simulation");
-      return { success: true, method: "console", code: "123456" };
     } catch (err: any) {
-      console.warn("sendOtp network error, falling back to local simulation:", err);
-      return { success: true, method: "console", code: "123456" };
+      console.warn("sendOtp error, falling back to local simulation:", err);
+      return { success: false, error: err.message || "Failed to send verification code." };
+    }
+  };
+
+  // Phone Login verification
+  const loginWithPhone = async (phoneNumber: string, verificationCode: string) => {
+    try {
+      if (hasFirebaseConfig && auth && confirmationResult) {
+        // Real Firebase Phone Auth OTP verification
+        const credential = await confirmationResult.confirm(verificationCode);
+        const idToken = await credential.user.getIdToken();
+
+        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: idToken, phone: phoneNumber }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          if (data.is_new) {
+            await triggerWelcomeEmail(data.user.email, data.user.name);
+          }
+          return { success: true };
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          return { success: false, error: errorData.detail || "Server sync failed." };
+        }
+      } else {
+        // Mock Mode verification
+        const res = await fetch("http://127.0.0.1:8000/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phoneNumber, code: verificationCode }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          localStorage.setItem("MemoMind_session", JSON.stringify(data.user));
+          if (data.is_new) {
+            await triggerWelcomeEmail(data.user.email, data.user.name);
+          }
+          return { success: true };
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          return { success: false, error: errorData.detail || "Incorrect code. Try again." };
+        }
+      }
+    } catch (err: any) {
+      console.warn("loginWithPhone error:", err);
+      return { success: false, error: err.message || "Invalid verification code." };
     }
   };
 
@@ -113,11 +226,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Standard Login (Google OAuth simulator / Sandbox Profile)
   const loginWithGoogle = async (profileKey?: string, customUser?: UserProfile) => {
-    setIsLoading(true);
-
-    // Simulate a minor network request or Google OAuth redirect authorization latency
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     let selectedUser: UserProfile;
 
     if (profileKey && SEED_PROFILES[profileKey]) {
@@ -134,14 +242,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Trigger welcome email in background
+    // Persist Mock session
+    if (!hasFirebaseConfig) {
+      localStorage.setItem("MemoMind_session", JSON.stringify(selectedUser));
+    }
+
     triggerWelcomeEmail(selectedUser.email, selectedUser.name);
     setUser(selectedUser);
-    setIsLoading(false);
   };
 
   // Generic OAuth Login (Google, Apple, GitHub, Hugging Face)
   const loginWithOAuth = async (provider: string, profileKey?: string, customUser?: UserProfile) => {
+    try {
+      if (hasFirebaseConfig && auth && (provider === "google" || provider === "github")) {
+        const { GithubAuthProvider, GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
+        let firebaseProvider;
+        if (provider === "github") {
+          firebaseProvider = new GithubAuthProvider();
+        } else {
+          firebaseProvider = new GoogleAuthProvider();
+        }
+        
+        setIsLoading(true);
+        const result = await signInWithPopup(auth, firebaseProvider);
+        const idToken = await result.user.getIdToken();
+        const email = result.user.email || "";
+        const name = result.user.displayName || "OAuth User";
+        const phone = result.user.phoneNumber || "";
+
+        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: idToken, phone, email, name }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          if (data.is_new) {
+            await triggerWelcomeEmail(data.user.email, data.user.name);
+          }
+        } else {
+          console.error("Backend OAuth verification failed");
+        }
+        setIsLoading(false);
+        return;
+      }
+    } catch (err) {
+      setIsLoading(false);
+      console.warn("Firebase OAuth failed, falling back to local simulation:", err);
+    }
+
+    // Local Mock Mode simulation
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -187,88 +339,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Trigger welcome email in background
+    // Persist Mock session
+    if (!hasFirebaseConfig) {
+      localStorage.setItem("MemoMind_session", JSON.stringify(selectedUser));
+    }
+
     triggerWelcomeEmail(selectedUser.email, selectedUser.name);
     setUser(selectedUser);
     setIsLoading(false);
   };
 
-  // Phone Login simulation
-  const loginWithPhone = async (phoneNumber: string, verificationCode: string) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneNumber, code: verificationCode })
-      });
-
-      if (res.ok) {
-        const cleanPhone = phoneNumber.replace(/\D/g, "");
-        const selectedUser: UserProfile = {
-          name: `Phone User (${cleanPhone.slice(-4)})`,
-          email: `phone.${cleanPhone}@MemoMind.ai`,
-          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=phone_${cleanPhone}`,
-          role: "Mobile Collaborator",
-          color: "from-[#44355b] to-[#ee5622]",
-        };
-
-        // Trigger welcome email in background
-        triggerWelcomeEmail(selectedUser.email, selectedUser.name);
-        setUser(selectedUser);
-        setIsLoading(false);
-        return { success: true };
-      }
-
-      console.warn("loginWithPhone server returned error, falling back to local simulation");
-      if (verificationCode === "123456" || verificationCode.length === 6) {
-        const cleanPhone = phoneNumber.replace(/\D/g, "");
-        const selectedUser: UserProfile = {
-          name: `Phone User (${cleanPhone.slice(-4)})`,
-          email: `phone.${cleanPhone}@MemoMind.ai`,
-          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=phone_${cleanPhone}`,
-          role: "Mobile Collaborator",
-          color: "from-[#44355b] to-[#ee5622]",
-        };
-
-        // Trigger welcome email in background
-        triggerWelcomeEmail(selectedUser.email, selectedUser.name);
-        setUser(selectedUser);
-        setIsLoading(false);
-        return { success: true };
-      } else {
-        setIsLoading(false);
-        return { success: false, error: "Incorrect verification code. Try '123456'" };
-      }
-    } catch (err: any) {
-      console.warn("loginWithPhone network error, falling back to local simulation:", err);
-      if (verificationCode === "123456" || verificationCode.length === 6) {
-        const cleanPhone = phoneNumber.replace(/\D/g, "");
-        const selectedUser: UserProfile = {
-          name: `Phone User (${cleanPhone.slice(-4)})`,
-          email: `phone.${cleanPhone}@MemoMind.ai`,
-          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=phone_${cleanPhone}`,
-          role: "Mobile Collaborator",
-          color: "from-[#44355b] to-[#ee5622]",
-        };
-
-        // Trigger welcome email in background
-        triggerWelcomeEmail(selectedUser.email, selectedUser.name);
-        setUser(selectedUser);
-        setIsLoading(false);
-        return { success: true };
-      } else {
-        setIsLoading(false);
-        return { success: false, error: "Incorrect verification code. Try '123456'" };
-      }
-    }
-  };
-
   // Credentials Login
   const loginWithCredentials = async (email: string, password: string) => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
     let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
@@ -276,40 +358,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       "aman.g@MemoMind.ai": { ...SEED_PROFILES.aman, password: "password" },
       "reeti.s@MemoMind.ai": { ...SEED_PROFILES.reeti, password: "password" },
       "sarah.j@MemoMind.ai": { ...SEED_PROFILES.sarah, password: "password" },
-      ...registeredUsers
+      ...registeredUsers,
     };
 
     const targetUser = allUsers[email.toLowerCase().trim()];
     if (!targetUser) {
-      setIsLoading(false);
       return { success: false, error: "No account found with this email." };
     }
 
     if (targetUser.password !== password) {
-      setIsLoading(false);
       return { success: false, error: "Incorrect password. Please try again." };
     }
 
     const { password: _, ...userProfile } = targetUser;
-    // Trigger welcome email in background
+    
+    // Persist Mock session
+    if (!hasFirebaseConfig) {
+      localStorage.setItem("MemoMind_session", JSON.stringify(userProfile));
+    }
+
     triggerWelcomeEmail(userProfile.email, userProfile.name);
     setUser(userProfile);
-    setIsLoading(false);
     return { success: true };
   };
 
   // Credentials Sign Up
   const signUpWithCredentials = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     const emailKey = email.toLowerCase().trim();
 
     const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
     let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
     if (registeredUsers[emailKey] || ["aman.g@MemoMind.ai", "reeti.s@MemoMind.ai", "sarah.j@MemoMind.ai"].includes(emailKey)) {
-      setIsLoading(false);
       return { success: false, error: "An account with this email already exists." };
     }
 
@@ -320,24 +400,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomAvatarSeed}`,
       role: "Workspace Contributor",
       color: "from-cyber-purple to-cyber-cyan",
-      password
+      password,
     };
 
     registeredUsers[emailKey] = newUser;
     localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
 
     const { password: _, ...userProfile } = newUser;
-    // Trigger welcome email in background
+    
+    // Persist Mock session
+    if (!hasFirebaseConfig) {
+      localStorage.setItem("MemoMind_session", JSON.stringify(userProfile));
+    }
+
     triggerWelcomeEmail(userProfile.email, userProfile.name);
     setUser(userProfile);
-    setIsLoading(false);
     return { success: true };
   };
 
   // Sign out / clear state
-  const logout = () => {
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      if (hasFirebaseConfig && auth) {
+        await signOut(auth);
+      }
+    } catch (err) {
+      console.warn("Firebase sign out failed:", err);
+    }
     setUser(null);
     localStorage.removeItem("MemoMind_session");
+    setIsLoading(false);
   };
 
   return (
