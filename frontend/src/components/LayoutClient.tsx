@@ -58,19 +58,19 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       case "/graph": return "Visual Meeting Connections Map";
       case "/team": return "Team Workspace";
       case "/settings": return "Setup & API";
-      default: return "MeetGraph Workspace";
+      default: return "MemoMind Workspace";
     }
   };
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-[#020204] flex flex-col items-center justify-center text-white z-50">
+      <div className="fixed inset-0 w-screen h-screen bg-[var(--background)] flex flex-col items-center justify-center text-white z-50">
         <div className="relative h-14 w-14 flex items-center justify-center mb-4">
           <div className="h-10 w-10 rounded-full border-2 border-white/5 border-t-cyber-purple animate-spin" />
           <Network className="absolute h-5 w-5 text-cyber-cyan animate-pulse" />
         </div>
         <p className="text-xs font-mono text-gray-500 uppercase tracking-widest animate-pulse">
-          Retrieving MeetGraph Memory Index...
+          Retrieving MemoMind Memory Index...
         </p>
       </div>
     );

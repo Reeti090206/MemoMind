@@ -196,11 +196,11 @@ export default function MemoryGraph() {
             transition={{ delay: 0.2 }}
             className="absolute top-4 left-4 p-3 bg-obsidian-dark/95 border border-obsidian-border rounded-xl flex flex-wrap gap-3 z-10 text-[9px] font-mono font-bold uppercase tracking-wider"
           >
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-purple shadow-[0_0_8px_#a855f7]" /> Meetings</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-cyber-cyan shadow-[0_0_8px_#06b6d4]" /> Decisions</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-emerald shadow-[0_0_8px_#10b981]" /> Tasks</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-rose shadow-[0_0_8px_#f43f5e]" /> Members</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" /> Pending</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-purple shadow-[0_0_8px_#eca72c]" /> Meetings</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-cyber-cyan shadow-[0_0_8px_#ee5622]" /> Decisions</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-emerald shadow-[0_0_8px_#44355b]" /> Tasks</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-rose shadow-[0_0_8px_#ee5622]" /> Members</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#31263e] shadow-[0_0_8px_#44355b]" /> Pending</div>
           </motion.div>
 
           {/* Canvas Controller Zoom widget */}
@@ -248,10 +248,10 @@ export default function MemoryGraph() {
               {/* Define Arrow Marker heads for overrides paths */}
               <defs>
                 <marker id="arrow" viewBox="0 0 10 10" refX="15" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e" />
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#ee5622" />
                 </marker>
                 <marker id="arrow-cyan" viewBox="0 0 10 10" refX="15" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#06b6d4" />
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#eca72c" />
                 </marker>
               </defs>
 
@@ -286,7 +286,7 @@ export default function MemoryGraph() {
                       {edge.pulse && (
                         <circle
                           r="3"
-                          fill={edge.isOverride ? "#f43f5e" : "#06b6d4"}
+                          fill={edge.isOverride ? "#ee5622" : "#eca72c"}
                           className="graph-edge-pulse animate-pulse"
                         >
                           <animateMotion
@@ -337,7 +337,7 @@ export default function MemoryGraph() {
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 180, damping: 10, delay: idx * 0.02 }}
                           className={`stroke-2 transition-all duration-300 ${getNodeColor(node.type)} ${
-                            isSelected ? "stroke-white shadow-[0_0_12px_#06b6d4]" : "group-hover:stroke-cyber-cyan"
+                            isSelected ? "stroke-white shadow-[0_0_12px_#ee5622]" : "group-hover:stroke-cyber-cyan"
                           }`}
                         />
                       ) : (
@@ -347,7 +347,7 @@ export default function MemoryGraph() {
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 180, damping: 10, delay: idx * 0.02 }}
                           className={`stroke-2 transition-all duration-300 ${getNodeColor(node.type)} ${
-                            isSelected ? "stroke-white shadow-[0_0_12px_#a855f7]" : "group-hover:stroke-white/30"
+                            isSelected ? "stroke-white shadow-[0_0_12px_#eca72c]" : "group-hover:stroke-white/30"
                           }`}
                         />
                       )}
@@ -428,7 +428,7 @@ export default function MemoryGraph() {
                   {selectedNode.type === "meeting" && (
                     <Link
                       href={`/meetings?id=${selectedNode.id.split("_")[1]}`}
-                      className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-white font-bold hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] transition-all duration-300"
+                      className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-white font-bold hover:shadow-[0_0_15px_rgba(238,86,34,0.35)] transition-all duration-300"
                     >
                       Open Meeting feed <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
@@ -458,3 +458,5 @@ export default function MemoryGraph() {
     </motion.div>
   );
 }
+
+

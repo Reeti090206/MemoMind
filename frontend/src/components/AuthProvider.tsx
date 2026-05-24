@@ -13,21 +13,21 @@ export interface UserProfile {
 export const SEED_PROFILES: Record<string, UserProfile> = {
   aman: {
     name: "Aman Gupta",
-    email: "aman.g@meetgraph.ai",
+    email: "aman.g@MemoMind.ai",
     avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Aman",
     role: "Backend Architect",
     color: "from-cyber-cyan to-blue-500",
   },
   reeti: {
     name: "Reeti Sharma",
-    email: "reeti.s@meetgraph.ai",
+    email: "reeti.s@MemoMind.ai",
     avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Reeti",
     role: "Frontend Engineer",
-    color: "from-cyber-purple to-pink-500",
+    color: "from-[#eca72c] to-[#ee5622]",
   },
   sarah: {
     name: "Sarah Jenkins",
-    email: "sarah.j@meetgraph.ai",
+    email: "sarah.j@MemoMind.ai",
     avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Sarah",
     role: "Lead Product Manager",
     color: "from-cyber-emerald to-cyber-cyan",
@@ -41,6 +41,7 @@ interface AuthContextType {
   loginWithGoogle: (profileKey?: string, customUser?: UserProfile) => Promise<void>;
   loginWithOAuth: (provider: string, profileKey?: string, customUser?: UserProfile) => Promise<void>;
   loginWithPhone: (phoneNumber: string, verificationCode: string) => Promise<{ success: boolean; error?: string }>;
+  sendOtp: (phoneNumber: string) => Promise<{ success: boolean; error?: string; method?: string; code?: string }>;
   loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithCredentials: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Always show the login page first, even after browser refresh.
   useEffect(() => {
-    localStorage.removeItem("meetgraph_session");
+    localStorage.removeItem("MemoMind_session");
     setIsLoading(false);
   }, []);
 
@@ -90,6 +91,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Send OTP via backend
+  const sendOtp = async (phoneNumber: string) => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneNumber })
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        return { success: false, error: j.detail || "Failed to send OTP" };
+      }
+      const j = await res.json().catch(() => ({}));
+      return { success: true, method: j.method || "console", code: j.code };
+    } catch (err: any) {
+      console.error("sendOtp error", err);
+      return { success: false, error: err.message || "Network error" };
+    }
+  };
+
   const clearWelcomeEmail = () => {
     setWelcomeEmail(null);
   };
@@ -108,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       selectedUser = {
         name: "Developer Guest",
-        email: "guest.developer@meetgraph.ai",
+        email: "guest.developer@MemoMind.ai",
         avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest",
         role: "Workspace Administrator",
         color: "from-gray-400 to-slate-600",
@@ -135,26 +156,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       selectedUser = customUser;
     } else {
       let name = "OAuth User";
-      let email = `oauth.user@meetgraph.ai`;
+      let email = `oauth.user@MemoMind.ai`;
       let avatarSeed = "oauth";
       let role = "Collaborator";
       let color = "from-gray-400 to-slate-600";
 
       if (provider === "apple") {
         name = "Apple Developer";
-        email = "apple.dev@meetgraph.ai";
+        email = "apple.dev@MemoMind.ai";
         avatarSeed = "Apple";
         role = "iOS Integration Specialist";
         color = "from-zinc-200 to-zinc-600";
       } else if (provider === "github") {
         name = "GitHub Contributor";
-        email = "github.dev@meetgraph.ai";
+        email = "github.dev@MemoMind.ai";
         avatarSeed = "Github";
         role = "DevOps Engineer";
-        color = "from-indigo-900 to-slate-800";
+        color = "from-[#44355b] to-[#221e22]";
       } else if (provider === "huggingface") {
         name = "HuggingFace Researcher";
-        email = "hf.research@meetgraph.ai";
+        email = "hf.research@MemoMind.ai";
         avatarSeed = "HuggingFace";
         role = "AI/ML Engineer";
         color = "from-amber-400 to-amber-600";
@@ -179,28 +200,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Phone Login simulation
   const loginWithPhone = async (phoneNumber: string, verificationCode: string) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneNumber, code: verificationCode })
+      });
 
-    if (verificationCode !== "123456" && verificationCode !== "1234") {
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setIsLoading(false);
+        return { success: false, error: j.detail || "Verification failed" };
+      }
+
+      const cleanPhone = phoneNumber.replace(/\D/g, "");
+      const selectedUser: UserProfile = {
+        name: `Phone User (${cleanPhone.slice(-4)})`,
+        email: `phone.${cleanPhone}@MemoMind.ai`,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=phone_${cleanPhone}`,
+        role: "Mobile Collaborator",
+        color: "from-[#44355b] to-[#ee5622]",
+      };
+
+      setUser(selectedUser);
       setIsLoading(false);
-      return { success: false, error: "Incorrect verification code. Try '123456'." };
+
+      // Trigger welcome email
+      await triggerWelcomeEmail(selectedUser.email, selectedUser.name);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { success: false, error: err.message || "Network error" };
     }
-
-    const cleanPhone = phoneNumber.replace(/\D/g, "");
-    const selectedUser: UserProfile = {
-      name: `Phone User (${cleanPhone.slice(-4)})`,
-      email: `phone.${cleanPhone}@meetgraph.ai`,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=phone_${cleanPhone}`,
-      role: "Mobile Collaborator",
-      color: "from-teal-400 to-emerald-600",
-    };
-
-    setUser(selectedUser);
-    setIsLoading(false);
-    
-    // Trigger welcome email
-    await triggerWelcomeEmail(selectedUser.email, selectedUser.name);
-    return { success: true };
   };
 
   // Credentials Login
@@ -208,13 +239,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const registeredUsersStr = localStorage.getItem("meetgraph_registered_users");
+    const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
     let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
     const allUsers = {
-      "aman.g@meetgraph.ai": { ...SEED_PROFILES.aman, password: "password" },
-      "reeti.s@meetgraph.ai": { ...SEED_PROFILES.reeti, password: "password" },
-      "sarah.j@meetgraph.ai": { ...SEED_PROFILES.sarah, password: "password" },
+      "aman.g@MemoMind.ai": { ...SEED_PROFILES.aman, password: "password" },
+      "reeti.s@MemoMind.ai": { ...SEED_PROFILES.reeti, password: "password" },
+      "sarah.j@MemoMind.ai": { ...SEED_PROFILES.sarah, password: "password" },
       ...registeredUsers
     };
 
@@ -245,10 +276,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const emailKey = email.toLowerCase().trim();
 
-    const registeredUsersStr = localStorage.getItem("meetgraph_registered_users");
+    const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
     let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
-    if (registeredUsers[emailKey] || ["aman.g@meetgraph.ai", "reeti.s@meetgraph.ai", "sarah.j@meetgraph.ai"].includes(emailKey)) {
+    if (registeredUsers[emailKey] || ["aman.g@MemoMind.ai", "reeti.s@MemoMind.ai", "sarah.j@MemoMind.ai"].includes(emailKey)) {
       setIsLoading(false);
       return { success: false, error: "An account with this email already exists." };
     }
@@ -264,7 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     registeredUsers[emailKey] = newUser;
-    localStorage.setItem("meetgraph_registered_users", JSON.stringify(registeredUsers));
+    localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
 
     const { password: _, ...userProfile } = newUser;
     setUser(userProfile);
@@ -278,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign out / clear state
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("meetgraph_session");
+    localStorage.removeItem("MemoMind_session");
   };
 
   return (
@@ -290,6 +321,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithGoogle,
         loginWithOAuth,
         loginWithPhone,
+        sendOtp,
         loginWithCredentials,
         signUpWithCredentials,
         logout,

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MeetGraph | Organizational Memory Intelligence",
+  title: "MemoMind | Organizational Memory Intelligence",
   description: "Futuristic, long-term AI-powered memory Layer for meetings, decisions, tasks, circular discussions, and contradiction logs.",
 };
 

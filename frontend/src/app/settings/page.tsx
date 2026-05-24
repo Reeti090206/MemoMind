@@ -29,7 +29,7 @@ export default function SettingsHub() {
 
   // API Config states
   const [openaiKey, setOpenaiKey] = useState("sk-proj-••••••••••••••••••••");
-  const [postgresUrl, setPostgresUrl] = useState("postgresql://reeti:••••••••@ep-meetgraph-db.us-east.aws.neon.tech/meetgraph");
+  const [postgresUrl, setPostgresUrl] = useState("postgresql://reeti:••••••••@ep-MemoMind-db.us-east.aws.neon.tech/MemoMind");
   const [vectorDb, setVectorDb] = useState("Pinecone Remote Cloud");
 
   // Compliance toggles

@@ -92,7 +92,8 @@ export default function TerrainLines() {
       time += 0.4;
       
       // Deep, cinematic background clearing
-      ctx.fillStyle = "#020204";
+      const __mm_bg = getComputedStyle(document.documentElement).getPropertyValue('--background') || '#252422';
+      ctx.fillStyle = __mm_bg.trim();
       ctx.fillRect(0, 0, width, height);
 
       // Smooth mouse coordinates with lerp (0.05 speed gives nice smooth lag)
@@ -211,7 +212,7 @@ export default function TerrainLines() {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 w-full h-full -z-50 pointer-events-none block"
-      style={{ background: "#020204" }}
+      style={{ background: "var(--background)" }}
     />
   );
 }

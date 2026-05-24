@@ -69,7 +69,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="font-semibold text-lg text-white tracking-wider flex items-center gap-1.5">
-              Meet<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan to-cyber-purple font-black">Graph</span>
+              MemoMind
             </h1>
             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
               Memory Intelligence

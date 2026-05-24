@@ -88,7 +88,7 @@ export default function TeamWorkspace() {
       isAi: false
     },
     {
-      sender: "MeetGraph AI",
+      sender: "MemoMind AI",
       avatar: "",
       text: "⚡ SYSTEM UPDATE: Automatic contradiction detection identified a shift. Shifting from avoiding microservices (Kickoff sync) to migrating to microservices (SaaS scaling sync) has been indexed at 88% confidence.",
       time: "2:13 PM",
@@ -131,12 +131,12 @@ export default function TeamWorkspace() {
   // Welcome message useEffect triggered once per session
   useEffect(() => {
     if (user) {
-      const sessionKey = `meetgraph_welcome_dispatched_${user.email}`;
+      const sessionKey = `MemoMind_welcome_dispatched_${user.email}`;
       const alreadyDispatched = sessionStorage.getItem(sessionKey);
       
       if (!alreadyDispatched) {
         const welcomeMsg = {
-          sender: "MeetGraph AI",
+          sender: "MemoMind AI",
           avatar: "",
           text: `🤖 Welcome to MemoMind AI, ${user.name}! We've successfully established a secure workspace connection for your account (${user.email}). I will be monitoring this channel to capture team updates, track critical project decisions, and draft follow-up tasks in real-time. Let me know if you need any assistance!`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -174,9 +174,9 @@ export default function TeamWorkspace() {
 
     // Simulate AI responding
     if (inputMessage.toLowerCase().includes("ai") || inputMessage.toLowerCase().includes("assistant")) {
-      setTimeout(() => {
-        setChatMessages(prev => [...prev, {
-          sender: "MeetGraph AI",
+        setTimeout(() => {
+          setChatMessages(prev => [...prev, {
+          sender: "MemoMind AI",
           avatar: "",
           text: "🤖 Hello! I am observing this collaborative workspace. You can ask me questions about your team memory directly, or start a 'Live Monitor' session to have me log tasks automatically.",
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

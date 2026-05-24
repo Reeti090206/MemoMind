@@ -294,7 +294,7 @@ export default function MeetingUpload() {
       monitorSocketRef.current = ws;
 
       ws.onopen = () => {
-        setMonitorLogs(prev => [...prev, "WebSocket connected successfully to MeetGraph Live Core."]);
+        setMonitorLogs(prev => [...prev, "WebSocket connected successfully to MemoMind Live Core."]);
         ws.send(JSON.stringify({ action: "start_record" }));
         ws.send(JSON.stringify({ action: "stream_audio" }));
       };
@@ -325,7 +325,7 @@ export default function MeetingUpload() {
         setMonitorLogs(prev => [...prev, "WebSocket stream connection closed."]);
       };
     } catch (err) {
-      setMonitorLogs(prev => [...prev, "MeetGraph Core offline. Booting sandbox simulation pipeline..."]);
+      setMonitorLogs(prev => [...prev, "MemoMind Core offline. Booting sandbox simulation pipeline..."]);
       runSimulatedWSStream();
     }
 

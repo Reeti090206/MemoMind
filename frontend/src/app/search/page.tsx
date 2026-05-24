@@ -158,7 +158,7 @@ export default function SemanticSearch() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Ask MeetGraph: 'Why did we change our microservices stance?' or 'What are Reeti's deadlines?'"
+              placeholder="Ask MemoMind: 'Why did we change our microservices stance?' or 'What are Reeti's deadlines?'"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-2xl pl-12 pr-28 py-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all border-glow-purple"

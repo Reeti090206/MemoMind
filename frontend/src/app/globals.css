@@ -1,21 +1,28 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-cyber-purple: #8b5cf6;
-  --color-cyber-cyan: #06b6d4;
-  --color-cyber-emerald: #10b981;
-  --color-cyber-rose: #f43f5e;
-  
-  --color-obsidian-dark: #020204;
-  --color-obsidian-medium: #07070c;
-  --color-obsidian-light: #100f1c;
+  --mm-background: #221e22;
+  --mm-dark: #31263e;
+  --mm-muted: #44355b;
+  --mm-accent: #ee5622;
+  --mm-highlight: #eca72c;
+
+  --color-obsidian-dark: #221e22;
+  --color-obsidian-medium: #31263e;
+  --color-obsidian-light: #44355b;
   --color-obsidian-border: rgba(255, 255, 255, 0.04);
 }
 
 :root {
-  --background: #020204;
+  --background: var(--mm-background);
   --foreground: #f8f9fa;
   color-scheme: dark;
+
+  /* Map legacy semantic names used across the codebase */
+  --color-cyber-cyan: var(--mm-accent);
+  --color-cyber-purple: var(--mm-highlight);
+  --color-cyber-emerald: var(--mm-muted);
+  --color-cyber-rose: var(--mm-dark);
 }
 
 body {
@@ -24,8 +31,8 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.02) 0%, transparent 50%);
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--mm-accent) 8%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--mm-highlight) 6%, transparent) 0%, transparent 45%);
   background-attachment: fixed;
   letter-spacing: -0.01em;
 }
@@ -39,59 +46,78 @@ body {
   background: rgba(0, 0, 0, 0.2);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.15);
+  background: color-mix(in srgb, var(--mm-accent) 12%, rgba(0,0,0,0.35));
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.35);
+  background: color-mix(in srgb, var(--mm-accent) 28%, rgba(0,0,0,0.25));
 }
 
 /* Glassmorphism Accents */
 .glass-panel {
-  background: rgba(5, 5, 8, 0.6);
+  background: rgba(34, 30, 38, 0.65);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 36px 0 rgba(0, 0, 0, 0.45);
 }
 
 .glass-card {
-  background: rgba(8, 8, 12, 0.45);
+  background: rgba(34, 30, 40, 0.55);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.02);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 6px 26px 0 rgba(0, 0, 0, 0.32);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  background: rgba(12, 12, 20, 0.65);
-  border-color: rgba(139, 92, 246, 0.25);
+  background: rgba(48, 42, 62, 0.72);
+  border-color: color-mix(in srgb, var(--mm-accent) 18%, rgba(255,255,255,0.03));
   box-shadow: 
     0 15px 35px -10px rgba(0, 0, 0, 0.5),
-    0 0 20px -2px rgba(139, 92, 246, 0.15);
+    0 0 22px -2px color-mix(in srgb, var(--mm-accent) 15%, rgba(0,0,0,0));
   transform: translateY(-2px) scale(1.005);
 }
 
 /* Neon Borders & Accents */
 .border-glow-purple {
-  box-shadow: 0 0 20px -3px rgba(139, 92, 246, 0.25);
-  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 18px -3px color-mix(in srgb, var(--mm-highlight) 40%, transparent);
+  border-color: color-mix(in srgb, var(--mm-highlight) 38%, rgba(255,255,255,0.02));
 }
 
 .border-glow-cyan {
-  box-shadow: 0 0 20px -3px rgba(6, 182, 212, 0.25);
-  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 18px -3px color-mix(in srgb, var(--mm-accent) 40%, transparent);
+  border-color: color-mix(in srgb, var(--mm-accent) 45%, rgba(255,255,255,0.02));
 }
 
 .border-glow-rose {
-  box-shadow: 0 0 20px -3px rgba(244, 63, 94, 0.25);
-  border-color: rgba(244, 63, 94, 0.4);
+  box-shadow: 0 0 18px -3px color-mix(in srgb, var(--mm-muted) 30%, transparent);
+  border-color: color-mix(in srgb, var(--mm-muted) 36%, rgba(255,255,255,0.02));
 }
 
 .text-glow-cyber {
-  text-shadow: 0 0 10px rgba(167, 139, 250, 0.45);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--mm-accent) 35%, rgba(0,0,0,0));
 }
+
+/* Map legacy utility classes (text-cyber-*, bg-cyber-*, border-cyber-*) to the new palette */
+.text-cyber-cyan { color: var(--mm-accent) !important; }
+.text-cyber-purple { color: var(--mm-highlight) !important; }
+.text-cyber-emerald { color: var(--mm-muted) !important; }
+.text-cyber-rose { color: var(--mm-dark) !important; }
+
+.bg-cyber-cyan\/10 { background-color: color-mix(in srgb, var(--mm-accent) 12%, transparent) !important; }
+.bg-cyber-cyan\/15 { background-color: color-mix(in srgb, var(--mm-accent) 15%, transparent)  !important; }
+.bg-cyber-cyan\/5 { background-color: color-mix(in srgb, var(--mm-accent) 5%, transparent) !important; }
+.border-cyber-cyan\/20 { border-color: color-mix(in srgb, var(--mm-accent) 20%, rgba(255,255,255,0.02)) !important; }
+.border-cyber-cyan\/25 { border-color: color-mix(in srgb, var(--mm-accent) 25%, rgba(255,255,255,0.02)) !important; }
+.border-cyber-cyan\/30 { border-color: color-mix(in srgb, var(--mm-accent) 30%, rgba(255,255,255,0.02)) !important; }
+
+.bg-cyber-purple\/15 { background-color: color-mix(in srgb, var(--mm-highlight) 15%, transparent) !important; }
+.border-cyber-purple\/20 { border-color: color-mix(in srgb, var(--mm-highlight) 20%, rgba(255,255,255,0.02)) !important; }
+
+.shadow-cyber-cyan\/20 { box-shadow: 0 0 20px -6px color-mix(in srgb, var(--mm-accent) 20%, transparent) !important; }
+
 
 /* Pulsing Recording Indicator */
 @keyframes record-pulse {
