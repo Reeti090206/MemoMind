@@ -16,12 +16,15 @@ from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction
 from app.ai_service import AIService
 from app.sample_data import seed_data
 
-app = FastAPI(title="MeetGraph: Organizational Memory Intelligence API")
+app = FastAPI(title="MemoMind: Organizational Memory Intelligence API")
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Support wildcard or localhost:3000
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -464,7 +467,7 @@ def send_welcome_email(payload: Dict[str, Any]):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to MeetGraph AI</title>
+  <title>Welcome to MemoMind AI</title>
   <style>
     body {{
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -592,11 +595,11 @@ def send_welcome_email(payload: Dict[str, Any]):
   <div class="wrapper">
     <div class="container">
       <div class="logo-container">
-        <div class="logo">Meet<span class="logo-span">Graph</span> AI</div>
+        <div class="logo">Memo<span class="logo-span">Mind</span> AI</div>
       </div>
-      <div class="welcome-header">Welcome to MeetGraph AI, {name}!</div>
+      <div class="welcome-header">Welcome to MemoMind AI, {name}!</div>
       <div class="greeting">
-        We're thrilled to welcome you to the platform. MeetGraph AI acts as your team's autonomous memory intelligence engine, mapping decisions, tasks, and conversations from your syncs automatically.
+        We're thrilled to welcome you to the platform. MemoMind AI acts as your team's autonomous memory intelligence engine, mapping decisions, tasks, and conversations from your syncs automatically.
       </div>
       
       <div class="features-container">
@@ -624,7 +627,7 @@ def send_welcome_email(payload: Dict[str, Any]):
           <a href="http://localhost:3000/settings" class="footer-link">Settings</a>
           <a href="http://localhost:3000" class="footer-link">Support</a>
         </div>
-        &copy; 2026 MeetGraph AI. All rights reserved. Sent to {email}.<br>
+        &copy; 2026 MemoMind AI. All rights reserved. Sent to {email}.<br>
         TLS 1.3 Encryption Secured • v1.2.6-stable
       </div>
     </div>
@@ -655,12 +658,12 @@ def send_welcome_email(payload: Dict[str, Any]):
             from email.mime.multipart import MIMEMultipart
             
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Welcome to MeetGraph AI, {name}!"
-            msg["From"] = f"MeetGraph AI <{sender_email}>"
+            msg["Subject"] = f"Welcome to MemoMind AI, {name}!"
+            msg["From"] = f"MemoMind AI <{sender_email}>"
             msg["To"] = email
             
             # Plaintext fallback
-            text = f"Welcome to MeetGraph AI, {name}! Go to http://localhost:3000 to access your workspace."
+            text = f"Welcome to MemoMind AI, {name}! Go to http://localhost:3000 to access your workspace."
             msg.attach(MIMEText(text, "plain"))
             msg.attach(MIMEText(html_content, "html"))
             
