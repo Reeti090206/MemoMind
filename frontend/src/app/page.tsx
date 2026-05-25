@@ -96,7 +96,7 @@ export default function Dashboard() {
     if (rawInsight.toLowerCase().includes("contradiction")) {
       return (
         <span>
-          <strong>Plan Change Warning:</strong> Your team recently agreed to <span className="text-white font-semibold">use microservices</span> (in SaaS Scaling & Microservices Shift), which changes the earlier plan to <span className="text-gray-400 line-through">avoid microservices</span> from the Kickoff meeting.
+          <strong>Plan Change Warning:</strong> Your team recently agreed to <span className="text-[var(--foreground)] font-semibold">use microservices</span> (in SaaS Scaling & Microservices Shift), which changes the earlier plan to <span className="text-[var(--foreground)]/70 line-through">avoid microservices</span> from the Kickoff meeting.
         </span>
       );
     }
@@ -114,7 +114,7 @@ export default function Dashboard() {
       {/* 1. Header Hero Panel */}
       <motion.div 
         variants={itemVariants}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8 bg-white/[0.01] border border-white/5 rounded-3xl backdrop-blur-2xl relative overflow-hidden shadow-2xl"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-3xl backdrop-blur-2xl relative overflow-hidden shadow-2xl"
       >
         {/* Subtle ambient circle inside hero */}
         <div className="absolute -right-16 -top-16 w-48 h-48 bg-cyber-purple/5 rounded-full blur-[80px] pointer-events-none" />
@@ -125,10 +125,10 @@ export default function Dashboard() {
               <Sparkles className="h-3 w-3 animate-pulse" /> AI Assistant Online
             </span>
           </div>
-          <h2 className="text-3xl font-black text-white tracking-tight leading-none text-glow-cyber">
+          <h2 className="text-3xl font-black text-[var(--foreground)] tracking-tight leading-none text-glow-cyber">
             Team Memory Overview
           </h2>
-          <p className="text-gray-400 text-sm leading-relaxed">
+          <p className="text-[var(--foreground)]/70 text-sm leading-relaxed">
             Your team's shared memory bank. We keep track of your agreements, action plans, and key decisions from past syncs so you can find them instantly.
           </p>
         </div>
@@ -137,7 +137,7 @@ export default function Dashboard() {
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link 
               href="/upload" 
-              className="flex items-center gap-2 px-5 py-3 text-xs bg-gradient-to-tr from-cyber-purple to-cyber-cyan hover:shadow-[0_0_20px_rgba(139,92,246,0.35)] transition-all duration-300 rounded-xl text-white font-bold tracking-wider uppercase border border-white/10"
+              className="flex items-center gap-2 px-5 py-3 text-xs bg-gradient-to-tr from-cyber-purple to-cyber-cyan hover:shadow-[0_0_20px_rgba(139,92,246,0.35)] transition-all duration-300 rounded-xl text-[var(--foreground)] font-bold tracking-wider uppercase border border-[var(--color-obsidian-border)]"
             >
               <Plus className="h-4 w-4" /> Add Meeting
             </Link>
@@ -146,7 +146,7 @@ export default function Dashboard() {
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link 
               href="/search" 
-              className="flex items-center gap-2 px-5 py-3 text-xs bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all duration-300 rounded-xl text-gray-200 font-bold tracking-wider uppercase"
+              className="flex items-center gap-2 px-5 py-3 text-xs bg-[var(--foreground)]/[0.05] hover:bg-[var(--foreground)]/[0.10] border border-[var(--color-obsidian-border)] hover:border-[var(--color-obsidian-border)] transition-all duration-300 rounded-xl text-[var(--foreground)]/90 font-bold tracking-wider uppercase"
             >
               <HelpCircle className="h-4 w-4 text-cyber-cyan" /> Ask AI
             </Link>
@@ -168,10 +168,10 @@ export default function Dashboard() {
             <h4 className="text-xs font-bold text-cyber-rose uppercase tracking-wider font-mono flex items-center gap-1.5">
               <span>💡 Plan Conflict Alert</span>
             </h4>
-            <p className="text-gray-300 text-sm leading-relaxed mt-0.5">
+            <p className="text-[var(--foreground)]/80 text-sm leading-relaxed mt-0.5">
               {getFriendlyAlertText(widgets.latest_insight)}
             </p>
-            <div className="pt-2 flex gap-3 text-[11px] font-semibold text-cyber-cyan hover:text-white transition-colors cursor-pointer items-center">
+            <div className="pt-2 flex gap-3 text-[11px] font-semibold text-cyber-cyan hover:text-[var(--foreground)] transition-colors cursor-pointer items-center">
               <Link href="/decisions" className="flex items-center gap-1">
                 See decision details <ArrowRight className="h-3 w-3 animate-pulse" />
               </Link>
@@ -187,17 +187,17 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(139, 92, 246, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
+          className="p-5 rounded-2xl border border-[var(--color-obsidian-border)] glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-purple/5 rounded-full blur-2xl group-hover:bg-cyber-purple/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Meetings Stored</span>
+            <span className="text-[10px] text-[var(--foreground)]/70 font-bold font-mono uppercase tracking-wider">Meetings Stored</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-purple/10 flex items-center justify-center border border-cyber-purple/20 shadow-sm shrink-0">
               <Calendar className="h-4.5 w-4.5 text-cyber-purple" />
             </div>
           </div>
-          <p className="text-3xl font-black text-white mt-4 font-mono leading-none tracking-tight">
+          <p className="text-3xl font-black text-[var(--foreground)] mt-4 font-mono leading-none tracking-tight">
             {widgets.total_meetings}
           </p>
           <p className="text-[10px] text-cyber-emerald mt-2 font-mono flex items-center gap-1 font-semibold">
@@ -209,17 +209,17 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(6, 182, 212, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
+          className="p-5 rounded-2xl border border-[var(--color-obsidian-border)] glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-cyan/5 rounded-full blur-2xl group-hover:bg-cyber-cyan/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Open Questions</span>
+            <span className="text-[10px] text-[var(--foreground)]/70 font-bold font-mono uppercase tracking-wider">Open Questions</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-cyan/10 flex items-center justify-center border border-cyber-cyan/20 shadow-sm shrink-0">
               <HelpCircle className="h-4.5 w-4.5 text-cyber-cyan" />
             </div>
           </div>
-          <p className="text-3xl font-black text-white mt-4 font-mono leading-none tracking-tight">
+          <p className="text-3xl font-black text-[var(--foreground)] mt-4 font-mono leading-none tracking-tight">
             {widgets.unresolved_discussions}
           </p>
           <p className="text-[10px] text-amber-400 mt-2 font-mono flex items-center gap-1 font-semibold">
@@ -231,17 +231,17 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(16, 185, 129, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
+          className="p-5 rounded-2xl border border-[var(--color-obsidian-border)] glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-emerald/5 rounded-full blur-2xl group-hover:bg-cyber-emerald/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Tasks We Are Doing</span>
+            <span className="text-[10px] text-[var(--foreground)]/70 font-bold font-mono uppercase tracking-wider">Tasks We Are Doing</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-emerald/10 flex items-center justify-center border border-cyber-emerald/20 shadow-sm shrink-0">
               <CheckCircle2 className="h-4.5 w-4.5 text-cyber-emerald" />
             </div>
           </div>
-          <p className="text-3xl font-black text-white mt-4 font-mono leading-none tracking-tight">
+          <p className="text-3xl font-black text-[var(--foreground)] mt-4 font-mono leading-none tracking-tight">
             {widgets.active_tasks}
           </p>
           <p className="text-[10px] text-cyber-cyan mt-2 font-mono flex items-center gap-1 font-semibold">
@@ -253,17 +253,17 @@ export default function Dashboard() {
         <motion.div 
           variants={itemVariants}
           whileHover={{ y: -4, borderColor: "rgba(244, 63, 94, 0.25)", scale: 1.02 }}
-          className="p-5 rounded-2xl border border-white/5 glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
+          className="p-5 rounded-2xl border border-[var(--color-obsidian-border)] glass-card relative overflow-hidden group transition-all duration-300 shadow-md cursor-pointer bg-transparent"
         >
           <div className="absolute top-[-40px] right-[-40px] w-24 h-24 bg-cyber-rose/5 rounded-full blur-2xl group-hover:bg-cyber-rose/10 transition-colors" />
           
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold font-mono uppercase tracking-wider">Items Needing Action</span>
+            <span className="text-[10px] text-[var(--foreground)]/70 font-bold font-mono uppercase tracking-wider">Items Needing Action</span>
             <div className="h-8 w-8 rounded-lg bg-cyber-rose/10 flex items-center justify-center border border-cyber-rose/20 shadow-sm shrink-0">
               <AlertTriangle className="h-4.5 w-4.5 text-cyber-rose" />
             </div>
           </div>
-          <p className="text-3xl font-black text-white mt-4 font-mono leading-none tracking-tight">
+          <p className="text-3xl font-black text-[var(--foreground)] mt-4 font-mono leading-none tracking-tight">
             {widgets.overdue_items}
           </p>
           <p className="text-[10px] text-cyber-rose mt-2 font-mono flex items-center gap-1 font-semibold animate-pulse">
@@ -282,16 +282,16 @@ export default function Dashboard() {
           {/* Timeline of Decisions */}
           <motion.div 
             variants={itemVariants}
-            className="p-6 border border-white/5 bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
+            className="p-6 border border-[var(--color-obsidian-border)] bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2.5">
+                <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2.5">
                   <Award className="h-5 w-5 text-cyber-purple" /> Saved Decisions
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">A history of what your team agreed on and key updates.</p>
+                <p className="text-xs text-[var(--foreground)]/70 mt-0.5">A history of what your team agreed on and key updates.</p>
               </div>
-              <Link href="/decisions" className="text-xs text-cyber-cyan hover:text-white flex items-center gap-1 transition-colors font-semibold">
+              <Link href="/decisions" className="text-xs text-cyber-cyan hover:text-[var(--foreground)] flex items-center gap-1 transition-colors font-semibold">
                 Explore Decisions <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -307,20 +307,20 @@ export default function Dashboard() {
                     whileHover={{ scale: 1.01, x: 4, borderColor: "rgba(139, 92, 246, 0.25)" }}
                     className={`p-5 rounded-2xl border transition-all duration-300 ${
                       isActive 
-                        ? "bg-white/[0.01] border-white/5" 
-                        : "bg-white/[0.005] border-white/5 opacity-60"
+                        ? "bg-[var(--foreground)]/[0.01] border-[var(--color-obsidian-border)]" 
+                        : "bg-white/[0.005] border-[var(--color-obsidian-border)] opacity-60"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-5">
                       <div className="space-y-2">
-                        <p className={`text-sm leading-relaxed ${isActive ? "text-gray-100 font-semibold" : "text-gray-500 line-through"}`}>
+                        <p className={`text-sm leading-relaxed ${isActive ? "text-gray-100 font-semibold" : "text-[var(--foreground)]/50 line-through"}`}>
                           {dec.text}
                         </p>
                         
-                        <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-gray-500 font-mono">
+                        <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-[var(--foreground)]/50 font-mono">
                           <span>{dec.date}</span>
-                          <span className="h-1.5 w-1.5 rounded-full bg-white/5" />
-                          <span className="text-gray-400">{dec.meeting_title}</span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground)]/[0.05]" />
+                          <span className="text-[var(--foreground)]/70">{dec.meeting_title}</span>
                         </div>
                       </div>
                       
@@ -343,16 +343,16 @@ export default function Dashboard() {
           {/* Recent Synced Meetings List */}
           <motion.div 
             variants={itemVariants}
-            className="p-6 border border-white/5 bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
+            className="p-6 border border-[var(--color-obsidian-border)] bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2.5">
+                <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2.5">
                   <Clock className="h-5 w-5 text-cyber-cyan" /> Recent Meetings
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Click any meeting to review what was discussed, read transcripts, and see summaries.</p>
+                <p className="text-xs text-[var(--foreground)]/70 mt-0.5">Click any meeting to review what was discussed, read transcripts, and see summaries.</p>
               </div>
-              <Link href="/meetings" className="text-xs text-cyber-cyan hover:text-white flex items-center gap-1 transition-colors font-semibold">
+              <Link href="/meetings" className="text-xs text-cyber-cyan hover:text-[var(--foreground)] flex items-center gap-1 transition-colors font-semibold">
                 All Meetings <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -367,21 +367,21 @@ export default function Dashboard() {
                 >
                   <Link
                     href={`/meetings?id=${meet.id}`}
-                    className="block p-5 h-full rounded-2xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-cyber-purple/20 transition-all duration-300 flex flex-col justify-between gap-4 group shadow-sm"
+                    className="block p-5 h-full rounded-2xl border border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.01] hover:bg-white/[0.03] hover:border-cyber-purple/20 transition-all duration-300 flex flex-col justify-between gap-4 group shadow-sm"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between gap-3">
-                        <h4 className="text-sm font-bold text-white group-hover:text-cyber-cyan transition-colors line-clamp-1">{meet.title}</h4>
-                        <span className="text-[9px] text-gray-500 font-mono flex items-center gap-1 shrink-0 bg-white/5 px-2 py-0.5 rounded-lg">
+                        <h4 className="text-sm font-bold text-[var(--foreground)] group-hover:text-cyber-cyan transition-colors line-clamp-1">{meet.title}</h4>
+                        <span className="text-[9px] text-[var(--foreground)]/50 font-mono flex items-center gap-1 shrink-0 bg-[var(--foreground)]/[0.05] px-2 py-0.5 rounded-lg">
                           <Clock className="h-3 w-3" /> {formatDuration(meet.duration)}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-[var(--foreground)]/70 line-clamp-2 leading-relaxed">
                         {meet.summary}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1 text-[10px] font-mono text-gray-500">
+                    <div className="flex items-center justify-between border-t border-[var(--color-obsidian-border)] pt-3 mt-1 text-[10px] font-mono text-[var(--foreground)]/50">
                       <span>{meet.date.split(" ")[0]}</span>
                       <span className="px-2 py-0.5 rounded-lg bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple font-semibold">
                         Meeting Smoothness: {meet.efficiency_score}%
@@ -400,20 +400,20 @@ export default function Dashboard() {
           
           <motion.div 
             variants={itemVariants}
-            className="p-6 border border-white/5 bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
+            className="p-6 border border-[var(--color-obsidian-border)] bg-transparent glass-card backdrop-blur-md rounded-3xl space-y-6"
           >
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-cyber-emerald" /> Team Success Stats
             </h3>
 
             {/* Turnaround speed widget */}
             <motion.div 
               whileHover={{ scale: 1.03 }}
-              className="p-5 rounded-2xl border border-white/5 bg-white/5 text-center relative overflow-hidden group cursor-pointer shadow-md"
+              className="p-5 rounded-2xl border border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.05] text-center relative overflow-hidden group cursor-pointer shadow-md"
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-cyber-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-mono">Average Agreement Speed</p>
-              <p className="text-4xl font-black text-white mt-2 font-mono tracking-tighter">20.1 hrs</p>
+              <p className="text-xs text-[var(--foreground)]/50 uppercase tracking-wider font-mono">Average Agreement Speed</p>
+              <p className="text-4xl font-black text-[var(--foreground)] mt-2 font-mono tracking-tighter">20.1 hrs</p>
               <p className="text-[10px] text-cyber-emerald font-mono mt-1 font-semibold flex items-center justify-center gap-1">
                 ▲ 8% faster agreement than last week
               </p>
@@ -424,10 +424,10 @@ export default function Dashboard() {
               
               <div>
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-gray-400">Consistency with Past Decisions</span>
+                  <span className="text-[var(--foreground)]/70">Consistency with Past Decisions</span>
                   <span className="font-bold text-cyber-purple font-mono">85.5%</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
+                <div className="h-2 w-full bg-[var(--foreground)]/[0.05] rounded-full overflow-hidden p-[1px]">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: "85.5%" }}
@@ -435,15 +435,15 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-full" 
                   />
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Percentage of new agreements that fit smoothly with our past logs.</p>
+                <p className="text-[9px] text-[var(--foreground)]/50 mt-1 font-mono leading-relaxed">Percentage of new agreements that fit smoothly with our past logs.</p>
               </div>
 
               <div>
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-gray-400">Meeting Smoothness</span>
+                  <span className="text-[var(--foreground)]/70">Meeting Smoothness</span>
                   <span className="font-bold text-cyber-cyan font-mono">85.3%</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
+                <div className="h-2 w-full bg-[var(--foreground)]/[0.05] rounded-full overflow-hidden p-[1px]">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: "85.3%" }}
@@ -451,15 +451,15 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-cyber-cyan to-cyber-emerald rounded-full" 
                   />
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Measures speaker distribution and clarity of decisions resolved.</p>
+                <p className="text-[9px] text-[var(--foreground)]/50 mt-1 font-mono leading-relaxed">Measures speaker distribution and clarity of decisions resolved.</p>
               </div>
 
               <div>
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-gray-400">Team Atmosphere (Debate Level)</span>
+                  <span className="text-[var(--foreground)]/70">Team Atmosphere (Debate Level)</span>
                   <span className="font-bold text-cyber-rose font-mono">15.7%</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px]">
+                <div className="h-2 w-full bg-[var(--foreground)]/[0.05] rounded-full overflow-hidden p-[1px]">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: "15.7%" }}
@@ -467,7 +467,7 @@ export default function Dashboard() {
                     className="h-full bg-gradient-to-r from-cyber-rose to-cyber-purple rounded-full" 
                   />
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1 font-mono leading-relaxed">Tracks constructive debates or differing views discussed in meetings.</p>
+                <p className="text-[9px] text-[var(--foreground)]/50 mt-1 font-mono leading-relaxed">Tracks constructive debates or differing views discussed in meetings.</p>
               </div>
 
             </div>
@@ -483,22 +483,22 @@ export default function Dashboard() {
               <Sparkles className="h-16 w-16 text-cyber-cyan" />
             </div>
             
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-cyber-cyan animate-pulse" /> Ask Your Team Memory
             </h3>
             
-            <p className="text-xs text-gray-300 mt-2.5 leading-relaxed">
+            <p className="text-xs text-[var(--foreground)]/80 mt-2.5 leading-relaxed">
               Have a question about a past sync? Simply query your shared brain. We index every sentence so you can trace alignments instantly.
             </p>
             
-            <blockquote className="mt-3.5 p-3 rounded-xl bg-black/35 border border-white/5 text-[11px] text-gray-400 font-mono leading-normal italic">
+            <blockquote className="mt-3.5 p-3 rounded-xl bg-black/35 border border-[var(--color-obsidian-border)] text-[11px] text-[var(--foreground)]/70 font-mono leading-normal italic">
               "When did we discuss switching to Clerk and what was the main concern?"
             </blockquote>
             
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-4">
               <Link
                 href="/search"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-gray-100 transition-all duration-300 rounded-xl text-obsidian-dark text-xs font-black uppercase tracking-wider border border-white/10"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-gray-100 transition-all duration-300 rounded-xl text-obsidian-dark text-xs font-black uppercase tracking-wider border border-[var(--color-obsidian-border)]"
               >
                 Open AI Chat <ArrowRight className="h-3.5 w-3.5" />
               </Link>

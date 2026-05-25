@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import LayoutClient from "@/components/LayoutClient";
 import TerrainLines from "@/components/TerrainLines";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,14 +27,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full text-foreground bg-obsidian-dark flex overflow-hidden`}>
-        <TerrainLines />
-        <AuthProvider>
-          <LayoutClient>
-            {children}
-          </LayoutClient>
-        </AuthProvider>
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full text-foreground bg-[var(--background)] flex overflow-hidden`}>
+        <ThemeProvider attribute="data-theme" defaultTheme="dark">
+          <TerrainLines />
+          <AuthProvider>
+            <LayoutClient>
+              {children}
+            </LayoutClient>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

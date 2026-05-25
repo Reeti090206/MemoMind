@@ -190,10 +190,10 @@ export default function TeamWorkspace() {
     <div className="space-y-6 font-sans">
       {/* Title */}
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+        <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight flex items-center gap-2.5">
           <Users className="h-6 w-6 text-cyber-purple animate-pulse" /> Team Workspace
         </h2>
-        <p className="text-gray-400 text-sm mt-0.5 font-sans">
+        <p className="text-[var(--foreground)]/70 text-sm mt-0.5 font-sans">
           Chat with your team, collaborate on channels, and view real-time highlights from the meeting assistant.
         </p>
       </div>
@@ -204,8 +204,8 @@ export default function TeamWorkspace() {
         <div className="xl:col-span-3 space-y-6 flex flex-col justify-between">
           
           {/* Channels list */}
-          <div className="p-5 border border-white/5 bg-transparent glass-card rounded-2xl space-y-4">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Channels</h3>
+          <div className="p-5 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-4">
+            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Channels</h3>
             
             <div className="space-y-1">
               {CHANNELS.map(ch => (
@@ -214,12 +214,12 @@ export default function TeamWorkspace() {
                   onClick={() => setActiveChannel(ch.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-left group cursor-pointer ${
                     activeChannel === ch.id 
-                      ? "bg-cyber-purple/15 text-white font-semibold border border-cyber-purple/20" 
-                      : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
+                      ? "bg-cyber-purple/15 text-[var(--foreground)] font-semibold border border-cyber-purple/20" 
+                      : "text-[var(--foreground)]/70 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05] border border-transparent"
                   }`}
                 >
                   <span className="flex items-center gap-2 text-sm">
-                    <Hash className={`h-4 w-4 ${activeChannel === ch.id ? "text-cyber-cyan" : "text-gray-500 group-hover:text-cyber-purple"}`} />
+                    <Hash className={`h-4 w-4 ${activeChannel === ch.id ? "text-cyber-cyan" : "text-[var(--foreground)]/50 group-hover:text-cyber-purple"}`} />
                     {ch.name}
                   </span>
                   <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -229,9 +229,9 @@ export default function TeamWorkspace() {
           </div>
 
           {/* Active Members list */}
-          <div className="p-5 border border-white/5 bg-transparent glass-card rounded-2xl space-y-4 flex-1 mt-6">
+          <div className="p-5 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-4 flex-1 mt-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Who's Online</h3>
+              <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Who's Online</h3>
               <span className="text-[9px] font-mono bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald px-2 py-0.5 rounded-full flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-cyber-emerald animate-ping" /> {activeMembers.length} Online
               </span>
@@ -239,13 +239,13 @@ export default function TeamWorkspace() {
 
             <div className="space-y-3.5 font-sans">
               {activeMembers.map(mb => (
-                <div key={mb.name} className="flex items-start gap-3 p-1.5 rounded-xl hover:bg-white/[0.02] transition-colors group">
+                <div key={mb.name} className="flex items-start gap-3 p-1.5 rounded-xl hover:bg-[var(--foreground)]/[0.02] transition-colors group">
                   <div className="relative shrink-0">
                     <img 
                       src={mb.avatar} 
                       alt={mb.name} 
                       className={`h-9 w-9 rounded-xl border p-0.5 bg-black ${
-                        mb.status === "online" ? "border-cyber-emerald" : "border-white/5"
+                        mb.status === "online" ? "border-cyber-emerald" : "border-[var(--color-obsidian-border)]"
                       }`}
                     />
                     <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-black ${
@@ -258,8 +258,8 @@ export default function TeamWorkspace() {
                   </div>
                   
                   <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-white truncate">{mb.name}</p>
-                    <p className="text-[10px] text-gray-500 truncate leading-tight font-sans">{mb.role}</p>
+                    <p className="text-xs font-bold text-[var(--foreground)] truncate">{mb.name}</p>
+                    <p className="text-[10px] text-[var(--foreground)]/50 truncate leading-tight font-sans">{mb.role}</p>
                     <p className="text-[9px] text-cyber-cyan truncate mt-1 animate-fadeIn leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity font-sans">
                       Working on: {mb.activity}
                     </p>
@@ -272,22 +272,22 @@ export default function TeamWorkspace() {
         </div>
 
         {/* Middle pane: Workspace collaborative chat (6 cols) */}
-        <div className="xl:col-span-6 flex flex-col border border-white/5 bg-transparent glass-card rounded-2xl overflow-hidden min-h-[550px]">
+        <div className="xl:col-span-6 flex flex-col border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl overflow-hidden min-h-[550px]">
           {/* Header Bar */}
-          <div className="p-4 bg-white/[0.02] border-b border-white/5 flex items-center justify-between font-sans">
+          <div className="p-4 bg-[var(--foreground)]/[0.02] border-b border-[var(--color-obsidian-border)] flex items-center justify-between font-sans">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
                 <Hash className="h-4.5 w-4.5 text-cyber-cyan animate-pulse" />
                 {CHANNELS.find(ch => ch.id === activeChannel)?.name || "general-sync"}
               </h3>
-              <p className="text-[10px] text-gray-500 mt-0.5 font-sans">
+              <p className="text-[10px] text-[var(--foreground)]/50 mt-0.5 font-sans">
                 {CHANNELS.find(ch => ch.id === activeChannel)?.desc}
               </p>
             </div>
             
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-cyber-emerald animate-pulse" />
-              <span className="text-[9px] text-gray-500 font-mono uppercase tracking-wider">Live</span>
+              <span className="text-[9px] text-[var(--foreground)]/50 font-mono uppercase tracking-wider">Live</span>
             </div>
           </div>
 
@@ -300,13 +300,13 @@ export default function TeamWorkspace() {
                     key={idx}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-gradient-to-r from-cyber-purple/10 to-cyber-cyan/5 border border-cyber-purple/15 text-xs text-gray-200 space-y-1.5 font-sans"
+                    className="p-4 rounded-xl bg-gradient-to-r from-cyber-purple/10 to-cyber-cyan/5 border border-cyber-purple/15 text-xs text-[var(--foreground)]/90 space-y-1.5 font-sans"
                   >
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1 text-cyber-cyan font-bold uppercase tracking-wider text-[10px]">
                         <Sparkles className="h-3.5 w-3.5 animate-spin" /> {msg.sender}
                       </span>
-                      <span className="text-[9px] text-gray-500 font-mono">{msg.time}</span>
+                      <span className="text-[9px] text-[var(--foreground)]/50 font-mono">{msg.time}</span>
                     </div>
                     <p className="leading-relaxed font-sans">{msg.text}</p>
                   </motion.div>
@@ -323,14 +323,14 @@ export default function TeamWorkspace() {
                   <img 
                     src={msg.avatar} 
                     alt={msg.sender} 
-                    className="h-8.5 w-8.5 rounded-xl bg-slate-900 border border-white/10 shrink-0 p-0.5"
+                    className="h-8.5 w-8.5 rounded-xl bg-slate-900 border border-[var(--color-obsidian-border)] shrink-0 p-0.5"
                   />
                   <div className="space-y-1 overflow-hidden">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">{msg.sender}</span>
-                      <span className="text-[8px] text-gray-500 font-mono">{msg.time}</span>
+                      <span className="text-xs font-bold text-[var(--foreground)]">{msg.sender}</span>
+                      <span className="text-[8px] text-[var(--foreground)]/50 font-mono">{msg.time}</span>
                     </div>
-                    <p className="text-xs text-gray-300 leading-relaxed font-sans">{msg.text}</p>
+                    <p className="text-xs text-[var(--foreground)]/80 leading-relaxed font-sans">{msg.text}</p>
                   </div>
                 </motion.div>
               );
@@ -339,17 +339,17 @@ export default function TeamWorkspace() {
           </div>
 
           {/* Input Chat Box */}
-          <form onSubmit={handleSendMessage} className="p-4 bg-white/[0.01] border-t border-white/5 flex gap-3">
+          <form onSubmit={handleSendMessage} className="p-4 bg-[var(--foreground)]/[0.01] border-t border-[var(--color-obsidian-border)] flex gap-3">
             <input
               type="text"
               placeholder={`Send a message to #${CHANNELS.find(ch => ch.id === activeChannel)?.name || "general-sync"} (mention 'AI' to query assistant)...`}
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1 bg-black/45 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
+              className="flex-1 bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
             />
             <button
               type="submit"
-              className="p-2.5 rounded-xl bg-cyber-purple hover:bg-cyber-purple/90 border border-white/10 text-white transition-all shadow-md shrink-0 flex items-center justify-center hover:scale-105 active:scale-95 cursor-pointer"
+              className="p-2.5 rounded-xl bg-cyber-purple hover:bg-cyber-purple/90 border border-[var(--color-obsidian-border)] text-[var(--foreground)] transition-all shadow-md shrink-0 flex items-center justify-center hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Send className="h-4.5 w-4.5" />
             </button>
@@ -360,34 +360,34 @@ export default function TeamWorkspace() {
         <div className="xl:col-span-3 space-y-6 flex flex-col">
           
           {/* Active sprint actions */}
-          <div className="p-5 border border-white/5 bg-transparent glass-card rounded-2xl space-y-4 flex-1">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Workspace Tasks</h3>
+          <div className="p-5 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-4 flex-1">
+            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Workspace Tasks</h3>
             
             <div className="space-y-3 font-sans">
-              <div className="p-3 bg-white/5 border border-white/5 rounded-xl space-y-2 group hover:border-cyber-cyan/30 transition-all cursor-pointer">
+              <div className="p-3 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 group hover:border-cyber-cyan/30 transition-all cursor-pointer">
                 <div className="flex items-center justify-between text-[9px] font-mono">
                   <span className="text-cyber-cyan font-bold uppercase tracking-wider flex items-center gap-1">
                     <Code className="h-3 w-3" /> Engineering
                   </span>
-                  <span className="text-gray-500">Friday</span>
+                  <span className="text-[var(--foreground)]/50">Friday</span>
                 </div>
-                <h4 className="text-xs font-semibold text-white group-hover:text-cyber-cyan transition-colors leading-tight">Implement core database migrations</h4>
-                <div className="flex items-center gap-1.5 text-[9px] text-gray-400">
-                  <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Aman" className="h-4.5 w-4.5 rounded-md border border-white/10 shrink-0" />
+                <h4 className="text-xs font-semibold text-[var(--foreground)] group-hover:text-cyber-cyan transition-colors leading-tight">Implement core database migrations</h4>
+                <div className="flex items-center gap-1.5 text-[9px] text-[var(--foreground)]/70">
+                  <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Aman" className="h-4.5 w-4.5 rounded-md border border-[var(--color-obsidian-border)] shrink-0" />
                   <span>Owned by Aman G.</span>
                 </div>
               </div>
 
-              <div className="p-3 bg-white/5 border border-white/5 rounded-xl space-y-2 group hover:border-cyber-purple/30 transition-all cursor-pointer">
+              <div className="p-3 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 group hover:border-cyber-purple/30 transition-all cursor-pointer">
                 <div className="flex items-center justify-between text-[9px] font-mono">
                   <span className="text-cyber-purple font-bold uppercase tracking-wider flex items-center gap-1">
                     <Tv className="h-3 w-3" /> Design
                   </span>
-                  <span className="text-gray-500">Monday</span>
+                  <span className="text-[var(--foreground)]/50">Monday</span>
                 </div>
-                <h4 className="text-xs font-semibold text-white group-hover:text-cyber-purple transition-colors leading-tight">Update UI components with new design system</h4>
-                <div className="flex items-center gap-1.5 text-[9px] text-gray-400">
-                  <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Reeti" className="h-4.5 w-4.5 rounded-md border border-white/10 shrink-0" />
+                <h4 className="text-xs font-semibold text-[var(--foreground)] group-hover:text-cyber-purple transition-colors leading-tight">Update UI components with new design system</h4>
+                <div className="flex items-center gap-1.5 text-[9px] text-[var(--foreground)]/70">
+                  <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Reeti" className="h-4.5 w-4.5 rounded-md border border-[var(--color-obsidian-border)] shrink-0" />
                   <span>Owned by Reeti S.</span>
                 </div>
               </div>
@@ -402,10 +402,10 @@ export default function TeamWorkspace() {
 
           {/* Quick SaaS integration info panel */}
           <div className="p-5 rounded-2xl bg-gradient-to-tr from-cyber-purple/15 via-cyber-cyan/15 to-transparent border border-cyber-purple/20 relative overflow-hidden group shadow-lg">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-cyber-cyan animate-pulse" /> Smart Assistant
             </h3>
-            <p className="text-[11px] text-gray-300 mt-2.5 leading-relaxed font-sans">
+            <p className="text-[11px] text-[var(--foreground)]/80 mt-2.5 leading-relaxed font-sans">
               Every message and decision in this workspace is understood by the AI automatically, creating a seamless memory of your team's work.
             </p>
           </div>

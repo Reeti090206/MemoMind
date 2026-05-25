@@ -65,13 +65,13 @@ export default function Sidebar() {
         {/* Logo / Branding */}
         <div className="flex items-center gap-3 px-2 py-4 mb-6">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border-glow-purple">
-            <Network className="h-5 w-5 text-white" />
+            <Network className="h-5 w-5 text-[var(--foreground)]" />
           </div>
           <div>
-            <h1 className="font-semibold text-lg text-white tracking-wider flex items-center gap-1.5">
+            <h1 className="font-semibold text-lg text-[var(--foreground)] tracking-wider flex items-center gap-1.5">
               MemoMind
             </h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+            <p className="text-[10px] text-[var(--foreground)]/50 uppercase tracking-widest font-mono">
               Memory Intelligence
             </p>
           </div>
@@ -116,9 +116,9 @@ export default function Sidebar() {
 
                   <div className="flex items-center gap-3 relative z-10">
                     <Icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110 ${
-                      isActive ? "text-cyber-cyan" : "text-gray-400 group-hover:text-cyber-purple"
+                      isActive ? "text-cyber-cyan" : "text-[var(--foreground)]/50 group-hover:text-cyber-purple"
                     }`} />
-                    <span className={`text-sm ${isActive ? "text-white font-medium animate-fadeIn" : "text-gray-400 group-hover:text-white"}`}>{item.name}</span>
+                    <span className={`text-sm ${isActive ? "text-[var(--foreground)] font-medium animate-fadeIn" : "text-[var(--foreground)]/50 group-hover:text-[var(--foreground)]"}`}>{item.name}</span>
                   </div>
                   
                   {/* Special Notification Badge for Decision overrides */}
@@ -142,25 +142,25 @@ export default function Sidebar() {
               <img
                 src={user.avatar}
                 alt={user.name}
-                className="h-9 w-9 rounded-xl bg-slate-900 border border-white/10 p-0.5"
+                className="h-9 w-9 rounded-xl bg-slate-900 border border-[var(--color-obsidian-border)] p-0.5"
               />
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate max-w-[120px]">{user.name}</p>
-                <p className="text-[9px] text-gray-500 font-mono truncate max-w-[120px]">{user.role}</p>
+                <p className="text-xs font-bold text-[var(--foreground)] truncate max-w-[120px]">{user.name}</p>
+                <p className="text-[9px] text-[var(--foreground)]/50 font-mono truncate max-w-[120px]">{user.role}</p>
               </div>
             </div>
             
             <button
               onClick={logout}
               title="Sign Out"
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-cyber-rose/10 text-gray-400 hover:text-cyber-rose transition-all duration-300 border border-white/5 hover:border-cyber-rose/20"
+              className="p-1.5 rounded-lg bg-[var(--foreground)]/[0.05] hover:bg-cyber-rose/10 text-[var(--foreground)]/70 hover:text-cyber-rose transition-all duration-300 border border-[var(--color-obsidian-border)] hover:border-cyber-rose/20"
             >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
           
           {/* Small inline connection pulse status */}
-          <div className="flex items-center justify-between text-[8px] font-mono text-gray-500 border-t border-white/5 pt-2">
+          <div className="flex items-center justify-between text-[8px] font-mono text-[var(--foreground)]/50 border-t border-[var(--color-obsidian-border)] pt-2">
             <span className="flex items-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-emerald opacity-75"></span>

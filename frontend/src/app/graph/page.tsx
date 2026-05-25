@@ -174,8 +174,8 @@ export default function MemoryGraph() {
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Organizational Memory Graph</h2>
-          <p className="text-gray-400 text-sm mt-0.5">
+          <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">Organizational Memory Graph</h2>
+          <p className="text-[var(--foreground)]/70 text-sm mt-0.5">
             Interactive spatial trace map displaying Meeting → Decision → Task overrides and owner connections.
           </p>
         </div>
@@ -200,7 +200,7 @@ export default function MemoryGraph() {
             <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-cyber-cyan shadow-[0_0_8px_#ee5622]" /> Decisions</div>
             <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-emerald shadow-[0_0_8px_#44355b]" /> Tasks</div>
             <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-cyber-rose shadow-[0_0_8px_#ee5622]" /> Members</div>
-            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#31263e] shadow-[0_0_8px_#44355b]" /> Pending</div>
+            <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[var(--color-obsidian-medium)] shadow-[0_0_8px_#44355b]" /> Pending</div>
           </motion.div>
 
           {/* Canvas Controller Zoom widget */}
@@ -212,21 +212,21 @@ export default function MemoryGraph() {
           >
             <button
               onClick={() => setZoom((z) => Math.min(1.8, z + 0.1))}
-              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center font-bold text-xs hover:border-cyber-purple transition-all"
+              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05] flex items-center justify-center font-bold text-xs hover:border-cyber-purple transition-all"
               title="Zoom In"
             >
               +
             </button>
             <button
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center font-bold text-xs hover:border-cyber-purple transition-all"
+              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05] flex items-center justify-center font-bold text-xs hover:border-cyber-purple transition-all"
               title="Zoom Out"
             >
               -
             </button>
             <button
               onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }}
-              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-white hover:bg-white/5 flex items-center justify-center text-[10px] font-mono font-bold hover:border-cyber-purple transition-all"
+              className="h-8 w-8 rounded-lg bg-obsidian-dark border border-obsidian-border text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05] flex items-center justify-center text-[10px] font-mono font-bold hover:border-cyber-purple transition-all"
               title="Reset view"
             >
               RST
@@ -379,10 +379,10 @@ export default function MemoryGraph() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-purple/5 blur-[50px] rounded-full pointer-events-none" />
             
             <div className="relative z-10">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
                 <Layers className="h-4.5 w-4.5 text-cyber-purple" /> Node Inspector
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">Click any graph element to inspect its memory trace details.</p>
+              <p className="text-xs text-[var(--foreground)]/70 mt-0.5">Click any graph element to inspect its memory trace details.</p>
             </div>
 
             <AnimatePresence mode="wait">
@@ -407,16 +407,16 @@ export default function MemoryGraph() {
                     }`}>
                       {selectedNode.type} Node
                     </span>
-                    <h4 className="font-bold text-white text-base mt-2 leading-tight">{selectedNode.label}</h4>
+                    <h4 className="font-bold text-[var(--foreground)] text-base mt-2 leading-tight">{selectedNode.label}</h4>
                   </div>
 
-                  <div className="p-3 bg-obsidian-dark/70 border border-obsidian-border rounded-xl text-xs font-light text-gray-300 leading-relaxed">
+                  <div className="p-3 bg-obsidian-dark/70 border border-obsidian-border rounded-xl text-xs font-light text-[var(--foreground)]/80 leading-relaxed">
                     {selectedNode.details || "No metadata trace recorded."}
                   </div>
 
                   {selectedNode.type === "decision" && (
                     <div className="space-y-1 text-xs">
-                      <p className="text-gray-500 font-mono text-[9px] tracking-wider font-semibold">STATUS STATE</p>
+                      <p className="text-[var(--foreground)]/50 font-mono text-[9px] tracking-wider font-semibold">STATUS STATE</p>
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold inline-block border ${
                         selectedNode.status === "accepted" ? "bg-cyber-emerald/10 border-cyber-emerald/20 text-cyber-emerald" : "bg-cyber-rose/10 border-cyber-rose/20 text-cyber-rose animate-pulse"
                       }`}>
@@ -428,7 +428,7 @@ export default function MemoryGraph() {
                   {selectedNode.type === "meeting" && (
                     <Link
                       href={`/meetings?id=${selectedNode.id.split("_")[1]}`}
-                      className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-white font-bold hover:shadow-[0_0_15px_rgba(238,86,34,0.35)] transition-all duration-300"
+                      className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-xs text-[var(--foreground)] font-bold hover:shadow-[0_0_15px_rgba(238,86,34,0.35)] transition-all duration-300"
                     >
                       Open Meeting feed <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
@@ -448,7 +448,7 @@ export default function MemoryGraph() {
               )}
             </AnimatePresence>
 
-            <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[9px] text-gray-400 font-mono leading-relaxed relative z-10">
+            <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[9px] text-[var(--foreground)]/70 font-mono leading-relaxed relative z-10">
               Trace paths show Decision lines override past meetings (marked in red dashed arcs). Pulses show open unresolved items.
             </div>
           </div>

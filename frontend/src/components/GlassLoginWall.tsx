@@ -558,7 +558,7 @@ export default function GlassLoginWall() {
   };
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-[var(--background)] text-white flex items-center justify-center overflow-y-auto z-50 px-4 py-8 select-none font-sans">
+    <div className="fixed inset-0 w-screen h-screen bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center overflow-y-auto z-50 px-4 py-8 select-none font-sans">
       
       {/* Subtle ambient lighting overlays to match premium MemoMind palette */}
       <div className="absolute inset-0 bg-[var(--background)]/95 z-0" />
@@ -574,24 +574,24 @@ export default function GlassLoginWall() {
             <div className="hidden md:flex md:col-span-5 flex-col justify-center pr-6">
               <div className="relative mb-6">
                 <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#eca72c] to-[#44355b] flex items-center justify-center border border-[#eca72c]/30 shadow-[0_0_20px_rgba(236,167,44,0.3)]">
-                  <Network className="h-6 w-6 text-white animate-pulse" />
+                  <Network className="h-6 w-6 text-[var(--foreground)] animate-pulse" />
                 </div>
               </div>
               
-              <h2 className="text-3xl font-black tracking-tight text-white leading-tight">
+              <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)] leading-tight">
                 MemoMind
               </h2>
               
-              <p className="text-gray-400 font-mono text-[10px] uppercase tracking-widest mt-1.5 mb-6">
+              <p className="text-[var(--foreground)]/70 font-mono text-[10px] uppercase tracking-widest mt-1.5 mb-6">
                 Memory Intelligence
               </p>
 
-              <p className="text-gray-400 text-sm leading-relaxed mb-8">
+              <p className="text-[var(--foreground)]/70 text-sm leading-relaxed mb-8">
                 We capture your meetings, track decisions, and organize task lists automatically, so your team stays perfectly in sync without extra typing.
               </p>
 
               {/* SVG Rotating Memory Graph Graphic */}
-              <div className="relative h-60 w-full border border-white/[0.05] bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center group shadow-2xl">
+              <div className="relative h-60 w-full border border-white/[0.05] bg-[var(--foreground)]/[0.02] backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center group shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)]/90 via-transparent to-transparent z-10" />
                 
                 {/* Pulsing Core */}
@@ -629,7 +629,7 @@ export default function GlassLoginWall() {
                   </defs>
                 </svg>
                 
-                <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-center text-[10px] font-mono text-gray-500">
+                <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-center text-[10px] font-mono text-[var(--foreground)]/50">
                   <span>Nodes: 34 Active</span>
                   <span className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#44355b] opacity-75 animate-ping" />
@@ -647,7 +647,7 @@ export default function GlassLoginWall() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full max-w-[420px] bg-[#221e22]/85 border border-white/[0.06] rounded-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.7)] backdrop-blur-2xl relative z-10 flex flex-col justify-between overflow-hidden"
+                className="w-full max-w-[420px] bg-[var(--color-obsidian-dark)]/85 border border-white/[0.06] rounded-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.7)] backdrop-blur-2xl relative z-10 flex flex-col justify-between overflow-hidden"
               >
             {/* Upper Edge Glowing Accent */}
             <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#eca72c]/40 to-transparent" />
@@ -655,14 +655,14 @@ export default function GlassLoginWall() {
             <div>
               {/* Header Titles */}
               <div className="mb-8 text-left">
-                <h2 className="text-3xl font-bold tracking-tight text-white mb-2 font-sans">
+                <h2 className="text-3xl font-bold tracking-tight text-[var(--foreground)] mb-2 font-sans">
                   {flowStep === "signup" && "Create an account"}
                   {flowStep === "login" && "Log in to account"}
                   {flowStep === "phone" && "Sign in with Phone"}
                   {flowStep === "forgot_password" && "Reset password"}
                 </h2>
                 
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[var(--foreground)]/70">
                   {flowStep === "signup" && (
                     <>
                       Already have an account?{" "}
@@ -733,7 +733,7 @@ export default function GlassLoginWall() {
                           placeholder="Fletcher"
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
-                          className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                          className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                         />
                       </div>
                       <div className="space-y-1">
@@ -742,7 +742,7 @@ export default function GlassLoginWall() {
                           placeholder="Last name"
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
-                          className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                          className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                         />
                       </div>
                     </div>
@@ -754,7 +754,7 @@ export default function GlassLoginWall() {
                         placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                        className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                       />
                     </div>
 
@@ -765,12 +765,12 @@ export default function GlassLoginWall() {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl pl-4 pr-11 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                        className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl pl-4 pr-11 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-3.5 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-3.5 top-3.5 text-[var(--foreground)]/70 hover:text-[var(--foreground)] transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                       </button>
@@ -785,15 +785,15 @@ export default function GlassLoginWall() {
                           onChange={(e) => setAgreeTerms(e.target.checked)}
                           className="sr-only peer"
                         />
-                        <div className="w-5 h-5 bg-[#31263e]/70 border border-white/[0.06] rounded-md peer-checked:bg-[#ee5622] peer-checked:border-[#eca72c] flex items-center justify-center transition-all">
+                        <div className="w-5 h-5 bg-[var(--color-obsidian-medium)]/70 border border-white/[0.06] rounded-md peer-checked:bg-[#ee5622] peer-checked:border-[#eca72c] flex items-center justify-center transition-all">
                           {agreeTerms && (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                            <svg className="w-3 h-3 text-[var(--foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           )}
                         </div>
                       </label>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-[var(--foreground)]/70">
                         I agree to the <span className="text-[#eca72c] font-medium hover:underline cursor-pointer">Terms & Conditions</span>
                       </span>
                     </div>
@@ -802,10 +802,10 @@ export default function GlassLoginWall() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
+                      className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-[var(--foreground)] font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
                     >
                       {loading ? (
-                        <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                        <div className="h-4 w-4 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-white animate-spin" />
                       ) : (
                         "Create account"
                       )}
@@ -831,7 +831,7 @@ export default function GlassLoginWall() {
                         placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                        className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                       />
                     </div>
 
@@ -842,12 +842,12 @@ export default function GlassLoginWall() {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl pl-4 pr-11 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                        className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl pl-4 pr-11 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-3.5 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-3.5 top-3.5 text-[var(--foreground)]/70 hover:text-[var(--foreground)] transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                       </button>
@@ -868,10 +868,10 @@ export default function GlassLoginWall() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
+                      className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-[var(--foreground)] font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
                     >
                       {loading ? (
-                        <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                        <div className="h-4 w-4 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-white animate-spin" />
                       ) : (
                         "Log in"
                       )}
@@ -916,26 +916,26 @@ export default function GlassLoginWall() {
                           </motion.svg>
                         </div>
                         <div className="text-center">
-                          <h4 className="text-lg font-bold text-white tracking-tight">Security Code Verified</h4>
-                          <p className="text-xs text-gray-400 mt-1 font-mono">Restoring encrypted memory layers...</p>
+                          <h4 className="text-lg font-bold text-[var(--foreground)] tracking-tight">Security Code Verified</h4>
+                          <p className="text-xs text-[var(--foreground)]/70 mt-1 font-mono">Restoring encrypted memory layers...</p>
                         </div>
                       </motion.div>
                     ) : !codeSent ? (
                       /* STEP 1: PHONE NUMBER INPUT */
                       <div className="space-y-4">
                         <div className="space-y-1.5">
-                          <label className="text-xs text-gray-400 font-mono uppercase tracking-wider">Mobile Number</label>
+                          <label className="text-xs text-[var(--foreground)]/70 font-mono uppercase tracking-wider">Mobile Number</label>
                           <div className="flex gap-2.5 relative">
                             {/* Country dropdown trigger */}
                             <div className="relative" ref={countryDropdownRef}>
                               <button
                                 type="button"
                                 onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                                className="flex items-center gap-1.5 h-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-3 text-sm text-white focus:outline-none transition-all active:scale-[0.98]"
+                                className="flex items-center gap-1.5 h-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-3 text-sm text-[var(--foreground)] focus:outline-none transition-all active:scale-[0.98]"
                               >
                                 <span className="text-base select-none">{selectedCountry.flag}</span>
-                                <span className="font-mono text-xs text-gray-300">{selectedCountry.code}</span>
-                                <ChevronDown className="h-3 w-3 text-gray-400 shrink-0" />
+                                <span className="font-mono text-xs text-[var(--foreground)]/80">{selectedCountry.code}</span>
+                                <ChevronDown className="h-3 w-3 text-[var(--foreground)]/70 shrink-0" />
                               </button>
 
                               {/* Country list dropdown */}
@@ -955,13 +955,13 @@ export default function GlassLoginWall() {
                                           setSelectedCountry(country);
                                           setShowCountryDropdown(false);
                                         }}
-                                        className="w-full flex items-center justify-between p-2.5 hover:bg-white/5 active:bg-white/10 rounded-lg text-left transition-colors text-xs text-white"
+                                        className="w-full flex items-center justify-between p-2.5 hover:bg-[var(--foreground)]/[0.05] active:bg-[var(--foreground)]/[0.10] rounded-lg text-left transition-colors text-xs text-[var(--foreground)]"
                                       >
                                         <div className="flex items-center gap-2 truncate">
                                           <span>{country.flag}</span>
                                           <span className="truncate">{country.name}</span>
                                         </div>
-                                        <span className="font-mono text-gray-400 shrink-0">{country.code}</span>
+                                        <span className="font-mono text-[var(--foreground)]/70 shrink-0">{country.code}</span>
                                       </button>
                                     ))}
                                   </motion.div>
@@ -975,7 +975,7 @@ export default function GlassLoginWall() {
                               placeholder="(555) 000-0000"
                               value={phoneRaw}
                               onChange={(e) => setPhoneRaw(e.target.value)}
-                              className="flex-1 bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 font-mono"
+                              className="flex-1 bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 font-mono"
                               autoFocus
                             />
                           </div>
@@ -985,10 +985,10 @@ export default function GlassLoginWall() {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
+                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-[var(--foreground)] font-medium py-3.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
                         >
                           {loading ? (
-                            <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                            <div className="h-4 w-4 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-white animate-spin" />
                           ) : (
                             <>
                               <span>Verify Phone Number</span>
@@ -1001,9 +1001,9 @@ export default function GlassLoginWall() {
                       /* STEP 2: OTP DIGITS INPUT */
                       <div className="space-y-6">
                         <div className="space-y-2 text-center md:text-left">
-                          <label className="text-xs text-gray-400 font-mono uppercase tracking-wider block">Enter Security Code</label>
-                          <p className="text-[11px] text-gray-500 leading-normal">
-                            A verification code has been dispatched to <strong className="text-white font-mono">{selectedCountry.code} {phoneRaw.replace(/\D/g, "")}</strong>
+                          <label className="text-xs text-[var(--foreground)]/70 font-mono uppercase tracking-wider block">Enter Security Code</label>
+                          <p className="text-[11px] text-[var(--foreground)]/50 leading-normal">
+                            A verification code has been dispatched to <strong className="text-[var(--foreground)] font-mono">{selectedCountry.code} {phoneRaw.replace(/\D/g, "")}</strong>
                           </p>
                         </div>
 
@@ -1020,14 +1020,14 @@ export default function GlassLoginWall() {
                               onChange={(e) => handleOtpChange(idx, e.target.value)}
                               onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                               onPaste={idx === 0 ? handleOtpPaste : undefined}
-                              className="w-12 h-14 text-center bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/60 focus:bg-[#31263e]/90 rounded-xl text-lg font-bold text-white focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 font-mono"
+                              className="w-12 h-14 text-center bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/60 focus:bg-[var(--color-obsidian-medium)]/90 rounded-xl text-lg font-bold text-[var(--foreground)] focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30 font-mono"
                               autoFocus={idx === 0}
                             />
                           ))}
                         </div>
 
                         {/* Timer / Resend section */}
-                        <div className="flex justify-between items-center text-[11px] text-gray-400">
+                        <div className="flex justify-between items-center text-[11px] text-[var(--foreground)]/70">
                           {canResend ? (
                             <button
                               type="button"
@@ -1039,15 +1039,15 @@ export default function GlassLoginWall() {
                               <span>Resend SMS Code</span>
                             </button>
                           ) : (
-                            <span className="font-mono text-gray-500">
-                              Resend code in <strong className="text-gray-300">0:{timer.toString().padStart(2, "0")}</strong>
+                            <span className="font-mono text-[var(--foreground)]/50">
+                              Resend code in <strong className="text-[var(--foreground)]/80">0:{timer.toString().padStart(2, "0")}</strong>
                             </span>
                           )}
 
                           <button
                             type="button"
                             onClick={() => { setCodeSent(false); setOtpCodeArray(Array(6).fill("")); setErrorMsg(""); }}
-                            className="text-gray-400 hover:text-white font-medium hover:underline flex items-center gap-1"
+                            className="text-[var(--foreground)]/70 hover:text-[var(--foreground)] font-medium hover:underline flex items-center gap-1"
                           >
                             <ArrowLeft className="h-3 w-3" />
                             Change Number
@@ -1058,7 +1058,7 @@ export default function GlassLoginWall() {
                         {sentMethod === "console" && sentCode && (
                           <div className="p-3 bg-[#eca72c]/5 border border-[#eca72c]/10 rounded-xl text-center">
                             <span className="text-[11px] text-[#f4c56e] font-mono">
-                              [Sandbox Mock Code]: <strong className="text-white text-xs select-all">{sentCode}</strong>
+                              [Sandbox Mock Code]: <strong className="text-[var(--foreground)] text-xs select-all">{sentCode}</strong>
                             </span>
                           </div>
                         )}
@@ -1067,10 +1067,10 @@ export default function GlassLoginWall() {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
+                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-[var(--foreground)] font-medium py-3.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-[#ee5622]/20"
                         >
                           {loading ? (
-                            <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                            <div className="h-4 w-4 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-white animate-spin" />
                           ) : (
                             <>
                               <span>Verify Security Code</span>
@@ -1100,8 +1100,8 @@ export default function GlassLoginWall() {
                           <CheckCircle2 className="h-5 w-5" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Recovery Email Dispatched</h4>
-                          <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
+                          <h4 className="font-bold text-xs text-[var(--foreground)]">Recovery Email Dispatched</h4>
+                          <p className="text-[11px] text-[var(--foreground)]/70 mt-1 leading-relaxed">
                             A password reset link was sent to <strong className="text-[#eca72c]">{forgotEmail}</strong>.
                           </p>
                         </div>
@@ -1123,17 +1123,17 @@ export default function GlassLoginWall() {
                             placeholder="Registered Email"
                             value={forgotEmail}
                             onChange={(e) => setForgotEmail(e.target.value)}
-                            className="w-full bg-[#31263e]/70 border border-white/[0.04] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
+                            className="w-full bg-[var(--color-obsidian-medium)]/70 border border-[var(--color-obsidian-border)] focus:border-[#eca72c]/50 rounded-xl px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none transition-all focus:ring-1 focus:ring-[#eca72c]/30"
                           />
                         </div>
 
                         <button
                           type="submit"
                           disabled={forgotStatus === "sending"}
-                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98]"
+                          className="w-full bg-[#ee5622] hover:bg-[#d7491f] text-[var(--foreground)] font-medium py-3 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 active:scale-[0.98]"
                         >
                           {forgotStatus === "sending" ? (
-                            <div className="h-4 w-4 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+                            <div className="h-4 w-4 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-white animate-spin" />
                           ) : (
                             "Request Recovery Link"
                           )}
@@ -1146,11 +1146,11 @@ export default function GlassLoginWall() {
 
               {/* Separator Line */}
               <div className="relative flex py-6 items-center">
-                <div className="flex-grow border-t border-white/[0.04]"></div>
-                <span className="flex-shrink mx-4 text-gray-500 text-[10px] font-mono uppercase tracking-wider">
+                <div className="flex-grow border-t border-[var(--color-obsidian-border)]"></div>
+                <span className="flex-shrink mx-4 text-[var(--foreground)]/50 text-[10px] font-mono uppercase tracking-wider">
                   {flowStep === "signup" ? "Or register with" : "Or sign in with"}
                 </span>
-                <div className="flex-grow border-t border-white/[0.04]"></div>
+                <div className="flex-grow border-t border-[var(--color-obsidian-border)]"></div>
               </div>
 
               {/* SOCIAL LOGINS GRID */}
@@ -1159,7 +1159,7 @@ export default function GlassLoginWall() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin("google")}
-                  className="col-span-1 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#31263e]/40 hover:bg-[#31263e]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                  className="col-span-1 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-[var(--color-obsidian-border)] bg-[var(--color-obsidian-medium)]/40 hover:bg-[var(--color-obsidian-medium)]/70 text-[var(--foreground)] text-xs font-medium transition-all duration-200 active:scale-[0.98]"
                 >
                   <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" width="24" height="24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -1174,9 +1174,9 @@ export default function GlassLoginWall() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin("github")}
-                  className="col-span-1 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#31263e]/40 hover:bg-[#31263e]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98]"
+                  className="col-span-1 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-[var(--color-obsidian-border)] bg-[var(--color-obsidian-medium)]/40 hover:bg-[var(--color-obsidian-medium)]/70 text-[var(--foreground)] text-xs font-medium transition-all duration-200 active:scale-[0.98]"
                 >
-                  <svg className="h-4 w-4 shrink-0 fill-current text-white" viewBox="0 0 24 24" width="24" height="24">
+                  <svg className="h-4 w-4 shrink-0 fill-current text-[var(--foreground)]" viewBox="0 0 24 24" width="24" height="24">
                     <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.197 22 16.44 22 12.017 22 6.484 17.522 2 12 2z" />
                   </svg>
                   <span>GitHub</span>
@@ -1187,7 +1187,7 @@ export default function GlassLoginWall() {
                   <button
                     type="button"
                     onClick={() => setFlowStep("phone")}
-                    className="col-span-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/[0.04] bg-[#31263e]/40 hover:bg-[#31263e]/70 text-white text-xs font-medium transition-all duration-200 active:scale-[0.98] mt-1.5"
+                    className="col-span-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-[var(--color-obsidian-border)] bg-[var(--color-obsidian-medium)]/40 hover:bg-[var(--color-obsidian-medium)]/70 text-[var(--foreground)] text-xs font-medium transition-all duration-200 active:scale-[0.98] mt-1.5"
                   >
                     <Phone className="h-4 w-4 text-[#eca72c] shrink-0" />
                     <span>Login using Phone Number</span>
@@ -1197,7 +1197,7 @@ export default function GlassLoginWall() {
             </div>
 
             {/* Compliance Footer */}
-            <div className="mt-8 flex items-center justify-between text-[9px] font-mono text-gray-500 border-t border-white/[0.04] pt-4">
+            <div className="mt-8 flex items-center justify-between text-[9px] font-mono text-[var(--foreground)]/50 border-t border-[var(--color-obsidian-border)] pt-4">
               <span className="flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5 text-[#44355b]" />
                 TLS 1.3 Encryption Secured
@@ -1221,42 +1221,42 @@ export default function GlassLoginWall() {
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#44355b]/40 via-[#eca72c]/40 to-[#ee5622]/40" />
 
             {/* Header info */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/5 pb-5">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-[var(--color-obsidian-border)] pb-5">
               <div className="flex items-center gap-3.5">
                 <div className="h-11 w-11 rounded-2xl bg-[#44355b]/10 border border-[#44355b]/20 flex items-center justify-center text-[#44355b] shadow-inner">
                   <MailCheck className="h-5.5 w-5.5" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-1.5">
+                  <h3 className="text-xl font-bold text-[var(--foreground)] tracking-tight flex items-center gap-1.5">
                     Welcome Email Dispatched! <Sparkles className="h-4.5 w-4.5 text-[#eca72c] animate-pulse" />
                   </h3>
-                  <p className="text-xs text-gray-400">An onboard email was processed successfully and logged to disk.</p>
+                  <p className="text-xs text-[var(--foreground)]/70">An onboard email was processed successfully and logged to disk.</p>
                 </div>
               </div>
               
               <button
                 onClick={clearWelcomeEmail}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-xs bg-[#ee5622] hover:bg-[#d7491f] transition-all rounded-xl text-white font-bold tracking-wider uppercase active:scale-[0.98] shadow-md shadow-[#ee5622]/30"
+                className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-xs bg-[#ee5622] hover:bg-[#d7491f] transition-all rounded-xl text-[var(--foreground)] font-bold tracking-wider uppercase active:scale-[0.98] shadow-md shadow-[#ee5622]/30"
               >
                 Enter Workspace <ArrowRight className="h-4 w-4" />
               </button>
             </div>
 
             {/* Email Client Mock Frame */}
-            <div className="flex-1 flex flex-col bg-[#0b0b10] border border-white/[0.04] rounded-2xl overflow-hidden shadow-inner mb-5">
+            <div className="flex-1 flex flex-col bg-[#0b0b10] border border-[var(--color-obsidian-border)] rounded-2xl overflow-hidden shadow-inner mb-5">
               
               {/* Email details bar */}
-              <div className="bg-[#181523] px-5 py-4 border-b border-white/[0.04] text-xs space-y-2">
+              <div className="bg-[#181523] px-5 py-4 border-b border-[var(--color-obsidian-border)] text-xs space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">Subject:</span>
-                  <span className="text-white font-medium">Welcome to MemoMind AI!</span>
+                  <span className="text-[var(--foreground)]/50 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">Subject:</span>
+                  <span className="text-[var(--foreground)] font-medium">Welcome to MemoMind AI!</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">From:</span>
-                  <span className="text-gray-300">system@MemoMind.ai &lt;MemoMind AI Onboarding&gt;</span>
+                  <span className="text-[var(--foreground)]/50 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">From:</span>
+                  <span className="text-[var(--foreground)]/80">system@MemoMind.ai &lt;MemoMind AI Onboarding&gt;</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">To:</span>
+                  <span className="text-[var(--foreground)]/50 font-mono w-16 text-right font-bold uppercase tracking-wider text-[10px]">To:</span>
                   <span className="text-[#eca72c] font-medium">{welcomeEmail.filePath.split("welcome_")[1]?.split("_at_")[0] + "@" + welcomeEmail.filePath.split("_at_")[1]?.split("_")[0]}</span>
                 </div>
               </div>
@@ -1271,8 +1271,8 @@ export default function GlassLoginWall() {
             </div>
 
             {/* Log path location reference */}
-            <div className="flex flex-col sm:flex-row items-center justify-between text-[10px] font-mono text-gray-500 border-t border-white/5 pt-4 gap-2">
-              <span className="flex items-center gap-1.5 text-gray-400">
+            <div className="flex flex-col sm:flex-row items-center justify-between text-[10px] font-mono text-[var(--foreground)]/50 border-t border-[var(--color-obsidian-border)] pt-4 gap-2">
+              <span className="flex items-center gap-1.5 text-[var(--foreground)]/70">
                 <FileText className="h-3.5 w-3.5 text-[#eca72c]" />
                 Logged Location: <span className="text-[#f4c56e] select-all truncate max-w-sm sm:max-w-md md:max-w-lg">{welcomeEmail.filePath}</span>
               </span>
@@ -1295,7 +1295,7 @@ export default function GlassLoginWall() {
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="max-w-[440px] w-full bg-[#1e1e1e] rounded-lg border border-white/10 px-8 py-10 shadow-2xl relative flex flex-col justify-between min-h-[500px]"
+              className="max-w-[440px] w-full bg-[#1e1e1e] rounded-lg border border-[var(--color-obsidian-border)] px-8 py-10 shadow-2xl relative flex flex-col justify-between min-h-[500px]"
             >
               {/* Google Brand Logo */}
               <div className="flex flex-col items-center text-center">
@@ -1317,11 +1317,11 @@ export default function GlassLoginWall() {
                       exit={{ opacity: 0, y: 5 }}
                       className="w-full text-left"
                     >
-                      <h4 className="text-xl text-white font-medium tracking-tight text-center">Choose an account</h4>
-                      <p className="text-gray-300 text-sm mt-1 mb-6 text-center">to continue to <span className="text-[#eca72c] font-bold">MemoMind AI</span></p>
+                      <h4 className="text-xl text-[var(--foreground)] font-medium tracking-tight text-center">Choose an account</h4>
+                      <p className="text-[var(--foreground)]/80 text-sm mt-1 mb-6 text-center">to continue to <span className="text-[#eca72c] font-bold">MemoMind AI</span></p>
                       
                       {/* Chooser account listings */}
-                      <div className="space-y-0.5 border-y border-white/10 py-1.5 w-full text-left max-h-[220px] overflow-y-auto pr-1">
+                      <div className="space-y-0.5 border-y border-[var(--color-obsidian-border)] py-1.5 w-full text-left max-h-[220px] overflow-y-auto pr-1">
                         
                         {/* SEEDS */}
                         {Object.entries(SEED_PROFILES).map(([key, profile]) => (
@@ -1329,16 +1329,16 @@ export default function GlassLoginWall() {
                             key={key}
                             type="button"
                             onClick={() => handleGoogleChooserSelect(key)}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors text-left"
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--foreground)]/[0.05] active:bg-[var(--foreground)]/[0.10] rounded-md transition-colors text-left"
                           >
                             <img
                               src={profile.avatar}
                               alt={profile.name}
-                              className="h-8 w-8 rounded-full bg-slate-900 border border-white/10 p-0.5 shrink-0"
+                              className="h-8 w-8 rounded-full bg-slate-900 border border-[var(--color-obsidian-border)] p-0.5 shrink-0"
                             />
                             <div className="overflow-hidden">
-                              <span className="text-xs font-bold text-white block leading-tight">{profile.name}</span>
-                              <span className="text-[11px] text-gray-400 block truncate mt-0.5">{profile.email}</span>
+                              <span className="text-xs font-bold text-[var(--foreground)] block leading-tight">{profile.name}</span>
+                              <span className="text-[11px] text-[var(--foreground)]/70 block truncate mt-0.5">{profile.email}</span>
                             </div>
                           </button>
                         ))}
@@ -1349,16 +1349,16 @@ export default function GlassLoginWall() {
                             key={`custom-${idx}`}
                             type="button"
                             onClick={() => handleGoogleChooserSelect(undefined, acc)}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors text-left"
+                            className="w-full flex items-center gap-3 p-3 hover:bg-[var(--foreground)]/[0.05] active:bg-[var(--foreground)]/[0.10] rounded-md transition-colors text-left"
                           >
                             <img
                               src={acc.avatar}
                               alt={acc.name}
-                              className="h-8 w-8 rounded-full bg-slate-900 border border-white/10 p-0.5 shrink-0"
+                              className="h-8 w-8 rounded-full bg-slate-900 border border-[var(--color-obsidian-border)] p-0.5 shrink-0"
                             />
                             <div className="overflow-hidden">
-                              <span className="text-xs font-bold text-white block leading-tight">{acc.name}</span>
-                              <span className="text-[11px] text-gray-400 block truncate mt-0.5">{acc.email}</span>
+                              <span className="text-xs font-bold text-[var(--foreground)] block leading-tight">{acc.name}</span>
+                              <span className="text-[11px] text-[var(--foreground)]/70 block truncate mt-0.5">{acc.email}</span>
                             </div>
                           </button>
                         ))}
@@ -1371,13 +1371,13 @@ export default function GlassLoginWall() {
                             setGoogleEmailInput("");
                             setGoogleChooserStep("enter_email");
                           }}
-                          className="w-full flex items-center gap-3 p-3 hover:bg-white/5 active:bg-white/10 rounded-md transition-colors border-t border-white/5 mt-1 text-left"
+                          className="w-full flex items-center gap-3 p-3 hover:bg-[var(--foreground)]/[0.05] active:bg-[var(--foreground)]/[0.10] rounded-md transition-colors border-t border-[var(--color-obsidian-border)] mt-1 text-left"
                         >
-                          <div className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] flex items-center justify-center text-[var(--foreground)]/80 shrink-0">
                             <User className="h-4.5 w-4.5" />
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-gray-200 block">Use another account</span>
+                            <span className="text-xs font-bold text-[var(--foreground)]/90 block">Use another account</span>
                           </div>
                         </button>
                       </div>
@@ -1392,8 +1392,8 @@ export default function GlassLoginWall() {
                       exit={{ opacity: 0, y: 5 }}
                       className="w-full text-left mt-2"
                     >
-                      <h4 className="text-xl text-white font-medium text-center">Sign in</h4>
-                      <p className="text-gray-300 text-xs text-center mt-1 mb-8">with your Google Account to continue to MemoMind</p>
+                      <h4 className="text-xl text-[var(--foreground)] font-medium text-center">Sign in</h4>
+                      <p className="text-[var(--foreground)]/80 text-xs text-center mt-1 mb-8">with your Google Account to continue to MemoMind</p>
 
                       <form onSubmit={handleGoogleEmailSubmit} className="space-y-6">
                         {googleError && (
@@ -1410,7 +1410,7 @@ export default function GlassLoginWall() {
                               placeholder="Full name"
                               value={googleNameInput}
                               onChange={(e) => setGoogleNameInput(e.target.value)}
-                              className="w-full bg-[#121212] border border-white/15 rounded-md px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans"
+                              className="w-full bg-[var(--color-obsidian-dark)] border border-white/15 rounded-md px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans"
                               autoFocus
                             />
                           </div>
@@ -1421,7 +1421,7 @@ export default function GlassLoginWall() {
                               placeholder="Email or phone number"
                               value={googleEmailInput}
                               onChange={(e) => setGoogleEmailInput(e.target.value)}
-                              className="w-full bg-[#121212] border border-white/15 rounded-md px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans"
+                              className="w-full bg-[var(--color-obsidian-dark)] border border-white/15 rounded-md px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans"
                             />
                             <button 
                               type="button"
@@ -1432,7 +1432,7 @@ export default function GlassLoginWall() {
                           </div>
                         </div>
 
-                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                        <p className="text-[11px] text-[var(--foreground)]/70 leading-relaxed">
                           Not your computer? Use Guest mode to sign in privately. <span className="text-blue-400 hover:underline cursor-pointer">Learn more</span>
                         </p>
 
@@ -1449,7 +1449,7 @@ export default function GlassLoginWall() {
                           </button>
                           <button
                             type="submit"
-                            className="text-xs bg-[#1a73e8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold px-6 py-2.5 rounded transition-colors shadow"
+                            className="text-xs bg-[#1a73e8] hover:bg-blue-600 active:bg-blue-700 text-[var(--foreground)] font-bold px-6 py-2.5 rounded transition-colors shadow"
                           >
                             Next
                           </button>
@@ -1466,9 +1466,9 @@ export default function GlassLoginWall() {
                       exit={{ opacity: 0, y: 5 }}
                       className="w-full text-left mt-2"
                     >
-                      <h4 className="text-xl text-white font-medium text-center">Welcome</h4>
+                      <h4 className="text-xl text-[var(--foreground)] font-medium text-center">Welcome</h4>
                       <div className="flex items-center justify-center gap-1.5 mt-2.5 mb-8">
-                        <div className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 flex items-center gap-1">
+                        <div className="px-2.5 py-1 rounded-full bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] text-xs text-[var(--foreground)]/80 flex items-center gap-1">
                           <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                           <span>{googleEmailInput}</span>
                         </div>
@@ -1488,7 +1488,7 @@ export default function GlassLoginWall() {
                             placeholder="Enter your password"
                             value={googlePasswordInput}
                             onChange={(e) => setGooglePasswordInput(e.target.value)}
-                            className="w-full bg-[#121212] border border-white/15 rounded-md px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans"
+                            className="w-full bg-[var(--color-obsidian-dark)] border border-white/15 rounded-md px-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans"
                             autoFocus
                           />
                           <button 
@@ -1512,7 +1512,7 @@ export default function GlassLoginWall() {
                           </button>
                           <button
                             type="submit"
-                            className="text-xs bg-[#1a73e8] hover:bg-blue-600 active:bg-blue-700 text-white font-bold px-6 py-2.5 rounded transition-colors shadow"
+                            className="text-xs bg-[#1a73e8] hover:bg-blue-600 active:bg-blue-700 text-[var(--foreground)] font-bold px-6 py-2.5 rounded transition-colors shadow"
                           >
                             Next
                           </button>
@@ -1526,18 +1526,18 @@ export default function GlassLoginWall() {
 
               {/* Chooser standard footer */}
               {googleChooserStep === "choose" && (
-                <div className="text-center text-[10px] text-gray-500 leading-relaxed border-t border-white/10 pt-4 mt-6">
+                <div className="text-center text-[10px] text-[var(--foreground)]/50 leading-relaxed border-t border-[var(--color-obsidian-border)] pt-4 mt-6">
                   To continue, Google will share your name, email address, profile picture, and choice of theme preferences with MemoMind.
                 </div>
               )}
 
               {/* Sub-footer compliance links */}
-              <div className="flex justify-between text-[11px] text-gray-500 mt-6 pt-4 border-t border-white/5 w-full">
-                <span className="cursor-pointer hover:text-gray-400">English (United States)</span>
+              <div className="flex justify-between text-[11px] text-[var(--foreground)]/50 mt-6 pt-4 border-t border-[var(--color-obsidian-border)] w-full">
+                <span className="cursor-pointer hover:text-[var(--foreground)]/70">English (United States)</span>
                 <div className="flex gap-3">
-                  <span className="cursor-pointer hover:text-gray-400">Help</span>
-                  <span className="cursor-pointer hover:text-gray-400">Privacy</span>
-                  <span className="cursor-pointer hover:text-gray-400">Terms</span>
+                  <span className="cursor-pointer hover:text-[var(--foreground)]/70">Help</span>
+                  <span className="cursor-pointer hover:text-[var(--foreground)]/70">Privacy</span>
+                  <span className="cursor-pointer hover:text-[var(--foreground)]/70">Terms</span>
                 </div>
               </div>
 
@@ -1545,7 +1545,7 @@ export default function GlassLoginWall() {
               <button
                 type="button"
                 onClick={() => setShowGoogleChooser(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+                className="absolute top-4 right-4 text-[var(--foreground)]/50 hover:text-[var(--foreground)] transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -1569,12 +1569,12 @@ export default function GlassLoginWall() {
               initial={{ scale: 0.9, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 15 }}
-              className="max-w-md w-full border border-white/5 bg-[#221e22] p-6 rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] relative overflow-hidden"
+              className="max-w-md w-full border border-[var(--color-obsidian-border)] bg-[var(--color-obsidian-dark)] p-6 rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-[#eca72c] via-[#44355b] to-[#ee5622] animate-pulse" />
               
-              <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-4">
-                <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center border border-white/10 shrink-0 shadow-sm">
+              <div className="flex items-center gap-3 border-b border-[var(--color-obsidian-border)] pb-4 mb-4">
+                <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center border border-[var(--color-obsidian-border)] shrink-0 shadow-sm">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -1583,35 +1583,35 @@ export default function GlassLoginWall() {
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-white">Google Accounts Sign-In</h4>
-                  <p className="text-[10px] text-gray-500 font-mono">accounts.google.com/oauth/signin</p>
+                  <h4 className="font-bold text-sm text-[var(--foreground)]">Google Accounts Sign-In</h4>
+                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono">accounts.google.com/oauth/signin</p>
                 </div>
               </div>
 
               <div className="space-y-4 py-3 flex flex-col items-center justify-center">
                 {/* Dynamic Loader */}
                 <div className="relative h-12 w-12 flex items-center justify-center mb-1">
-                  <div className="h-10 w-10 rounded-full border-2 border-white/5 border-t-[#eca72c] animate-spin" />
+                  <div className="h-10 w-10 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-[#eca72c] animate-spin" />
                   <div className="absolute h-4 w-4 bg-[#44355b] rounded-full animate-ping" />
                 </div>
                 {selectedOAuthUser && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 bg-white/5 mb-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.05] mb-2">
                     <img 
                       src={selectedOAuthUser.avatar} 
                       alt={selectedOAuthUser.name} 
-                      className="h-5 w-5 rounded-full bg-slate-900 border border-white/10"
+                      className="h-5 w-5 rounded-full bg-slate-900 border border-[var(--color-obsidian-border)]"
                     />
-                    <span className="text-xs text-white font-medium">{selectedOAuthUser.name}</span>
+                    <span className="text-xs text-[var(--foreground)] font-medium">{selectedOAuthUser.name}</span>
                   </div>
                 )}
 
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-white">Connecting Secure Google Session...</p>
-                  <p className="text-xs text-gray-400 mt-1">Authorizing MemoMind memory graph scopes.</p>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">Connecting Secure Google Session...</p>
+                  <p className="text-xs text-[var(--foreground)]/70 mt-1">Authorizing MemoMind memory graph scopes.</p>
                 </div>
               </div>
 
-              <div className="border-t border-white/5 pt-3.5 mt-4 flex justify-between text-[9px] font-mono text-gray-500">
+              <div className="border-t border-[var(--color-obsidian-border)] pt-3.5 mt-4 flex justify-between text-[9px] font-mono text-[var(--foreground)]/50">
                 <span>OAuth Token Exchange</span>
                 <span>IP: 127.0.0.1</span>
               </div>

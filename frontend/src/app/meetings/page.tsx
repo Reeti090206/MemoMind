@@ -208,7 +208,7 @@ function MeetingContent() {
       
       {/* Left Sidebar Catalog Column */}
       <div className="space-y-4">
-        <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+        <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
           <Calendar className="h-4 w-4 text-cyber-cyan" /> Meeting History
         </h3>
         
@@ -229,8 +229,8 @@ function MeetingContent() {
                 onClick={() => setSelectedId(m.id)}
                 className={`w-full text-left p-4 rounded-xl relative border transition-all duration-300 cursor-pointer ${
                   isSelected
-                    ? "border-cyber-purple text-white shadow-lg shadow-cyber-purple/5"
-                    : "bg-white/[0.01] hover:bg-white/[0.03] border-white/5 text-gray-400 hover:text-white"
+                    ? "border-cyber-purple text-[var(--foreground)] shadow-lg shadow-cyber-purple/5"
+                    : "bg-[var(--foreground)]/[0.01] hover:bg-white/[0.03] border-[var(--color-obsidian-border)] text-[var(--foreground)]/70 hover:text-[var(--foreground)]"
                 }`}
               >
                 {isSelected && (
@@ -242,7 +242,7 @@ function MeetingContent() {
                 )}
                 
                 <div className="relative z-10 font-semibold text-sm truncate">{m.title}</div>
-                <div className="relative z-10 text-[10px] font-mono mt-1.5 text-gray-500 flex items-center gap-1.5">
+                <div className="relative z-10 text-[10px] font-mono mt-1.5 text-[var(--foreground)]/50 flex items-center gap-1.5">
                   <Clock className="h-3 w-3 text-gray-600" />
                   {m.date}
                 </div>
@@ -278,12 +278,12 @@ function MeetingContent() {
                     <span className="px-2.5 py-0.5 text-[9px] rounded-full bg-cyber-cyan/15 border border-cyber-cyan/25 text-cyber-cyan font-mono font-bold tracking-wider uppercase">
                       SPEECH TO TEXT
                     </span>
-                    <h2 className="text-xl font-black text-white tracking-tight mt-2.5">{meetingData.title}</h2>
-                    <div className="flex items-center gap-4 text-xs text-gray-400 mt-2 font-mono">
-                      <span className="flex items-center gap-1.5 text-gray-400">
+                    <h2 className="text-xl font-black text-[var(--foreground)] tracking-tight mt-2.5">{meetingData.title}</h2>
+                    <div className="flex items-center gap-4 text-xs text-[var(--foreground)]/70 mt-2 font-mono">
+                      <span className="flex items-center gap-1.5 text-[var(--foreground)]/70">
                         <Calendar className="h-3.5 w-3.5 text-cyber-purple" /> {meetingData.date}
                       </span>
-                      <span className="flex items-center gap-1.5 text-gray-400">
+                      <span className="flex items-center gap-1.5 text-[var(--foreground)]/70">
                         <Clock className="h-3.5 w-3.5 text-cyber-cyan" /> {formatTime(meetingData.duration)} min
                       </span>
                     </div>
@@ -293,14 +293,14 @@ function MeetingContent() {
                       whileHover={{ scale: 1.05 }}
                       className="p-3 bg-cyber-purple/10 border border-cyber-purple/20 rounded-xl text-center min-w-[80px]"
                     >
-                      <p className="text-[9px] text-gray-400 uppercase tracking-widest font-mono font-bold">Meeting Value</p>
+                      <p className="text-[9px] text-[var(--foreground)]/70 uppercase tracking-widest font-mono font-bold">Meeting Value</p>
                       <p className="text-sm font-black text-cyber-purple font-mono mt-0.5">{meetingData.efficiency_score}%</p>
                     </motion.div>
                     <motion.div 
                       whileHover={{ scale: 1.05 }}
                       className="p-3 bg-cyber-rose/10 border border-cyber-rose/20 rounded-xl text-center min-w-[80px]"
                     >
-                      <p className="text-[9px] text-gray-400 uppercase tracking-widest font-mono font-bold">Tension level</p>
+                      <p className="text-[9px] text-[var(--foreground)]/70 uppercase tracking-widest font-mono font-bold">Tension level</p>
                       <p className="text-sm font-black text-cyber-rose font-mono mt-0.5">{meetingData.tension_score}%</p>
                     </motion.div>
                   </div>
@@ -319,10 +319,10 @@ function MeetingContent() {
                     className="p-6 rounded-2xl glass-card space-y-3 relative overflow-hidden group hover:border-cyber-cyan/35 transition-all duration-300 bg-transparent"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-cyber-cyan/[0.02] to-transparent pointer-events-none" />
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
                       <Zap className="h-4.5 w-4.5 text-cyber-cyan animate-pulse" /> AI Summary
                     </h3>
-                    <p className="text-xs text-gray-300 leading-relaxed font-light">
+                    <p className="text-xs text-[var(--foreground)]/80 leading-relaxed font-light">
                       {meetingData.summary}
                     </p>
                   </motion.div>
@@ -342,15 +342,15 @@ function MeetingContent() {
                       </div>
                       {meetingData.contradictions.map((c: any) => (
                         <div key={c.id} className="space-y-2.5 text-xs">
-                          <p className="text-gray-300 leading-relaxed font-light">{c.description}</p>
+                          <p className="text-[var(--foreground)]/80 leading-relaxed font-light">{c.description}</p>
                           <div className="p-4 bg-black/60 border border-cyber-rose/25 rounded-xl space-y-3">
                             <div className="flex items-start gap-2.5">
-                              <span className="px-2 py-0.5 rounded bg-gray-800 text-[8px] font-mono shrink-0 font-bold text-gray-400">OLD DECISION</span>
-                              <span className="text-gray-400 italic font-light">"{c.old_decision_text}"</span>
+                              <span className="px-2 py-0.5 rounded bg-gray-800 text-[8px] font-mono shrink-0 font-bold text-[var(--foreground)]/70">OLD DECISION</span>
+                              <span className="text-[var(--foreground)]/70 italic font-light">"{c.old_decision_text}"</span>
                             </div>
                             <div className="flex items-start gap-2.5">
                               <span className="px-2 py-0.5 rounded bg-cyber-rose/25 text-cyber-rose text-[8px] font-mono shrink-0 font-bold">NEW DECISION</span>
-                              <span className="text-white font-semibold">"{c.new_decision_text}"</span>
+                              <span className="text-[var(--foreground)] font-semibold">"{c.new_decision_text}"</span>
                             </div>
                           </div>
                         </div>
@@ -363,8 +363,8 @@ function MeetingContent() {
                     variants={cardItemVariants}
                     className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--color-obsidian-border)]">
+                      <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
                         <Users className="h-4.5 w-4.5 text-cyber-purple" /> Conversation Transcript
                       </h3>
                       <div className="relative">
@@ -373,9 +373,9 @@ function MeetingContent() {
                           placeholder="Search dialogue..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="bg-black/45 border border-white/5 rounded-xl pl-9 pr-4 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all w-full sm:w-56"
+                          className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl pl-9 pr-4 py-1.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all w-full sm:w-56"
                         />
-                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500" />
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--foreground)]/50" />
                       </div>
                     </div>
 
@@ -389,8 +389,8 @@ function MeetingContent() {
                           const initials = speakerName.split(" ")[0].slice(0, 2).toUpperCase();
                           
                           // Determine styling colors based on speaker name
-                          let speakerColorClass = "border-white/5 bg-white/[0.01] hover:bg-white/[0.03]";
-                          let avatarColorClass = "bg-white/5 text-gray-400 border-white/10";
+                          let speakerColorClass = "border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.01] hover:bg-white/[0.03]";
+                          let avatarColorClass = "bg-[var(--foreground)]/[0.05] text-[var(--foreground)]/70 border-[var(--color-obsidian-border)]";
                           
                           if (speakerName.toLowerCase().includes("aman")) {
                             speakerColorClass = isSelected ? "border-cyber-purple bg-cyber-purple/20" : "border-cyber-purple/20 bg-cyber-purple/5 hover:bg-cyber-purple/10";
@@ -435,19 +435,19 @@ function MeetingContent() {
                                 )}
                                 <div className="relative z-10">
                                   <div className="flex items-center justify-between gap-3 mb-1">
-                                    <span className="text-xs font-bold text-white">
+                                    <span className="text-xs font-bold text-[var(--foreground)]">
                                       {speakerName}
                                     </span>
-                                    <span className="text-[10px] text-gray-500 font-mono">{formatTime(seg.start_time)}</span>
+                                    <span className="text-[10px] text-[var(--foreground)]/50 font-mono">{formatTime(seg.start_time)}</span>
                                   </div>
-                                  <p className="text-xs font-light leading-relaxed text-gray-200">{seg.text}</p>
+                                  <p className="text-xs font-light leading-relaxed text-[var(--foreground)]/90">{seg.text}</p>
                                   
                                   {isSelected && (
                                     <motion.div
                                       initial={{ opacity: 0, height: 0 }}
                                       animate={{ opacity: 1, height: "auto" }}
                                       transition={{ duration: 0.25 }}
-                                      className="mt-3 pt-2.5 border-t border-white/10 flex justify-between items-center gap-3"
+                                      className="mt-3 pt-2.5 border-t border-[var(--color-obsidian-border)] flex justify-between items-center gap-3"
                                     >
                                       <span className="text-[9px] text-cyber-cyan font-mono flex items-center gap-1.5">
                                         <Zap className="h-3 w-3 animate-pulse" /> Linked to Memory Node
@@ -457,7 +457,7 @@ function MeetingContent() {
                                           e.stopPropagation();
                                           navigator.clipboard.writeText(seg.text);
                                         }}
-                                        className="px-2.5 py-1 bg-cyber-purple/35 hover:bg-cyber-purple/50 border border-cyber-purple/50 text-[9px] text-white font-mono font-bold rounded-lg transition-all cursor-pointer"
+                                        className="px-2.5 py-1 bg-cyber-purple/35 hover:bg-cyber-purple/50 border border-cyber-purple/50 text-[9px] text-[var(--foreground)] font-mono font-bold rounded-lg transition-all cursor-pointer"
                                       >
                                         Copy Snippet
                                       </button>
@@ -470,7 +470,7 @@ function MeetingContent() {
                         })}
                       </AnimatePresence>
                       {getFilteredSegments().length === 0 && (
-                        <p className="text-xs text-gray-500 text-center py-8">No matching dialogues found.</p>
+                        <p className="text-xs text-[var(--foreground)]/50 text-center py-8">No matching dialogues found.</p>
                       )}
                     </div>
                   </motion.div>
@@ -485,15 +485,15 @@ function MeetingContent() {
                     variants={cardItemVariants}
                     className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                   >
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Who Spoke</h3>
+                    <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Who Spoke</h3>
                     <div className="space-y-4">
                       {meetingData.speaker_stats && Object.entries(meetingData.speaker_stats).map(([name, pct]: any) => (
                         <div key={name} className="space-y-1.5 font-sans">
                           <div className="flex justify-between text-xs font-medium">
-                            <span className="text-gray-400">{name}</span>
-                            <span className="text-white font-semibold">{pct}%</span>
+                            <span className="text-[var(--foreground)]/70">{name}</span>
+                            <span className="text-[var(--foreground)] font-semibold">{pct}%</span>
                           </div>
-                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-[var(--foreground)]/[0.05] rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${pct}%` }}
@@ -511,15 +511,15 @@ function MeetingContent() {
                     variants={cardItemVariants}
                     className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                   >
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Decisions Made</h3>
+                    <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Decisions Made</h3>
                     <div className="space-y-3">
                       {meetingData.decisions && meetingData.decisions.map((d: any) => (
                         <motion.div 
                           key={d.id} 
                           whileHover={{ scale: 1.02 }}
-                          className="p-3 bg-white/[0.01] border border-white/5 rounded-xl space-y-1.5 hover:border-cyber-cyan/30 transition-colors font-sans"
+                          className="p-3 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl space-y-1.5 hover:border-cyber-cyan/30 transition-colors font-sans"
                         >
-                          <p className="text-xs text-gray-200 leading-normal font-light">{d.text}</p>
+                          <p className="text-xs text-[var(--foreground)]/90 leading-normal font-light">{d.text}</p>
                           <div className="flex items-center gap-1.5 mt-1">
                             <span className="px-1.5 py-0.5 rounded bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald text-[8px] uppercase font-mono font-bold">
                               {d.status || "accepted"}
@@ -535,24 +535,24 @@ function MeetingContent() {
                     variants={cardItemVariants}
                     className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                   >
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Tasks & Assignments</h3>
+                    <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Tasks & Assignments</h3>
                     <div className="space-y-3">
                       {meetingData.tasks && meetingData.tasks.map((t: any) => (
                         <motion.div 
                           key={t.id} 
                           whileHover={{ scale: 1.02 }}
-                          className="p-3.5 bg-white/[0.01] border border-white/5 rounded-xl space-y-2 hover:border-cyber-purple/35 transition-colors font-sans"
+                          className="p-3.5 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 hover:border-cyber-purple/35 transition-colors font-sans"
                         >
                           <div className="flex items-center justify-between text-[9px] font-mono text-cyber-cyan">
                             <span>Owner: {t.owner}</span>
-                            <span className="text-gray-500 font-sans">Due: {t.deadline}</span>
+                            <span className="text-[var(--foreground)]/50 font-sans">Due: {t.deadline}</span>
                           </div>
-                          <p className="text-xs text-white font-medium leading-relaxed">{t.title}</p>
-                          <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
+                          <p className="text-xs text-[var(--foreground)] font-medium leading-relaxed">{t.title}</p>
+                          <div className="flex items-center justify-between pt-1.5 border-t border-[var(--color-obsidian-border)]">
                             <span className={`text-[8px] uppercase font-mono px-1.5 py-0.5 rounded font-bold ${
-                              t.priority === "high" ? "bg-cyber-rose/15 text-cyber-rose border border-cyber-rose/20" : "bg-white/5 text-gray-400 border border-transparent"
+                              t.priority === "high" ? "bg-cyber-rose/15 text-cyber-rose border border-cyber-rose/20" : "bg-[var(--foreground)]/[0.05] text-[var(--foreground)]/70 border border-transparent"
                             }`}>{t.priority} priority</span>
-                            <span className="text-[8px] font-mono text-gray-500 font-semibold uppercase">{t.status}</span>
+                            <span className="text-[8px] font-mono text-[var(--foreground)]/50 font-semibold uppercase">{t.status}</span>
                           </div>
                         </motion.div>
                       ))}
@@ -565,7 +565,7 @@ function MeetingContent() {
                       variants={cardItemVariants}
                       className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                     >
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Topics for Later</h3>
+                      <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Topics for Later</h3>
                       <div className="space-y-3">
                         {meetingData.unresolved_topics.map((ut: any) => (
                           <motion.div 
@@ -573,8 +573,8 @@ function MeetingContent() {
                             whileHover={{ scale: 1.02 }}
                             className="p-3.5 bg-cyber-rose/5 border border-cyber-rose/15 rounded-xl space-y-1.5 font-sans"
                           >
-                            <p className="text-xs text-white font-bold">{ut.topic_name}</p>
-                            <p className="text-[10px] text-gray-400 leading-relaxed font-light">"{ut.context}"</p>
+                            <p className="text-xs text-[var(--foreground)] font-bold">{ut.topic_name}</p>
+                            <p className="text-[10px] text-[var(--foreground)]/70 leading-relaxed font-light">"{ut.context}"</p>
                             <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border inline-block mt-1 font-semibold ${
                               ut.status === "resolved"
                                 ? "bg-cyber-emerald/15 border-cyber-emerald/20 text-cyber-emerald"
@@ -598,7 +598,7 @@ function MeetingContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="p-12 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-xs border border-white/5 flex items-center justify-center min-h-[300px]"
+              className="p-12 bg-[var(--foreground)]/[0.01] rounded-2xl text-center text-[var(--foreground)]/50 font-sans text-xs border border-[var(--color-obsidian-border)] flex items-center justify-center min-h-[300px]"
             >
               Loading meeting details...
             </motion.div>
@@ -612,7 +612,7 @@ function MeetingContent() {
 export default function MeetingsPage() {
   return (
     <Suspense fallback={
-      <div className="p-8 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans">
+      <div className="p-8 bg-[var(--foreground)]/[0.01] rounded-2xl text-center text-[var(--foreground)]/50 font-sans">
         Loading your meeting space...
       </div>
     }>

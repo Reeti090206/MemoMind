@@ -108,8 +108,8 @@ export default function AnalyticsDashboard() {
       
       {/* Title */}
       <motion.div variants={panelVariants}>
-        <h2 className="text-2xl font-bold text-white tracking-tight">System Analytics & Audits</h2>
-        <p className="text-gray-400 text-sm mt-0.5">
+        <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">System Analytics & Audits</h2>
+        <p className="text-[var(--foreground)]/70 text-sm mt-0.5">
           Evaluate structural alignment quotients, circular discussion loops, speaking parity ratios, and cross-meeting conflicts.
         </p>
       </motion.div>
@@ -126,10 +126,10 @@ export default function AnalyticsDashboard() {
             className="p-6 rounded-2xl glass-panel border border-obsidian-border/80 space-y-4 hover:border-cyber-rose/20 transition-all duration-300 relative overflow-hidden bg-obsidian-dark/20"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-rose/5 blur-[50px] rounded-full pointer-events-none" />
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
               <Flame className="h-5 w-5 text-cyber-rose animate-pulse" /> Circular Topic Detection
             </h3>
-            <p className="text-xs text-gray-400">Identifies unresolved topics repeated across meetings causing decision friction.</p>
+            <p className="text-xs text-[var(--foreground)]/70">Identifies unresolved topics repeated across meetings causing decision friction.</p>
 
             <motion.div 
               variants={itemContainerVariants}
@@ -150,7 +150,7 @@ export default function AnalyticsDashboard() {
                       Mentions: {d.occurrence_count} meetings
                     </span>
                   </div>
-                  <p className="text-xs text-gray-300 leading-relaxed font-light font-sans">
+                  <p className="text-xs text-[var(--foreground)]/80 leading-relaxed font-light font-sans">
                     {d.warning}
                   </p>
                 </motion.div>
@@ -164,10 +164,10 @@ export default function AnalyticsDashboard() {
             className="p-6 rounded-2xl glass-panel border border-obsidian-border/80 space-y-4 hover:border-cyber-purple/20 transition-all duration-300 relative overflow-hidden bg-obsidian-dark/20"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-purple/5 blur-[50px] rounded-full pointer-events-none" />
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-cyber-purple" /> Policy Overrides & Contradictions
             </h3>
-            <p className="text-xs text-gray-400">Chronicle of decisions that directly override or modify historical sync resolutions.</p>
+            <p className="text-xs text-[var(--foreground)]/70">Chronicle of decisions that directly override or modify historical sync resolutions.</p>
 
             <motion.div 
               variants={itemContainerVariants}
@@ -186,17 +186,17 @@ export default function AnalyticsDashboard() {
                     <span>Audit Flag #{log.id}</span>
                     <span>Confidence match: {(log.confidence * 100).toFixed(0)}%</span>
                   </div>
-                  <p className="text-xs text-gray-300 leading-relaxed font-light">{log.description}</p>
+                  <p className="text-xs text-[var(--foreground)]/80 leading-relaxed font-light">{log.description}</p>
                   <div className="pt-2 flex justify-between items-center text-[10px] font-mono">
-                    <span className="text-gray-500">Flagged in Meeting #{log.meeting_id}</span>
-                    <Link href="/decisions" className="text-cyber-cyan hover:text-white hover:underline flex items-center gap-0.5 font-semibold">
+                    <span className="text-[var(--foreground)]/50">Flagged in Meeting #{log.meeting_id}</span>
+                    <Link href="/decisions" className="text-cyber-cyan hover:text-[var(--foreground)] hover:underline flex items-center gap-0.5 font-semibold">
                       Trace Lineage <ChevronRight className="h-3 w-3" />
                     </Link>
                   </div>
                 </motion.div>
               ))}
               {(!data.contradictions_log || data.contradictions_log.length === 0) && (
-                <p className="text-xs text-gray-500 italic py-6">No architectural conflicts currently flagged.</p>
+                <p className="text-xs text-[var(--foreground)]/50 italic py-6">No architectural conflicts currently flagged.</p>
               )}
             </motion.div>
           </motion.div>
@@ -206,10 +206,10 @@ export default function AnalyticsDashboard() {
             variants={panelVariants}
             className="p-6 rounded-2xl glass-panel border border-obsidian-border/80 space-y-4 hover:border-cyber-cyan/20 transition-all duration-300 bg-obsidian-dark/20"
           >
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
               <LineChart className="h-5 w-5 text-cyber-cyan animate-pulse" /> Meeting Efficiency Timeline
             </h3>
-            <p className="text-xs text-gray-400">Productivity alignments vs team friction scores across history.</p>
+            <p className="text-xs text-[var(--foreground)]/70">Productivity alignments vs team friction scores across history.</p>
 
             <motion.div 
               variants={itemContainerVariants}
@@ -225,13 +225,13 @@ export default function AnalyticsDashboard() {
                   className="p-4 rounded-xl bg-obsidian-light/40 border border-obsidian-border/80 flex items-center justify-between gap-6 hover:border-cyber-cyan/30 transition-all duration-200"
                 >
                   <div className="min-w-0">
-                    <h4 className="text-xs font-semibold text-white truncate">{meet.title}</h4>
-                    <p className="text-[10px] text-gray-500 font-mono mt-0.5">Date: {meet.date}</p>
+                    <h4 className="text-xs font-semibold text-[var(--foreground)] truncate">{meet.title}</h4>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Date: {meet.date}</p>
                   </div>
                   
                   <div className="flex items-center gap-4 shrink-0 text-xs font-mono">
                     <div className="text-right">
-                      <span className="text-gray-500 text-[9px] font-semibold block uppercase tracking-wider">EFFICIENCY</span>
+                      <span className="text-[var(--foreground)]/50 text-[9px] font-semibold block uppercase tracking-wider">EFFICIENCY</span>
                       <motion.span 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -242,7 +242,7 @@ export default function AnalyticsDashboard() {
                       </motion.span>
                     </div>
                     <div className="text-right">
-                      <span className="text-gray-500 text-[9px] font-semibold block uppercase tracking-wider">FRICTION</span>
+                      <span className="text-[var(--foreground)]/50 text-[9px] font-semibold block uppercase tracking-wider">FRICTION</span>
                       <motion.span 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -268,19 +268,19 @@ export default function AnalyticsDashboard() {
             variants={panelVariants}
             className="p-6 rounded-2xl glass-panel border border-obsidian-border/80 space-y-4 hover:border-cyber-purple/20 transition-all duration-300 bg-obsidian-dark/20"
           >
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
               <User className="h-5 w-5 text-cyber-purple" /> Speaking Parity Index
             </h3>
-            <p className="text-xs text-gray-400">Speaking dominance percentage tracked across historical interactions.</p>
+            <p className="text-xs text-[var(--foreground)]/70">Speaking dominance percentage tracked across historical interactions.</p>
 
             <div className="space-y-4 pt-2">
               {data.speaking_distribution && Object.entries(data.speaking_distribution).map(([name, pct]: any, idx: number) => (
                 <div key={name} className="space-y-2">
                   <div className="flex justify-between text-xs font-mono">
-                    <span className="text-gray-400 font-light">{name}</span>
-                    <span className="text-white font-bold">{pct}%</span>
+                    <span className="text-[var(--foreground)]/70 font-light">{name}</span>
+                    <span className="text-[var(--foreground)] font-bold">{pct}%</span>
                   </div>
-                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-[var(--foreground)]/[0.05] rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
@@ -301,12 +301,12 @@ export default function AnalyticsDashboard() {
           >
             <div className="absolute -top-12 -left-12 w-28 h-28 bg-cyber-cyan/5 blur-[40px] rounded-full pointer-events-none" />
             <Clock className="h-8 w-8 text-cyber-cyan mx-auto animate-pulse" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Alignment Turnaround Speed</h3>
+            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Alignment Turnaround Speed</h3>
             <motion.p 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 100, delay: 0.2 }}
-              className="text-3xl font-black text-white font-mono"
+              className="text-3xl font-black text-[var(--foreground)] font-mono"
             >
               {data.decision_turnaround} hrs
             </motion.p>
@@ -320,7 +320,7 @@ export default function AnalyticsDashboard() {
             variants={panelVariants}
             className="p-6 rounded-2xl glass-panel border border-obsidian-border/80 space-y-4 bg-obsidian-dark/20 hover:border-cyber-cyan/15 transition-all duration-300"
           >
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
               <HelpCircleIcon className="h-4.5 w-4.5 text-cyber-cyan" /> Unresolved Open Items
             </h3>
             <div className="space-y-2 text-xs font-mono">
@@ -328,8 +328,8 @@ export default function AnalyticsDashboard() {
                 whileHover={{ x: 2 }}
                 className="flex justify-between p-2.5 rounded bg-obsidian-light/50 border border-obsidian-border hover:border-obsidian-border/80 transition-colors"
               >
-                <span className="text-gray-400">Total Opened</span>
-                <span className="text-white font-bold">2 items</span>
+                <span className="text-[var(--foreground)]/70">Total Opened</span>
+                <span className="text-[var(--foreground)] font-bold">2 items</span>
               </motion.div>
               <motion.div 
                 whileHover={{ x: 2 }}

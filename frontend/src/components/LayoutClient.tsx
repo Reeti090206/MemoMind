@@ -7,6 +7,7 @@ import GlassLoginWall from "./GlassLoginWall";
 import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, welcomeEmail } = useAuth();
@@ -64,12 +65,12 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-[var(--background)] flex flex-col items-center justify-center text-white z-50">
+      <div className="fixed inset-0 w-screen h-screen bg-[var(--background)] flex flex-col items-center justify-center text-[var(--foreground)] z-50">
         <div className="relative h-14 w-14 flex items-center justify-center mb-4">
-          <div className="h-10 w-10 rounded-full border-2 border-white/5 border-t-cyber-purple animate-spin" />
+          <div className="h-10 w-10 rounded-full border-2 border-[var(--color-obsidian-border)] border-t-cyber-purple animate-spin" />
           <Network className="absolute h-5 w-5 text-cyber-cyan animate-pulse" />
         </div>
-        <p className="text-xs font-mono text-gray-500 uppercase tracking-widest animate-pulse">
+        <p className="text-xs font-mono text-[var(--foreground)]/50 uppercase tracking-widest animate-pulse">
           Retrieving MemoMind Memory Index...
         </p>
       </div>
@@ -81,7 +82,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="flex w-full h-full overflow-hidden text-white bg-transparent">
+    <div className="flex w-full h-full overflow-hidden text-[var(--foreground)] bg-transparent">
       {/* Sidebar Navigation */}
       <Sidebar />
       
@@ -115,24 +116,25 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         />
         
         {/* Top Global Header Bar as a floating glass capsule */}
-        <header className="sticky top-4 mx-4 md:mx-6 mt-4 z-30 flex items-center justify-between px-6 py-3.5 rounded-2xl glass-panel border border-white/5 shadow-2xl shrink-0">
+        <header className="sticky top-4 mx-4 md:mx-6 mt-4 z-30 flex items-center justify-between px-6 py-3.5 rounded-2xl glass-panel border border-[var(--color-obsidian-border)] shadow-2xl shrink-0">
           <div className="flex items-center gap-3">
             <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan animate-pulse" />
-            <h2 className="text-xs font-bold font-mono text-gray-300 uppercase tracking-widest text-glow-cyber">
+            <h2 className="text-xs font-bold font-mono text-[var(--foreground)]/80 uppercase tracking-widest text-glow-cyber">
               {getPageTitle(pathname)}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             {/* Notification trigger bell */}
             <button
               onClick={() => setShowNotifications(true)}
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 active:bg-white/15 transition-all border border-white/5 hover:border-white/10 group shadow-md"
+              className="relative p-2 rounded-xl bg-obsidian-light/15 hover:bg-obsidian-light/30 active:bg-obsidian-light/45 transition-all border border-obsidian-border group shadow-md"
             >
               {notifications.length > 0 ? (
                 <BellRing className="h-4.5 w-4.5 text-amber-400 animate-pulse" />
               ) : (
-                <Bell className="h-4.5 w-4.5 text-gray-400 group-hover:text-white" />
+                <Bell className="h-4.5 w-4.5 text-[var(--foreground)]/70 group-hover:text-[var(--foreground)]" />
               )}
               {notifications.length > 0 && (
                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-cyber-rose rounded-full text-[8px] font-mono font-bold flex items-center justify-center border border-obsidian-dark shadow-[0_0_8px_rgba(244,63,94,0.6)]">
@@ -143,8 +145,8 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
 
             {/* Micro User display indicator */}
             {user && (
-              <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-white/5 bg-white/5 font-mono text-[10px] text-gray-400 font-semibold shadow-sm">
-                <img src={user.avatar} className="h-4.5 w-4.5 rounded-md border border-white/10 shrink-0" />
+              <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.05] font-mono text-[10px] text-[var(--foreground)]/70 font-semibold shadow-sm">
+                <img src={user.avatar} className="h-4.5 w-4.5 rounded-md border border-[var(--color-obsidian-border)] shrink-0" />
                 <span>{user.name.split(" ")[0]}</span>
               </div>
             )}
@@ -187,23 +189,23 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="w-full max-w-md bg-[#0b0b10] border-l border-obsidian-border h-full relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col p-6 overflow-y-auto"
+              className="w-full max-w-md bg-[var(--background)] border-l border-obsidian-border h-full relative z-10 shadow-2xl flex flex-col p-6 overflow-y-auto"
             >
               {/* Header */}
-              <div className="flex items-center justify-between pb-5 border-b border-white/5 mb-5 shrink-0">
+              <div className="flex items-center justify-between pb-5 border-b border-[var(--color-obsidian-border)] mb-5 shrink-0">
                 <div className="flex items-center gap-2.5">
                   <div className="h-8.5 w-8.5 rounded-xl bg-cyber-purple/10 border border-cyber-purple/20 flex items-center justify-center shadow-sm shrink-0">
                     <Bell className="h-4.5 w-4.5 text-cyber-purple animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">Notification Center</h3>
-                    <p className="text-[10px] text-gray-500 font-mono">Real-time SaaS action items</p>
+                    <h3 className="text-sm font-bold text-[var(--foreground)] tracking-tight">Notification Center</h3>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono">Real-time SaaS action items</p>
                   </div>
                 </div>
                 
                 <button
                   onClick={() => setShowNotifications(false)}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-cyber-rose/10 text-gray-400 hover:text-cyber-rose border border-white/5 hover:border-cyber-rose/25 transition-all shadow-md shrink-0"
+                  className="p-1.5 rounded-lg bg-[var(--foreground)]/[0.05] hover:bg-cyber-rose/10 text-[var(--foreground)]/70 hover:text-cyber-rose border border-[var(--color-obsidian-border)] hover:border-cyber-rose/25 transition-all shadow-md shrink-0"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -221,7 +223,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="p-4 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] hover:border-white/10 transition-all duration-300 relative group flex gap-3.5"
+                        className="p-4 rounded-xl border border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.01] hover:bg-[var(--foreground)]/[0.02] hover:border-[var(--color-obsidian-border)] transition-all duration-300 relative group flex gap-3.5"
                       >
                         {/* Icon */}
                         <div className={`h-8.5 w-8.5 rounded-xl border flex items-center justify-center shadow-sm shrink-0 ${nt.color}`}>
@@ -231,13 +233,13 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
                         {/* Text Content */}
                         <div className="space-y-1.5 flex-1 pr-6 overflow-hidden">
                           <div className="flex items-center gap-2 justify-between">
-                            <h4 className="text-xs font-bold text-white truncate leading-tight">{nt.title}</h4>
-                            <span className="text-[8px] text-gray-500 font-mono flex items-center gap-1 shrink-0">
+                            <h4 className="text-xs font-bold text-[var(--foreground)] truncate leading-tight">{nt.title}</h4>
+                            <span className="text-[8px] text-[var(--foreground)]/50 font-mono flex items-center gap-1 shrink-0">
                               <Clock className="h-2.5 w-2.5" /> {nt.time}
                             </span>
                           </div>
                           
-                          <p className="text-[11px] text-gray-400 leading-relaxed font-sans">{nt.desc}</p>
+                          <p className="text-[11px] text-[var(--foreground)]/70 leading-relaxed font-sans">{nt.desc}</p>
                           
                           {/* Special dynamic CTA bindings */}
                           {nt.type === "contradiction" && (
@@ -256,7 +258,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
                         <button
                           onClick={() => dismissNotification(nt.id)}
                           title="Dismiss Reminder"
-                          className="absolute top-3.5 right-3.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 hover:bg-cyber-rose/10 text-gray-500 hover:text-cyber-rose border border-white/5 hover:border-cyber-rose/25"
+                          className="absolute top-3.5 right-3.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--foreground)]/[0.05] hover:bg-cyber-rose/10 text-[var(--foreground)]/50 hover:text-cyber-rose border border-[var(--color-obsidian-border)] hover:border-cyber-rose/25"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -272,7 +274,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
               </div>
 
               {/* Compliance note */}
-              <div className="mt-auto border-t border-white/5 pt-4 text-[9px] font-mono text-gray-500 leading-relaxed uppercase tracking-wider">
+              <div className="mt-auto border-t border-[var(--color-obsidian-border)] pt-4 text-[9px] font-mono text-[var(--foreground)]/50 leading-relaxed uppercase tracking-wider">
                 💡 Real-time notifications active
               </div>
             </motion.div>

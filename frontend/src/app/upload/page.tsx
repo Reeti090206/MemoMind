@@ -493,16 +493,16 @@ export default function MeetingUpload() {
       {/* Title */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight flex items-center gap-2">
             Bring in Meetings
           </h2>
-          <p className="text-gray-400 text-sm mt-0.5">
+          <p className="text-[var(--foreground)]/70 text-sm mt-0.5">
             Upload a recording, start a microphone session, or invite our AI to follow your meeting live.
           </p>
         </div>
         
         {/* Connection status tag */}
-        <div className="flex items-center gap-2 self-start md:self-auto px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] font-mono text-gray-400">
+        <div className="flex items-center gap-2 self-start md:self-auto px-3 py-1.5 rounded-xl bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] text-[11px] font-mono text-[var(--foreground)]/70">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-cyan opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-cyan"></span>
@@ -512,13 +512,13 @@ export default function MeetingUpload() {
       </div>
 
       {/* Mode Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row gap-1.5 p-1 bg-black/45 border border-white/5 rounded-2xl max-w-2xl">
+      <div className="flex flex-col sm:flex-row gap-1.5 p-1 bg-black/45 border border-[var(--color-obsidian-border)] rounded-2xl max-w-2xl">
         <button
           onClick={() => { setActiveTab("upload"); stopMonitor(); }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 cursor-pointer ${
             activeTab === "upload"
-              ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border border-cyber-purple/40 text-white shadow-lg shadow-cyber-purple/5"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border border-cyber-purple/40 text-[var(--foreground)] shadow-lg shadow-cyber-purple/5"
+              : "text-[var(--foreground)]/70 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05]"
           }`}
         >
           <Upload className="h-3.5 w-3.5" /> Upload Recording
@@ -527,8 +527,8 @@ export default function MeetingUpload() {
           onClick={() => { setActiveTab("mic"); stopMonitor(); }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 cursor-pointer ${
             activeTab === "mic"
-              ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border border-cyber-purple/40 text-white shadow-lg shadow-cyber-purple/5"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border border-cyber-purple/40 text-[var(--foreground)] shadow-lg shadow-cyber-purple/5"
+              : "text-[var(--foreground)]/70 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05]"
           }`}
         >
 
@@ -538,8 +538,8 @@ export default function MeetingUpload() {
           onClick={() => { setActiveTab("live_monitor"); }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 relative overflow-hidden group cursor-pointer ${
             activeTab === "live_monitor"
-              ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/15 border border-cyber-purple/40 text-white shadow-lg shadow-cyber-purple/5"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
+              ? "bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/15 border border-cyber-purple/40 text-[var(--foreground)] shadow-lg shadow-cyber-purple/5"
+              : "text-[var(--foreground)]/70 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/[0.05]"
           }`}
         >
           <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyber-rose animate-pulse" />
@@ -560,7 +560,7 @@ export default function MeetingUpload() {
           </div>
           
           <div className="text-center space-y-1 w-full max-w-md">
-            <p className="text-sm font-bold text-white tracking-wide uppercase font-mono">Updating Team Memory</p>
+            <p className="text-sm font-bold text-[var(--foreground)] tracking-wide uppercase font-mono">Updating Team Memory</p>
             <AnimatePresence mode="wait">
               <motion.p 
                 key={stage}
@@ -577,14 +577,14 @@ export default function MeetingUpload() {
 
           {/* Progress Bar */}
           <div className="w-full max-w-md space-y-2">
-            <div className="h-2 w-full bg-black/60 border border-white/5 rounded-full overflow-hidden p-0.5">
+            <div className="h-2 w-full bg-black/60 border border-[var(--color-obsidian-border)] rounded-full overflow-hidden p-0.5">
               <motion.div 
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.1 }}
                 className="h-full bg-gradient-to-r from-cyber-purple via-cyber-cyan to-cyber-emerald rounded-full" 
               />
             </div>
-            <div className="flex justify-between text-[10px] text-gray-500 font-mono font-semibold">
+            <div className="flex justify-between text-[10px] text-[var(--foreground)]/50 font-mono font-semibold">
               <span>Memory Engine</span>
               <span>{progress}% COMPLETE</span>
             </div>
@@ -598,18 +598,18 @@ export default function MeetingUpload() {
             
             {/* Metadata Card - Shared Title Header */}
             {(!isMonitoring || monitorStage === "completed") && (
-              <div className="p-6 rounded-2xl glass-card border border-white/5 space-y-4 bg-transparent">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent">
+                <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5">
                   <Database className="h-4 w-4 text-cyber-purple" /> 1. Meeting Details
                 </h3>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5 font-medium">What is this meeting about?</label>
+                  <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">What is this meeting about?</label>
                   <input
                     type="text"
                     placeholder="e.g. Authentication Architecture Scaling Review, JWT vs Clerk OAuth"
                     value={meetingTitle}
                     onChange={(e) => setMeetingTitle(e.target.value)}
-                    className="w-full bg-white/[0.01] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all"
+                    className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all"
                   />
                 </div>
               </div>
@@ -617,8 +617,8 @@ export default function MeetingUpload() {
 
             {/* TAB 1: Traditional File Ingest */}
             {activeTab === "upload" && (
-              <div className="p-6 rounded-2xl glass-card border border-white/5 space-y-4 bg-transparent">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent">
+                <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5">
                   <Upload className="h-4 w-4 text-cyber-cyan" /> 2. Choose a file
                 </h3>
                 
@@ -633,7 +633,7 @@ export default function MeetingUpload() {
                   className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
                     dragActive
                       ? "border-cyber-purple bg-cyber-purple/5"
-                      : "border-white/5 bg-white/[0.01] hover:bg-white/[0.03]"
+                      : "border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.01] hover:bg-white/[0.03]"
                   }`}
                 >
                   <input
@@ -651,8 +651,8 @@ export default function MeetingUpload() {
                       <Upload className="h-7 w-7 text-cyber-purple" />
                     </motion.div>
                     <div className="text-center">
-                      <p className="text-sm font-bold text-white">Drag & drop files or click to browse</p>
-                      <p className="text-xs text-gray-500 mt-1">Accepts audio or video files (Max 150MB)</p>
+                      <p className="text-sm font-bold text-[var(--foreground)]">Drag & drop files or click to browse</p>
+                      <p className="text-xs text-[var(--foreground)]/50 mt-1">Accepts audio or video files (Max 150MB)</p>
                     </div>
                   </label>
 
@@ -664,8 +664,8 @@ export default function MeetingUpload() {
                     >
                       <FileCheck className="h-5 w-5 text-cyber-cyan" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-white truncate">{file.name}</p>
-                        <p className="text-[10px] text-gray-500 font-mono">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        <p className="text-xs font-semibold text-[var(--foreground)] truncate">{file.name}</p>
+                        <p className="text-[10px] text-[var(--foreground)]/50 font-mono">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                       </div>
                     </motion.div>
                   )}
@@ -676,7 +676,7 @@ export default function MeetingUpload() {
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={processFile}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-white font-bold text-sm shadow-lg shadow-cyber-purple/10 transition-all duration-300 mt-2 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-xl text-[var(--foreground)] font-bold text-sm shadow-lg shadow-cyber-purple/10 transition-all duration-300 mt-2 cursor-pointer"
                   >
                     Save to Team Memory <Play className="h-4 w-4 fill-current" />
                   </motion.button>
@@ -686,12 +686,12 @@ export default function MeetingUpload() {
 
             {/* TAB 2: Microphone Sync */}
             {activeTab === "mic" && (
-              <div className="p-6 rounded-2xl glass-card border border-white/5 space-y-4 bg-transparent">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent">
+                <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5">
                   <Mic className="h-4 w-4 text-cyber-rose" /> 2. Your Microphone
                 </h3>
                 
-                <div className="flex flex-col items-center justify-center p-8 border border-white/5 bg-white/[0.01] rounded-2xl gap-4">
+                <div className="flex flex-col items-center justify-center p-8 border border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.01] rounded-2xl gap-4">
                   {isRecording ? (
                     <div className="flex flex-col items-center gap-4 w-full">
                       {/* Waveform visualizer */}
@@ -716,14 +716,14 @@ export default function MeetingUpload() {
                         <span className="px-3.5 py-1 bg-cyber-rose/15 border border-cyber-rose/25 text-cyber-rose text-xs font-mono font-bold rounded-full animate-pulse inline-flex items-center gap-1.5 justify-center">
                           <Radio className="h-3.5 w-3.5" /> RECORDING LIVE: {formatTimer(micTimer)}
                         </span>
-                        <p className="text-xs text-gray-400 mt-2 font-mono">Listening carefully to your conversation...</p>
+                        <p className="text-xs text-[var(--foreground)]/70 mt-2 font-mono">Listening carefully to your conversation...</p>
                       </div>
 
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={stopRecording}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-cyber-rose hover:bg-cyber-rose/95 rounded-xl text-white font-bold text-xs shadow-lg shadow-cyber-rose/15 transition-all mt-2 cursor-pointer"
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-cyber-rose hover:bg-cyber-rose/95 rounded-xl text-[var(--foreground)] font-bold text-xs shadow-lg shadow-cyber-rose/15 transition-all mt-2 cursor-pointer"
                       >
                         <Square className="h-4.5 w-4.5 fill-current" /> Finish & Analyze
                       </motion.button>
@@ -739,8 +739,8 @@ export default function MeetingUpload() {
                         <Mic className="h-7 w-7 text-cyber-rose relative" />
                       </motion.div>
                       <div>
-                        <p className="text-sm font-bold text-white">Start Recording from Mic</p>
-                        <p className="text-xs text-gray-500 mt-1 max-w-md font-sans">Record a quick conversation using your device's microphone.</p>
+                        <p className="text-sm font-bold text-[var(--foreground)]">Start Recording from Mic</p>
+                        <p className="text-xs text-[var(--foreground)]/50 mt-1 max-w-md font-sans">Record a quick conversation using your device's microphone.</p>
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -761,22 +761,22 @@ export default function MeetingUpload() {
               <div className="space-y-6">
                 {!isMonitoring ? (
                   /* Initial Setup State */
-                  <div className="p-6 rounded-2xl glass-card border border-white/5 space-y-5 bg-transparent">
+                  <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-5 bg-transparent">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-cyber-purple/10 border border-cyber-purple/20 rounded-xl text-cyber-purple">
                         <Tv className="h-6 w-6" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">Real-time Live Assistant</h3>
-                        <p className="text-xs text-gray-400 mt-1 leading-relaxed font-sans">
+                        <h3 className="text-sm font-bold text-[var(--foreground)] font-mono uppercase tracking-wider">Real-time Live Assistant</h3>
+                        <p className="text-xs text-[var(--foreground)]/70 mt-1 leading-relaxed font-sans">
                           This assistant works right alongside Zoom, Google Meet, Teams, or Discord. It will follow the conversation, write down a live transcript, note tasks, and alert you if a new decision conflicts with something you agreed on before.
                         </p>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-black/35 border border-white/5 rounded-xl space-y-3">
-                      <h4 className="text-[11px] font-bold text-white uppercase tracking-wider font-mono">What the assistant does:</h4>
-                      <ul className="text-xs text-gray-400 space-y-2 font-sans">
+                    <div className="p-4 bg-black/35 border border-[var(--color-obsidian-border)] rounded-xl space-y-3">
+                      <h4 className="text-[11px] font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">What the assistant does:</h4>
+                      <ul className="text-xs text-[var(--foreground)]/70 space-y-2 font-sans">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5 text-cyber-cyan" /> Follows the meeting screen and audio
                         </li>
@@ -796,7 +796,7 @@ export default function MeetingUpload() {
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       onClick={startMonitorObserver}
-                      className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-cyber-purple via-cyber-cyan to-cyber-purple/90 rounded-xl text-white font-extrabold text-sm shadow-lg shadow-cyber-cyan/5 tracking-wider hover:opacity-95 transition-all cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-cyber-purple via-cyber-cyan to-cyber-purple/90 rounded-xl text-[var(--foreground)] font-extrabold text-sm shadow-lg shadow-cyber-cyan/5 tracking-wider hover:opacity-95 transition-all cursor-pointer"
                     >
                       <Share2 className="h-4.5 w-4.5" /> Start Live Assistant
                     </motion.button>
@@ -813,23 +813,23 @@ export default function MeetingUpload() {
                         <CheckCircle2 className="h-6 w-6" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">Meeting Completed</h3>
-                        <p className="text-xs text-gray-400 font-sans">We have processed the meeting. Review what we found before saving it.</p>
+                        <h3 className="text-sm font-bold text-[var(--foreground)] font-mono uppercase tracking-wider">Meeting Completed</h3>
+                        <p className="text-xs text-[var(--foreground)]/70 font-sans">We have processed the meeting. Review what we found before saving it.</p>
                       </div>
                     </div>
 
                     {/* Stats Widget grid */}
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
-                        <span className="block text-[10px] text-gray-500 font-mono">MEETING DURATION</span>
-                        <span className="text-base font-black text-white font-mono">{formatTimer(monitorTimer)}</span>
+                      <div className="bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] rounded-xl p-3 text-center">
+                        <span className="block text-[10px] text-[var(--foreground)]/50 font-mono">MEETING DURATION</span>
+                        <span className="text-base font-black text-[var(--foreground)] font-mono">{formatTimer(monitorTimer)}</span>
                       </div>
-                      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
-                        <span className="block text-[10px] text-gray-500 font-mono">TASKS FOUND</span>
+                      <div className="bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] rounded-xl p-3 text-center">
+                        <span className="block text-[10px] text-[var(--foreground)]/50 font-mono">TASKS FOUND</span>
                         <span className="text-base font-black text-cyber-cyan font-mono">{monitorTasks.length} Items</span>
                       </div>
-                      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
-                        <span className="block text-[10px] text-gray-500 font-mono font-semibold">DECISION WARNINGS</span>
+                      <div className="bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] rounded-xl p-3 text-center">
+                        <span className="block text-[10px] text-[var(--foreground)]/50 font-mono font-semibold">DECISION WARNINGS</span>
                         <span className={`text-base font-black font-mono ${monitorContradictions.length > 0 ? "text-cyber-rose" : "text-cyber-emerald"}`}>
                           {monitorContradictions.length} Found
                         </span>
@@ -838,8 +838,8 @@ export default function MeetingUpload() {
 
                     {/* Quick logs list */}
                     <div className="space-y-2">
-                      <h4 className="text-[11px] font-bold text-white uppercase tracking-wider font-mono">Live Transcript Draft</h4>
-                      <div className="bg-black/45 border border-white/5 rounded-xl p-3 max-h-40 overflow-y-auto font-mono text-[10px] text-gray-400 space-y-1.5">
+                      <h4 className="text-[11px] font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Live Transcript Draft</h4>
+                      <div className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl p-3 max-h-40 overflow-y-auto font-mono text-[10px] text-[var(--foreground)]/70 space-y-1.5">
                         {monitorLogs.map((log, idx) => (
                           <div key={idx} className="flex gap-2">
                             <span className="text-gray-600">[{idx+1}]</span>
@@ -854,7 +854,7 @@ export default function MeetingUpload() {
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
                         onClick={startMonitorObserver}
-                        className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-gray-300 font-bold text-xs tracking-wider transition-all cursor-pointer"
+                        className="flex-1 py-3 bg-[var(--foreground)]/[0.05] hover:bg-[var(--foreground)]/[0.10] border border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)]/80 font-bold text-xs tracking-wider transition-all cursor-pointer"
                       >
                         Discard & Restart
                       </motion.button>
@@ -862,7 +862,7 @@ export default function MeetingUpload() {
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
                         onClick={deployMonitorToMemory}
-                        className="flex-1 py-3 bg-gradient-to-r from-cyber-emerald to-cyber-cyan rounded-xl text-white font-extrabold text-xs tracking-wider shadow-lg shadow-cyber-emerald/10 transition-all cursor-pointer"
+                        className="flex-1 py-3 bg-gradient-to-r from-cyber-emerald to-cyber-cyan rounded-xl text-[var(--foreground)] font-extrabold text-xs tracking-wider shadow-lg shadow-cyber-emerald/10 transition-all cursor-pointer"
                       >
                         Save to Team Memory
                       </motion.button>
@@ -881,20 +881,20 @@ export default function MeetingUpload() {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-rose opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyber-rose"></span>
                           </span>
-                          <span className="text-[11px] font-bold text-white uppercase font-mono tracking-widest">
+                          <span className="text-[11px] font-bold text-[var(--foreground)] uppercase font-mono tracking-widest">
                             {isPaused ? "ASSISTANT PAUSED" : "ASSISTANT LIVE"}
                           </span>
                         </div>
 
                         {/* Metrical data tags */}
                         <div className="flex items-center gap-3 text-[10px] font-mono font-semibold">
-                          <span className="px-2 py-0.5 rounded-lg bg-black/85 border border-white/5 text-cyber-cyan">
+                          <span className="px-2 py-0.5 rounded-lg bg-black/85 border border-[var(--color-obsidian-border)] text-cyber-cyan">
                             {monitorMetrics.fps} FPS
                           </span>
-                          <span className="px-2 py-0.5 rounded-lg bg-black/85 border border-white/5 text-cyber-purple">
+                          <span className="px-2 py-0.5 rounded-lg bg-black/85 border border-[var(--color-obsidian-border)] text-cyber-purple">
                             {monitorMetrics.bitrate} kbps
                           </span>
-                          <span className="px-2 py-0.5 rounded-lg bg-black/85 border border-white/5 text-cyber-rose">
+                          <span className="px-2 py-0.5 rounded-lg bg-black/85 border border-[var(--color-obsidian-border)] text-cyber-rose">
                             {monitorMetrics.db} dB
                           </span>
                         </div>
@@ -930,12 +930,12 @@ export default function MeetingUpload() {
                                 animate={activeSpeaker === "Aman" ? { scale: [1, 1.15, 1], borderColor: "#c084fc" } : { scale: 1 }}
                                 transition={{ repeat: Infinity, duration: 1.5 }}
                                 className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold text-sm bg-black/80 border ${
-                                  activeSpeaker === "Aman" ? "border-cyber-purple text-cyber-purple shadow-lg shadow-cyber-purple/20" : "border-white/5 text-gray-400"
+                                  activeSpeaker === "Aman" ? "border-cyber-purple text-cyber-purple shadow-lg shadow-cyber-purple/20" : "border-[var(--color-obsidian-border)] text-[var(--foreground)]/70"
                                 }`}
                               >
                                 AM
                               </motion.div>
-                              <span className="text-[9px] font-mono font-bold text-gray-400">Aman (Back)</span>
+                              <span className="text-[9px] font-mono font-bold text-[var(--foreground)]/70">Aman (Back)</span>
                             </div>
 
                             {/* Speaker bubble: Reeti */}
@@ -944,12 +944,12 @@ export default function MeetingUpload() {
                                 animate={activeSpeaker === "Reeti" ? { scale: [1, 1.15, 1], borderColor: "#22d3ee" } : { scale: 1 }}
                                 transition={{ repeat: Infinity, duration: 1.5 }}
                                 className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold text-sm bg-black/80 border ${
-                                  activeSpeaker === "Reeti" ? "border-cyber-cyan text-cyber-cyan shadow-lg shadow-cyber-cyan/20" : "border-white/5 text-gray-400"
+                                  activeSpeaker === "Reeti" ? "border-cyber-cyan text-cyber-cyan shadow-lg shadow-cyber-cyan/20" : "border-[var(--color-obsidian-border)] text-[var(--foreground)]/70"
                                 }`}
                               >
                                 RE
                               </motion.div>
-                              <span className="text-[9px] font-mono font-bold text-gray-400">Reeti (Front)</span>
+                              <span className="text-[9px] font-mono font-bold text-[var(--foreground)]/70">Reeti (Front)</span>
                             </div>
 
                             {/* Speaker bubble: Sarah */}
@@ -958,12 +958,12 @@ export default function MeetingUpload() {
                                 animate={activeSpeaker === "Sarah" ? { scale: [1, 1.15, 1], borderColor: "#f43f5e" } : { scale: 1 }}
                                 transition={{ repeat: Infinity, duration: 1.5 }}
                                 className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold text-sm bg-black/80 border ${
-                                  activeSpeaker === "Sarah" ? "border-cyber-rose text-cyber-rose shadow-lg shadow-cyber-rose/20" : "border-white/5 text-gray-400"
+                                  activeSpeaker === "Sarah" ? "border-cyber-rose text-cyber-rose shadow-lg shadow-cyber-rose/20" : "border-[var(--color-obsidian-border)] text-[var(--foreground)]/70"
                                 }`}
                               >
                                 SA
                               </motion.div>
-                              <span className="text-[9px] font-mono font-bold text-gray-400">Sarah (PM)</span>
+                              <span className="text-[9px] font-mono font-bold text-[var(--foreground)]/70">Sarah (PM)</span>
                             </div>
 
                           </div>
@@ -972,15 +972,15 @@ export default function MeetingUpload() {
                             <span className="text-[10px] font-bold text-cyber-cyan uppercase font-mono tracking-widest flex items-center gap-1 justify-center">
                               <Cpu className="h-3.5 w-3.5 animate-spin" /> Listening to Live Meeting (Simulating Flow)
                             </span>
-                            <p className="text-[10px] text-gray-500 font-mono font-sans">Translating audio and screen content...</p>
+                            <p className="text-[10px] text-[var(--foreground)]/50 font-mono font-sans">Translating audio and screen content...</p>
                           </div>
                         </div>
                       )}
 
                       {/* Video Stream Bottom Stats Bar */}
-                      <div className="bg-black/90 border-t border-white/5 px-4 py-3 flex items-center justify-between text-xs text-gray-400 font-mono">
+                      <div className="bg-black/90 border-t border-[var(--color-obsidian-border)] px-4 py-3 flex items-center justify-between text-xs text-[var(--foreground)]/70 font-mono">
                         <div className="flex items-center gap-3">
-                          <span className="text-white font-bold">Meeting Timer: {formatTimer(monitorTimer)}</span>
+                          <span className="text-[var(--foreground)] font-bold">Meeting Timer: {formatTimer(monitorTimer)}</span>
                           <span className="text-gray-600">|</span>
                           <span>Currently speaking: <span className="text-cyber-cyan font-bold">{activeSpeaker}</span></span>
                         </div>
@@ -993,7 +993,7 @@ export default function MeetingUpload() {
                             className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
                               isPaused 
                                 ? "bg-cyber-purple/20 border-cyber-purple/40 text-cyber-purple" 
-                                : "bg-white/5 border-white/10 hover:border-cyber-purple/30 text-gray-400 hover:text-white"
+                                : "bg-[var(--foreground)]/[0.05] border-[var(--color-obsidian-border)] hover:border-cyber-purple/30 text-[var(--foreground)]/70 hover:text-[var(--foreground)]"
                             }`}
                             title={isPaused ? "Resume Live Ingestion" : "Pause Live Ingestion"}
                           >
@@ -1004,7 +1004,7 @@ export default function MeetingUpload() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={stopMonitor}
-                            className="px-3 py-1.5 bg-cyber-rose hover:bg-cyber-rose/90 rounded-lg text-white font-bold text-[10px] flex items-center gap-1 shadow-lg shadow-cyber-rose/10 cursor-pointer"
+                            className="px-3 py-1.5 bg-cyber-rose hover:bg-cyber-rose/90 rounded-lg text-[var(--foreground)] font-bold text-[10px] flex items-center gap-1 shadow-lg shadow-cyber-rose/10 cursor-pointer"
                           >
                             <Square className="h-3 w-3 fill-current" /> Terminate Stream
                           </motion.button>
@@ -1017,15 +1017,15 @@ export default function MeetingUpload() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       
                       {/* Left Block: Real-Time speech logs */}
-                      <div className="p-4 rounded-2xl glass-card border border-white/5 space-y-3 flex flex-col justify-between bg-transparent">
+                      <div className="p-4 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-3 flex flex-col justify-between bg-transparent">
                         <div className="space-y-1.5">
-                          <h4 className="text-[11px] font-bold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
+                          <h4 className="text-[11px] font-bold text-[var(--foreground)] uppercase font-mono tracking-wider flex items-center gap-1.5">
                             <Terminal className="h-4 w-4 text-cyber-cyan" /> Live Transcript
                           </h4>
-                          <p className="text-[10px] text-gray-400 font-sans">Writing down the conversation in real-time...</p>
+                          <p className="text-[10px] text-[var(--foreground)]/70 font-sans">Writing down the conversation in real-time...</p>
                         </div>
 
-                        <div className="bg-black/45 border border-white/5 rounded-xl p-3 h-52 font-mono text-[10px] text-gray-300 overflow-y-auto space-y-2">
+                        <div className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl p-3 h-52 font-mono text-[10px] text-[var(--foreground)]/80 overflow-y-auto space-y-2">
                           <AnimatePresence initial={false}>
                             {monitorLogs.length > 0 ? (
                               monitorLogs.map((log, idx) => (
@@ -1051,8 +1051,8 @@ export default function MeetingUpload() {
 
                       {/* Right Block: Dynamic AI Assistant panel */}
                       <div className="p-4 rounded-2xl glass-card border border-cyber-purple/20 space-y-4 bg-transparent">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <h4 className="text-[11px] font-bold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
+                        <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+                          <h4 className="text-[11px] font-bold text-[var(--foreground)] uppercase font-mono tracking-wider flex items-center gap-1.5">
                             <Sparkles className="h-4 w-4 text-cyber-purple" /> AI Assistant Notes
                           </h4>
                           <span className="text-[9px] px-2 py-0.5 bg-cyber-purple/15 text-cyber-purple border border-cyber-purple/25 rounded-md font-mono">
@@ -1062,8 +1062,8 @@ export default function MeetingUpload() {
 
                         {/* Semantic alerts & contradictions warnings */}
                         <div className="space-y-2">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase font-mono block">Tasks we found</span>
-                          <div className="bg-black/45 border border-white/5 rounded-xl p-3 h-28 overflow-y-auto space-y-2 text-xs">
+                          <span className="text-[10px] font-bold text-[var(--foreground)]/70 uppercase font-mono block">Tasks we found</span>
+                          <div className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl p-3 h-28 overflow-y-auto space-y-2 text-xs">
                             <AnimatePresence initial={false}>
                               {monitorTasks.length > 0 ? (
                                 monitorTasks.map((task) => (
@@ -1071,13 +1071,13 @@ export default function MeetingUpload() {
                                     key={task.id}
                                     initial={{ opacity: 0, y: 5 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="p-2 bg-white/5 border border-white/5 rounded-lg flex items-start justify-between gap-2"
+                                    className="p-2 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded-lg flex items-start justify-between gap-2"
                                   >
                                     <div className="space-y-1">
-                                      <p className="text-[10px] text-white leading-tight">
+                                      <p className="text-[10px] text-[var(--foreground)] leading-tight">
                                         <span className="text-cyber-cyan font-bold">{task.speaker}</span>: {task.text}
                                       </p>
-                                      <span className="inline-block text-[8px] px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-gray-400 font-mono">
+                                      <span className="inline-block text-[8px] px-1.5 py-0.5 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded text-[var(--foreground)]/70 font-mono">
                                         Due: {task.date}
                                       </span>
                                     </div>
@@ -1095,7 +1095,7 @@ export default function MeetingUpload() {
 
                         {/* Semantic Alerts section */}
                         <div className="space-y-2">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase font-mono block">Plan Conflict Alerts</span>
+                          <span className="text-[10px] font-bold text-[var(--foreground)]/70 uppercase font-mono block">Plan Conflict Alerts</span>
                           <div className="space-y-2">
                             <AnimatePresence initial={false}>
                               {monitorContradictions.length > 0 ? (
@@ -1108,15 +1108,15 @@ export default function MeetingUpload() {
                                   >
                                     <ShieldAlert className="h-4.5 w-4.5 text-cyber-rose shrink-0 mt-0.5" />
                                     <div className="space-y-0.5">
-                                      <p className="text-[10px] font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                      <p className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5">
                                         {conflict.title} <span className="text-[8px] text-cyber-rose font-mono">HIGH RISK</span>
                                       </p>
-                                      <p className="text-[9px] text-gray-300 leading-normal font-mono">{conflict.desc}</p>
+                                      <p className="text-[9px] text-[var(--foreground)]/80 leading-normal font-mono">{conflict.desc}</p>
                                     </div>
                                   </motion.div>
                                 ))
                               ) : (
-                                <div className="p-3 bg-cyber-emerald/5 border border-cyber-emerald/15 rounded-xl flex items-center gap-2 text-gray-400 font-mono text-[9px]">
+                                <div className="p-3 bg-cyber-emerald/5 border border-cyber-emerald/15 rounded-xl flex items-center gap-2 text-[var(--foreground)]/70 font-mono text-[9px]">
                                   <CheckCircle2 className="h-4 w-4 text-cyber-emerald" /> 
                                   <span>All clear! No conflicts with past plans detected.</span>
                                 </div>
@@ -1141,15 +1141,15 @@ export default function MeetingUpload() {
             
             {/* Audio Stream Ingestion Monitor Console */}
             {activeTab !== "live_monitor" && (
-              <div className="p-6 rounded-2xl glass-card border border-white/5 flex flex-col h-full justify-between bg-transparent">
+              <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] flex flex-col h-full justify-between bg-transparent">
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
                     <Terminal className="h-4.5 w-4.5 text-cyber-cyan" /> Microphone Activity
                   </h3>
-                  <p className="text-xs text-gray-400 font-sans">Live transcript text will appear here.</p>
+                  <p className="text-xs text-[var(--foreground)]/70 font-sans">Live transcript text will appear here.</p>
                 </div>
 
-                <div className="bg-black/45 border border-white/5 rounded-xl p-4 h-64 font-mono text-[10px] text-cyber-cyan/85 overflow-y-auto space-y-2.5 mt-4">
+                <div className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl p-4 h-64 font-mono text-[10px] text-cyber-cyan/85 overflow-y-auto space-y-2.5 mt-4">
                   <AnimatePresence initial={false}>
                     {recordedLogs.length > 0 ? (
                       recordedLogs.map((log, idx) => (
@@ -1161,7 +1161,7 @@ export default function MeetingUpload() {
                           className="flex gap-2"
                         >
                           <span className="text-gray-600">[{idx+1}]</span>
-                          <span className="text-gray-300">{log}</span>
+                          <span className="text-[var(--foreground)]/80">{log}</span>
                         </motion.div>
                       ))
                     ) : (
@@ -1177,36 +1177,36 @@ export default function MeetingUpload() {
                   </AnimatePresence>
                 </div>
 
-                <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[10px] text-gray-400 leading-relaxed font-sans mt-4">
+                <div className="p-3 bg-cyber-purple/5 border border-cyber-purple/15 rounded-xl text-[10px] text-[var(--foreground)]/70 leading-relaxed font-sans mt-4">
                   We write down transcripts and organize agreements automatically.
                 </div>
               </div>
             )}
 
             {/* Ingestion status overview (Always visible on right) */}
-            <div className="p-6 rounded-2xl glass-card border border-white/5 space-y-4 bg-transparent">
-              <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-1.5">
+            <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent">
+              <h3 className="text-sm font-bold text-[var(--foreground)] font-mono uppercase tracking-wider flex items-center gap-1.5">
                 <Settings className="h-4 w-4 text-cyber-purple" /> System Status
               </h3>
               
               <div className="space-y-3.5 text-xs">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <span className="text-gray-400 font-mono">AI Engine Status</span>
+                <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+                  <span className="text-[var(--foreground)]/70 font-mono">AI Engine Status</span>
                   <span className="text-cyber-emerald font-mono font-bold flex items-center gap-1">
                     <span className="h-1.5 w-1.5 bg-cyber-emerald rounded-full animate-ping" /> ONLINE
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <span className="text-gray-400 font-mono">Transcription Model</span>
+                <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+                  <span className="text-[var(--foreground)]/70 font-mono">Transcription Model</span>
                   <span className="text-cyber-cyan font-mono font-bold">Whisper v2.4</span>
                 </div>
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <span className="text-gray-400 font-mono">Memory Database</span>
+                <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+                  <span className="text-[var(--foreground)]/70 font-mono">Memory Database</span>
                   <span className="text-cyber-purple font-mono font-bold">SQLModel pgvector</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 font-mono">Data Encryption</span>
-                  <span className="text-white font-mono font-semibold flex items-center gap-1.5">
+                  <span className="text-[var(--foreground)]/70 font-mono">Data Encryption</span>
+                  <span className="text-[var(--foreground)] font-mono font-semibold flex items-center gap-1.5">
                     <ShieldAlert className="h-3.5 w-3.5 text-cyber-cyan" /> AES-256 TLS 1.3
                   </span>
                 </div>
@@ -1214,8 +1214,8 @@ export default function MeetingUpload() {
             </div>
 
             {/* Helpful platform notes */}
-            <div className="p-4 bg-cyber-purple/5 border border-cyber-purple/10 rounded-2xl text-[11px] text-gray-400 leading-relaxed space-y-2 font-sans">
-              <p className="font-bold text-white flex items-center gap-1">
+            <div className="p-4 bg-cyber-purple/5 border border-cyber-purple/10 rounded-2xl text-[11px] text-[var(--foreground)]/70 leading-relaxed space-y-2 font-sans">
+              <p className="font-bold text-[var(--foreground)] flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5 text-cyber-cyan" /> Tip: How to use with Zoom, Meet, and Teams
               </p>
               <p>

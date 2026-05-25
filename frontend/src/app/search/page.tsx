@@ -146,8 +146,8 @@ export default function SemanticSearch() {
       
       {/* Title */}
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Semantic Memory Oracle</h2>
-        <p className="text-gray-400 text-sm mt-0.5">
+        <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">Semantic Memory Oracle</h2>
+        <p className="text-[var(--foreground)]/70 text-sm mt-0.5">
           Ask conversational questions directly to your organization's memory graphs, tracking decision lineage instantly.
         </p>
       </div>
@@ -161,7 +161,7 @@ export default function SemanticSearch() {
               placeholder="Ask MemoMind: 'Why did we change our microservices stance?' or 'What are Reeti's deadlines?'"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-2xl pl-12 pr-28 py-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all border-glow-purple"
+              className="w-full bg-obsidian-light/60 border border-obsidian-border rounded-2xl pl-12 pr-28 py-4 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all border-glow-purple"
             />
             <BrainCircuit className="absolute left-4 top-3.5 h-6 w-6 text-cyber-purple animate-pulse" />
           </div>
@@ -170,7 +170,7 @@ export default function SemanticSearch() {
             disabled={loading}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="absolute right-3 top-2.5 px-5 py-2 text-xs bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:from-cyber-purple hover:to-cyber-purple transition-all duration-300 rounded-xl text-white font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_20px_rgba(168,85,247,0.55)]"
+            className="absolute right-3 top-2.5 px-5 py-2 text-xs bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:from-cyber-purple hover:to-cyber-purple transition-all duration-300 rounded-xl text-[var(--foreground)] font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_20px_rgba(168,85,247,0.55)]"
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -190,7 +190,7 @@ export default function SemanticSearch() {
               transition={{ duration: 0.2 }}
               className="space-y-2"
             >
-              <p className="text-xs text-gray-500 font-mono">Suggested Prompt Prompts:</p>
+              <p className="text-xs text-[var(--foreground)]/50 font-mono">Suggested Prompt Prompts:</p>
               <motion.div 
                 variants={containerVariants}
                 initial="hidden"
@@ -204,7 +204,7 @@ export default function SemanticSearch() {
                     whileHover={{ scale: 1.03, y: -1, borderColor: "rgba(168, 85, 247, 0.45)", backgroundColor: "rgba(25, 20, 35, 0.7)" }}
                     whileTap={{ scale: 0.98 }}
                     onClick={(e) => handleSubmit(e, sq)}
-                    className="px-3.5 py-2 text-[11px] text-gray-400 bg-obsidian-light/30 hover:text-white border border-obsidian-border rounded-xl transition-all font-light"
+                    className="px-3.5 py-2 text-[11px] text-[var(--foreground)]/70 bg-obsidian-light/30 hover:text-[var(--foreground)] border border-obsidian-border rounded-xl transition-all font-light"
                   >
                     {sq}
                   </motion.button>
@@ -258,7 +258,7 @@ export default function SemanticSearch() {
               </svg>
 
               <div className="flex flex-col items-center gap-1.5">
-                <span className="text-sm font-semibold text-white tracking-wide">Synthesizing Semantic Graph Queries</span>
+                <span className="text-sm font-semibold text-[var(--foreground)] tracking-wide">Synthesizing Semantic Graph Queries</span>
                 <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest animate-pulse">Running semantic token matching & contradiction search...</span>
               </div>
             </div>
@@ -293,7 +293,7 @@ export default function SemanticSearch() {
                   <BrainCircuit className="h-5.5 w-5.5 animate-pulse" />
                   <span className="font-bold text-xs uppercase tracking-wider font-mono">AI Brain Response</span>
                 </div>
-                <div className="text-xs text-gray-200 leading-relaxed font-light space-y-2.5 mt-4">
+                <div className="text-xs text-[var(--foreground)]/90 leading-relaxed font-light space-y-2.5 mt-4">
                   <p className="whitespace-pre-line leading-relaxed">{results.answer}</p>
                 </div>
               </motion.div>
@@ -306,7 +306,7 @@ export default function SemanticSearch() {
                   transition={{ delay: 0.2 }}
                   className="p-6 rounded-2xl glass-panel space-y-4"
                 >
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Spoken Context Snippets</h3>
+                  <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Spoken Context Snippets</h3>
                   <motion.div 
                     variants={containerVariants}
                     initial="hidden"
@@ -321,10 +321,10 @@ export default function SemanticSearch() {
                         className="p-4 rounded-xl bg-obsidian-dark/50 border border-obsidian-border space-y-2 transition-all duration-200"
                       >
                         <div className="flex items-center justify-between gap-3 text-[10px] font-mono">
-                          <span className="text-white font-bold">{snip.speaker}</span>
-                          <span className="text-gray-500 font-mono">Time: {snip.time} | in {snip.title}</span>
+                          <span className="text-[var(--foreground)] font-bold">{snip.speaker}</span>
+                          <span className="text-[var(--foreground)]/50 font-mono">Time: {snip.time} | in {snip.title}</span>
                         </div>
-                        <p className="text-xs text-gray-300 italic">" {snip.text} "</p>
+                        <p className="text-xs text-[var(--foreground)]/80 italic">" {snip.text} "</p>
                       </motion.div>
                     ))}
                   </motion.div>
@@ -343,7 +343,7 @@ export default function SemanticSearch() {
                 transition={{ delay: 0.15 }}
                 className="p-6 rounded-2xl glass-panel space-y-4"
               >
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Linked Meeting Feeds</h3>
+                <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Linked Meeting Feeds</h3>
                 <motion.div 
                   variants={containerVariants}
                   initial="hidden"
@@ -357,10 +357,10 @@ export default function SemanticSearch() {
                         className="flex items-center justify-between p-3 bg-obsidian-light/40 hover:bg-obsidian-light/65 border border-obsidian-border hover:border-cyber-cyan/35 rounded-xl transition-all group"
                       >
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-white truncate group-hover:text-cyber-cyan">{m.title}</p>
-                          <p className="text-[10px] text-gray-500 font-mono mt-0.5">{m.date}</p>
+                          <p className="text-xs font-semibold text-[var(--foreground)] truncate group-hover:text-cyber-cyan">{m.title}</p>
+                          <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">{m.date}</p>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-500 group-hover:translate-x-1 group-hover:text-cyber-cyan transition-all shrink-0" />
+                        <ArrowRight className="h-4 w-4 text-[var(--foreground)]/50 group-hover:translate-x-1 group-hover:text-cyber-cyan transition-all shrink-0" />
                       </Link>
                     </motion.div>
                   ))}
@@ -377,7 +377,7 @@ export default function SemanticSearch() {
                 transition={{ delay: 0.25 }}
                 className="p-6 rounded-2xl glass-panel space-y-4"
               >
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Related Decisions</h3>
+                <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Related Decisions</h3>
                 <motion.div 
                   variants={containerVariants}
                   initial="hidden"
@@ -391,7 +391,7 @@ export default function SemanticSearch() {
                       whileHover={{ y: -1, borderColor: "rgba(168, 85, 247, 0.3)" }}
                       className="p-3 bg-obsidian-light/30 border border-obsidian-border rounded-xl space-y-1 transition-all"
                     >
-                      <p className="text-xs text-white leading-normal">{d.text}</p>
+                      <p className="text-xs text-[var(--foreground)] leading-normal">{d.text}</p>
                       <div className="flex items-center gap-1.5 mt-1">
                         <span className={`text-[8px] font-mono px-1 rounded ${
                           d.status === "changed" ? "bg-cyber-rose/10 text-cyber-rose border border-cyber-rose/20" : "bg-cyber-emerald/10 text-cyber-emerald border border-cyber-emerald/20"
@@ -415,7 +415,7 @@ export default function SemanticSearch() {
                 transition={{ delay: 0.35 }}
                 className="p-6 rounded-2xl glass-panel space-y-4"
               >
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Related Active Tasks</h3>
+                <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Related Active Tasks</h3>
                 <motion.div 
                   variants={containerVariants}
                   initial="hidden"
@@ -429,11 +429,11 @@ export default function SemanticSearch() {
                       whileHover={{ y: -1, borderColor: "rgba(6, 182, 212, 0.3)" }}
                       className="p-3 bg-obsidian-light/30 border border-obsidian-border rounded-xl space-y-1 transition-all"
                     >
-                      <div className="flex items-center justify-between text-[8px] text-gray-500 font-mono">
+                      <div className="flex items-center justify-between text-[8px] text-[var(--foreground)]/50 font-mono">
                         <span>Owner: {t.owner}</span>
                         <span>Due: {t.deadline}</span>
                       </div>
-                      <p className="text-xs text-white font-medium truncate">{t.title}</p>
+                      <p className="text-xs text-[var(--foreground)] font-medium truncate">{t.title}</p>
                       <span className="text-[8px] font-mono text-cyber-cyan uppercase">{t.status}</span>
                     </motion.div>
                   ))}

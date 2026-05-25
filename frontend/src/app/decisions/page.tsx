@@ -76,31 +76,31 @@ export default function DecisionTimeline() {
       
       {/* Title */}
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Decisions</h2>
-        <p className="text-gray-400 text-sm mt-0.5 font-sans">
+        <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">Decisions</h2>
+        <p className="text-[var(--foreground)]/70 text-sm mt-0.5 font-sans">
           Review past decisions, search options considered, and see when plans have changed.
         </p>
       </div>
 
       {/* Control bar */}
-      <div className="p-4 rounded-2xl glass-card flex flex-wrap items-center justify-between gap-4 bg-transparent border-white/5">
+      <div className="p-4 rounded-2xl glass-card flex flex-wrap items-center justify-between gap-4 bg-transparent border-[var(--color-obsidian-border)]">
         <div className="relative w-full sm:w-80">
           <input
             type="text"
             placeholder="Search decisions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/45 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
+            className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
           />
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--foreground)]/50" />
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 font-sans">Filter:</span>
+          <span className="text-xs text-[var(--foreground)]/70 font-sans">Filter:</span>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-black/45 border border-white/5 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyber-purple cursor-pointer font-sans"
+            className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-1.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple cursor-pointer font-sans"
           >
             <option value="all">All Decisions</option>
             <option value="accepted">Active</option>
@@ -114,7 +114,7 @@ export default function DecisionTimeline() {
         variants={listContainerVariants}
         initial="hidden"
         animate="show"
-        className="relative border-l border-white/10 pl-6 ml-4 space-y-8 py-4"
+        className="relative border-l border-[var(--color-obsidian-border)] pl-6 ml-4 space-y-8 py-4"
       >
         <AnimatePresence mode="popLayout">
           {getFilteredDecisions().map((dec) => {
@@ -151,15 +151,15 @@ export default function DecisionTimeline() {
                 {/* Card content */}
                 <motion.div 
                   whileHover={{ y: -3 }}
-                  className="glass-card border border-white/5 hover:border-cyber-purple/35 transition-all duration-300 p-5 rounded-2xl space-y-4 bg-transparent shadow-lg"
+                  className="glass-card border border-[var(--color-obsidian-border)] hover:border-cyber-purple/35 transition-all duration-300 p-5 rounded-2xl space-y-4 bg-transparent shadow-lg"
                 >
                   
                   {/* Upper line: meeting details & overrides warning */}
                   <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-sans">
-                    <div className="flex items-center gap-2 text-gray-400 font-sans">
+                    <div className="flex items-center gap-2 text-[var(--foreground)]/70 font-sans">
                       <Calendar className="h-3.5 w-3.5 text-cyber-purple" />
                       <span className="font-mono">{dec.date}</span>
-                      <span className="h-1.5 w-1.5 rounded-full bg-white/10" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--foreground)]/[0.10]" />
                       <Link href={`/meetings?id=${dec.meeting_id}`} className="hover:underline flex items-center gap-1 text-cyber-cyan font-semibold">
                         {dec.meeting_title} <ExternalLink className="h-3 w-3" />
                       </Link>
@@ -179,7 +179,7 @@ export default function DecisionTimeline() {
                   </div>
 
                   {/* Main Statement */}
-                  <p className="text-sm font-semibold text-white leading-relaxed font-sans">
+                  <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed font-sans">
                     {dec.text}
                   </p>
 
@@ -209,13 +209,13 @@ export default function DecisionTimeline() {
                   )}
 
                   {/* Accordion detail drawer: alternative options discussed */}
-                  <div className="border-t border-white/5 pt-3">
+                  <div className="border-t border-[var(--color-obsidian-border)] pt-3">
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : dec.id)}
-                      className="flex items-center justify-between w-full text-xs text-gray-400 hover:text-white transition-colors cursor-pointer font-sans"
+                      className="flex items-center justify-between w-full text-xs text-[var(--foreground)]/70 hover:text-[var(--foreground)] transition-colors cursor-pointer font-sans"
                     >
                       <span className="flex items-center gap-1.5"><History className="h-3.5 w-3.5 text-cyber-cyan" /> View other options considered</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180 text-white" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180 text-[var(--foreground)]" : ""}`} />
                     </button>
 
                     <AnimatePresence initial={false}>
@@ -227,8 +227,8 @@ export default function DecisionTimeline() {
                           transition={{ duration: 0.25, ease: "easeInOut" as const }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-3.5 p-4 bg-black/45 border border-white/5 rounded-xl space-y-2.5">
-                            <h4 className="text-[9px] uppercase font-bold text-gray-500 tracking-widest font-mono">Options Discussed & Rejected</h4>
+                          <div className="mt-3.5 p-4 bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl space-y-2.5">
+                            <h4 className="text-[9px] uppercase font-bold text-[var(--foreground)]/50 tracking-widest font-mono">Options Discussed & Rejected</h4>
                             <div className="space-y-2 pl-2 border-l border-cyber-rose/30">
                               {dec.related_options && dec.related_options.map((opt: string, idx: number) => (
                                 <motion.div 
@@ -236,7 +236,7 @@ export default function DecisionTimeline() {
                                   initial={{ x: -5, opacity: 0 }}
                                   animate={{ x: 0, opacity: 1 }}
                                   transition={{ delay: idx * 0.05 }}
-                                  className="text-xs text-gray-400 flex items-center gap-2 font-light font-sans"
+                                  className="text-xs text-[var(--foreground)]/70 flex items-center gap-2 font-light font-sans"
                                 >
                                   <span className="text-cyber-rose font-bold">✕</span>
                                   <span>{opt}</span>
@@ -258,7 +258,7 @@ export default function DecisionTimeline() {
           })}
         </AnimatePresence>
         {getFilteredDecisions().length === 0 && (
-          <p className="text-xs text-gray-500 text-center py-10 border border-dashed border-white/10 rounded-2xl font-sans">No decisions match your search yet.</p>
+          <p className="text-xs text-[var(--foreground)]/50 text-center py-10 border border-dashed border-[var(--color-obsidian-border)] rounded-2xl font-sans">No decisions match your search yet.</p>
         )}
       </motion.div>
 

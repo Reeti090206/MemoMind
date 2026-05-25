@@ -23,6 +23,36 @@
   --color-cyber-purple: var(--mm-highlight);
   --color-cyber-emerald: var(--mm-muted);
   --color-cyber-rose: var(--mm-dark);
+
+  /* Glass Variables */
+  --glass-bg: rgba(34, 30, 38, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.04);
+  --glass-shadow: rgba(0, 0, 0, 0.45);
+  --glass-card-bg: rgba(34, 30, 40, 0.55);
+  --glass-card-hover-bg: rgba(48, 42, 62, 0.72);
+}
+
+[data-theme='light'] {
+  --mm-background: #f8f9fa;
+  --mm-dark: #e9ecef;
+  --mm-muted: #dee2e6;
+  --mm-accent: #ee5622;
+  --mm-highlight: #eca72c;
+
+  --color-obsidian-dark: #f8f9fa;
+  --color-obsidian-medium: #ffffff;
+  --color-obsidian-light: #f1f3f5;
+  --color-obsidian-border: rgba(0, 0, 0, 0.08);
+
+  --background: var(--mm-background);
+  --foreground: #121212;
+  color-scheme: light;
+
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.05);
+  --glass-card-bg: rgba(255, 255, 255, 0.55);
+  --glass-card-hover-bg: rgba(250, 250, 255, 0.85);
 }
 
 body {
@@ -55,27 +85,27 @@ body {
 
 /* Glassmorphism Accents */
 .glass-panel {
-  background: rgba(34, 30, 38, 0.65);
+  background: var(--glass-bg);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 8px 36px 0 rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 36px 0 var(--glass-shadow);
 }
 
 .glass-card {
-  background: rgba(34, 30, 40, 0.55);
+  background: var(--glass-card-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  box-shadow: 0 6px 26px 0 rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 6px 26px 0 var(--glass-shadow);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  background: rgba(48, 42, 62, 0.72);
-  border-color: color-mix(in srgb, var(--mm-accent) 18%, rgba(255,255,255,0.03));
+  background: var(--glass-card-hover-bg);
+  border-color: color-mix(in srgb, var(--mm-accent) 18%, var(--glass-border));
   box-shadow: 
-    0 15px 35px -10px rgba(0, 0, 0, 0.5),
+    0 15px 35px -10px var(--glass-shadow),
     0 0 22px -2px color-mix(in srgb, var(--mm-accent) 15%, rgba(0,0,0,0));
   transform: translateY(-2px) scale(1.005);
 }
