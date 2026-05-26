@@ -1,19 +1,22 @@
-# MeetGraph: Organizational Memory Intelligence System
+# MemoMind: Organizational Memory Intelligence System
 
-MeetGraph is a modern, premium, futuristic full-stack SaaS platform designed to serve as a long-term intelligent memory layer for organizations. Unlike a standard meeting summarizer, MeetGraph records transcripts and maps them onto a unified **Organizational Memory Graph** that tracks decision histories, accountability tasks, pending items, circular debates, and contradictions across meetings.
+MemoMind is a modern, premium, futuristic full-stack SaaS platform designed to serve as a long-term intelligent memory layer for organizations. Unlike a standard meeting summarizer, MemoMind records real transcripts and maps them onto a unified **Organizational Memory Graph** that tracks decision histories, accountability tasks, pending items, circular debates, and contradictions across meetings.
 
 ---
 
 ## Key Features
 
-1. **Speech-to-Text Ingestion**: Drag-and-drop meeting uploads (MP3, WAV, MP4) with simulated and real Whisper STT pipelines + automatic multi-speaker diarization.
-2. **Live Microphone Stream Workspace**: Pulsing microphone recording dock that feeds speech segments in real-time, extracting tasks and decision blocks.
-3. **Accountability Kanban Board**: A task tracking workspace mapped directly to resolved decisions. Mapped to assignees (Aman, Reeti, Sarah) with statuses updated directly in the backend SQLite database.
-4. **Decision Lineage Timeline**: Audits chronological policy choices, highlighting overriding states and indexing rejected alternatives discussed during sync sessions.
-5. **Policy Contradiction Detection**: AI compares new decisions with past ones using semantic vector embeddings and alerts users if a new stance conflicts with a past sync (e.g. monolith vs microservices).
-6. **Circular Debate Detection**: Flags recurring topics that appear across multiple consecutive meetings without reaching a definitive resolution.
-7. **Semantic Memory Search**: ChatGPT-style search workspace where natural language queries receive direct answers, linked meeting nodes, related task listings, and precise spoken transcript snippets.
-8. **Force-Directed SVG Graph Canvas**: An interactive node-link trace canvas (Meetings ↔ Decisions ↔ Tasks ↔ Members) supporting zoom, pan, drags, and sidebar inspectors.
+1. **Speech-to-Text Ingestion**: Real drag-and-drop meeting uploads (MP3, WAV, MP4, WebM) with actual Whisper speech-to-text processing and structured GPT-4o-mini parsing. Integrated with `XMLHttpRequest` to track precise binary upload progress (0-100%).
+2. **Live Microphone Workspace**: Capture real-time microphone audio via the browser's `getUserMedia` and `MediaRecorder` API. Features a real-time responsive waveform visualizer mapped directly to active Web Audio API `AnalyserNode` frequency levels.
+3. **Live Screen Share & Assistant (Google Meet style)**: Native display picker (`getDisplayMedia`) allowing tab, window, or entire screen sharing. Mixes screen audio with microphone streams into a single recording, displaying video preview feeds live.
+4. **WebSocket Streaming Pipeline**: Both live microphone and screen share audio stream binary chunks to the FastAPI server (`/ws/meeting-stream`). Chunks are transcribed asynchronously in a background thread pool via Whisper, returning live transcripts to the user.
+5. **Real-Time AI Inspection**: Frontend processes live Whisper transcription segments on the fly, auto-detecting accountability tasks and plan conflicts (contradictions) dynamically.
+6. **Accountability Kanban Board**: A task tracking workspace mapped directly to decisions and owners. Saved and synced directly to the backend database.
+7. **Decision Lineage & Contradiction Alerts**: Chronological overview of all corporate policy choices. Highlights overridden decisions and flags contradictions automatically when new syncs oppose past policies.
+8. **Circular Debate Detection**: Identifies recurring topics sync-after-sync that fail to reach a definitive resolution.
+9. **Semantic Search Workspace**: Natural language memory search using text embeddings and local cosine similarity to retrieve matching nodes, tasks, decisions, and exact transcript snippets:
+   $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
+10. **Interactive SVG Graph Canvas**: Dynamic force-directed network showing relationships between meetings, decisions, tasks, and team members.
 
 ---
 
@@ -25,7 +28,7 @@ MemoMind/
 │   ├── src/
 │   │   ├── app/                  # App Router Core pages
 │   │   │   ├── page.tsx          # Dashboard Metrics
-│   │   │   ├── upload/           # Drag & Drop + Recording Waveforms
+│   │   │   ├── upload/           # Native Capture Docks & Video Feeds
 │   │   │   ├── meetings/         # Searchable Diarized Transcripts
 │   │   │   ├── tasks/            # Kanban accountability board
 │   │   │   ├── decisions/        # Overrides & Alternative dropdowns
@@ -44,7 +47,7 @@ MemoMind/
 │   │   └── main.py               # REST & WebSockets router
 │   ├── requirements.txt          # Python dependencies
 │   └── run.py                    # App bootstrap script
-└── README.md                     # Detailed developer operations manual
+└── README.md                     # Operational documentation
 ```
 
 ---
@@ -54,7 +57,7 @@ MemoMind/
 * **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide React, Framer Motion
 * **Backend**: FastAPI, Uvicorn, Python 3.13
 * **Database & Vectors**: SQLite, SQLModel (SQLAlchemy + Pydantic), local Token-Embeddings / Cosine Similarity indexers
-* **AI Utilities**: OpenAI Whisper API, Sentence Transformers
+* **AI Utilities**: OpenAI Whisper API, Sentence Transformers (or token-based mathematical fallback vectors)
 
 ---
 
@@ -70,7 +73,7 @@ cd backend
 
 # Create a virtual environment
 python -m venv venv
-venv\Scripts\activate   # Windows
+venv\Scripts\activate   # Windows shell
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -79,17 +82,15 @@ pip install -r requirements.txt
 python run.py
 ```
 
-The FastAPI backend runs on `http://127.0.0.1:8000`. You can inspect the Swagger documentation at `http://127.0.0.1:8000/docs`.
+The FastAPI backend runs on `http://127.0.0.1:8000`. You can inspect the interactive Swagger docs at `http://127.0.0.1:8000/docs`.
 
 ### 1.1 Welcome Email Configuration
-To enable the backend to send real welcome emails upon user registration or sign-in:
-1. In `backend/.env`, configure the email parameters:
-   - `SENDER_EMAIL=reetikhandelwal09@gmail.com`
-   - `SMTP_HOST=smtp.gmail.com`
-   - `SMTP_PORT=587`
-   - `SMTP_USER=reetikhandelwal09@gmail.com`
-   - `SMTP_PASSWORD="your_google_app_password"`
-2. Set up a 16-character App Password via your Google Account's Security panel.
+To enable email notifications, configure the email credentials in your environment (`backend/.env`):
+- `SENDER_EMAIL=reetikhandelwal09@gmail.com`
+- `SMTP_HOST=smtp.gmail.com`
+- `SMTP_PORT=587`
+- `SMTP_USER=reetikhandelwal09@gmail.com`
+- `SMTP_PASSWORD="your_google_app_password"`
 
 ### 2. Frontend Setup (Next.js & Tailwind CSS)
 
@@ -106,13 +107,4 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser. The application is completely wired to communicate with the FastAPI backend, but also contains fully integrated, high-fidelity fallback states so the visual layouts work beautifully out of the box even if the API server is starting up.
-
----
-
-## Smart AI Workflows & Match Algorithms
-
-* **Semantic Search**: Meets queries using a robust mathematical text embedding service. It transforms text blocks into 384-dimensional similarity arrays and queries them using local cosine vectors:
-  $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
-* **Contradiction Search**: Matches newly added decision tokens against past database rows. If semantic overlaps match highly (> 0.58) but negative tokens exist (e.g. shift from "avoid microservices" to "migrate to microservices"), it flags a contradiction alert immediately.
-* **Circular Loops**: Scans historical transcript records. If active keywords (like "authentication") appear in 3 or more sync sessions without status resolving, it issues a "Circular discussion warning" banner.
+Open `http://localhost:3000` in your browser. The application is completely wired to run with your FastAPI backend and interactively analyze meetings.
