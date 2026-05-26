@@ -5,13 +5,7 @@ import {
   Users, 
   Send, 
   Sparkles, 
-  MessageSquare, 
   Hash, 
-  Flame, 
-  CheckCircle, 
-  Clock, 
-  Network,
-  Tv,
   ArrowRight,
   Code
 } from "lucide-react";
@@ -27,41 +21,6 @@ interface TeamMember {
   color: string;
 }
 
-const MEMBERS: TeamMember[] = [
-  {
-    name: "Aman Gupta",
-    role: "Backend Architect",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Aman",
-    status: "online",
-    activity: "Tuning SQLite vector hash indices",
-    color: "border-cyber-cyan text-cyber-cyan"
-  },
-  {
-    name: "Reeti Sharma",
-    role: "Frontend Engineer",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Reeti",
-    status: "online",
-    activity: "Customizing Tailwind v4 components",
-    color: "border-cyber-purple text-cyber-purple"
-  },
-  {
-    name: "Sarah Jenkins",
-    role: "Lead Product Manager",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Sarah",
-    status: "online",
-    activity: "Writing PRD for live Whisper speech diarization",
-    color: "border-cyber-rose text-cyber-rose"
-  },
-  {
-    name: "Riya Verma",
-    role: "UI/UX Designer",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Riya",
-    status: "idle",
-    activity: "Reviewing glassmorphism visual templates",
-    color: "border-amber-400 text-amber-400"
-  }
-];
-
 const CHANNELS = [
   { id: "general", name: "general-sync", desc: "Main discussion channel for Project Alpha" },
   { id: "hackathon", name: "hackathon-prep", desc: "Coordination for next week's code sprint" },
@@ -72,117 +31,178 @@ const CHANNELS = [
 export default function TeamWorkspace() {
   const { user } = useAuth();
   const [activeChannel, setActiveChannel] = useState("general");
-  const [chatMessages, setChatMessages] = useState([
-    {
-      sender: "Aman Gupta",
-      avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Aman",
-      text: "Hey everyone, I just successfully updated our local vector indices. The similarity search is matching decisions perfectly!",
-      time: "2:10 PM",
-      isAi: false
-    },
-    {
-      sender: "Reeti Sharma",
-      avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Reeti",
-      text: "Awesome! I am wrapping up the force-directed memory graph canvas. It visualizes the overrides and decisions beautifully.",
-      time: "2:12 PM",
-      isAi: false
-    },
-    {
-      sender: "MemoMind AI",
-      avatar: "",
-      text: "⚡ SYSTEM UPDATE: Automatic contradiction detection identified a shift. Shifting from avoiding microservices (Kickoff sync) to migrating to microservices (SaaS scaling sync) has been indexed at 88% confidence.",
-      time: "2:13 PM",
-      isAi: true
-    },
-    {
-      sender: "Sarah Jenkins",
-      avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Sarah",
-      text: "This is perfect. It means we don't have to keep digging through recordings to remember why we changed our tech stack! Great work team.",
-      time: "2:15 PM",
-      isAi: false
-    }
-  ]);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [speakers, setSpeakers] = useState<string[]>([]);
+  const [tasksList, setTasksList] = useState<any[]>([]);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Dynamically include active custom user in online members list
-  const activeMembers = React.useMemo(() => {
-    if (!user) return MEMBERS;
-
-    // Check if user is already one of the static members to prevent duplication
-    const exists = MEMBERS.some(
-      m => m.name.toLowerCase() === user.name.toLowerCase() ||
-           user.name.toLowerCase() === "developer guest"
-    );
-    if (exists) return MEMBERS;
-
-    const customMember: TeamMember = {
-      name: user.name,
-      role: user.role || "Workspace Contributor",
-      avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.name)}`,
-      status: "online",
-      activity: "Collaborating Live",
-      color: "border-cyber-cyan text-cyber-cyan"
-    };
-
-    return [customMember, ...MEMBERS];
-  }, [user]);
-
-  // Welcome message useEffect triggered once per session
+  // Load speakers and active tasks from the backend
   useEffect(() => {
-    if (user) {
-      const sessionKey = `MemoMind_welcome_dispatched_${user.email}`;
-      const alreadyDispatched = sessionStorage.getItem(sessionKey);
-      
-      if (!alreadyDispatched) {
-        const welcomeMsg = {
-          sender: "MemoMind AI",
-          avatar: "",
-          text: `🤖 Welcome to MemoMind AI, ${user.name}! We've successfully established a secure workspace connection for your account (${user.email}). I will be monitoring this channel to capture team updates, track critical project decisions, and draft follow-up tasks in real-time. Let me know if you need any assistance!`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isAi: true
-        };
+    async function loadWorkspaceData() {
+      try {
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/analytics?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/analytics";
+        const analyticsRes = await fetch(url);
+        if (analyticsRes.ok) {
+          const analytics = await analyticsRes.json();
+          const list = Object.keys(analytics.speaking_distribution || {});
+          setSpeakers(list);
+        }
+      } catch (err) {
+        console.warn("Failed to load speakers:", err);
+      }
 
-        const timer = setTimeout(() => {
-          setChatMessages(prev => [...prev, welcomeMsg]);
-          sessionStorage.setItem(sessionKey, "true");
-        }, 1200);
-
-        return () => clearTimeout(timer);
+      try {
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/tasks?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/tasks";
+        const tasksRes = await fetch(url);
+        if (tasksRes.ok) {
+          const allTasks = await tasksRes.json();
+          const active = allTasks.filter((t: any) => t.status !== "done");
+          setTasksList(active);
+        }
+      } catch (err) {
+        console.warn("Failed to load tasks:", err);
       }
     }
+    loadWorkspaceData();
   }, [user]);
+
+  // Load chat messages on mount / channel change
+  useEffect(() => {
+    const chatKey = `MemoMind_chat_history_${activeChannel}`;
+    const stored = localStorage.getItem(chatKey);
+    if (stored) {
+      try {
+        setChatMessages(JSON.parse(stored));
+      } catch (err) {
+        setChatMessages([]);
+      }
+    } else {
+      setChatMessages([
+        {
+          sender: "MemoMind AI",
+          avatar: "",
+          text: `🤖 Welcome to #${CHANNELS.find(ch => ch.id === activeChannel)?.name}! This channel is live and dynamic. Ask me any question about your team memory (mention "AI" or "assistant"), or upload meetings to build our workspace knowledge.`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isAi: true
+        }
+      ]);
+    }
+  }, [activeChannel]);
+
+  // Helper to save messages
+  const saveMessages = (msgs: any[]) => {
+    const chatKey = `MemoMind_chat_history_${activeChannel}`;
+    localStorage.setItem(chatKey, JSON.stringify(msgs));
+  };
+
+  // Dynamically include active custom user and detected speakers in members list
+  const activeMembers = React.useMemo(() => {
+    const list: TeamMember[] = [];
+    
+    // Add current user
+    if (user) {
+      list.push({
+        name: user.name,
+        role: user.role || "Workspace Contributor",
+        avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.name)}`,
+        status: "online",
+        activity: "Collaborating Live",
+        color: "border-cyber-cyan text-cyber-cyan"
+      });
+    } else {
+      list.push({
+        name: "Developer Guest",
+        role: "Workspace Administrator",
+        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest",
+        status: "online",
+        activity: "Collaborating Live",
+        color: "border-cyber-cyan text-cyber-cyan"
+      });
+    }
+
+    // Add detected speakers from meetings
+    speakers.forEach(spk => {
+      if (user && spk.toLowerCase() === user.name.toLowerCase()) return;
+      if (spk.toLowerCase() === "developer guest") return;
+
+      list.push({
+        name: spk,
+        role: "Sync Participant",
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(spk)}`,
+        status: "online",
+        activity: "Inactive",
+        color: "border-gray-500 text-gray-500"
+      });
+    });
+
+    return list;
+  }, [user, speakers]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !user) return;
+    if (!inputMessage.trim()) return;
 
-    const newMsg = {
-      sender: user.name,
-      avatar: user.avatar,
+    const senderName = user ? user.name : "Developer Guest";
+    const senderAvatar = user ? user.avatar : "https://api.dicebear.com/7.x/bottts/svg?seed=Guest";
+
+    const userMsg = {
+      sender: senderName,
+      avatar: senderAvatar,
       text: inputMessage,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isAi: false
     };
 
-    setChatMessages(prev => [...prev, newMsg]);
+    const updatedMsgs = [...chatMessages, userMsg];
+    setChatMessages(updatedMsgs);
+    saveMessages(updatedMsgs);
     setInputMessage("");
 
-    // Simulate AI responding
+    // Call dynamic AI responding if mentioned
     if (inputMessage.toLowerCase().includes("ai") || inputMessage.toLowerCase().includes("assistant")) {
-        setTimeout(() => {
-          setChatMessages(prev => [...prev, {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: inputMessage })
+        });
+        
+        if (res.ok) {
+          const searchRes = await res.json();
+          const aiMsg = {
+            sender: "MemoMind AI",
+            avatar: "",
+            text: searchRes.answer || "I couldn't find any relevant details in our meeting memory.",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isAi: true
+          };
+          const newMsgs = [...updatedMsgs, aiMsg];
+          setChatMessages(newMsgs);
+          saveMessages(newMsgs);
+        } else {
+          throw new Error("Search failed");
+        }
+      } catch (err) {
+        const errorMsg = {
           sender: "MemoMind AI",
           avatar: "",
-          text: "🤖 Hello! I am observing this collaborative workspace. You can ask me questions about your team memory directly, or start a 'Live Monitor' session to have me log tasks automatically.",
+          text: "🤖 Connection error. I am currently offline and cannot search meeting memory. Make sure the backend server is running.",
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           isAi: true
-        }]);
-      }, 1000);
+        };
+        const newMsgs = [...updatedMsgs, errorMsg];
+        setChatMessages(newMsgs);
+        saveMessages(newMsgs);
+      }
     }
   };
 
@@ -364,33 +384,24 @@ export default function TeamWorkspace() {
             <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Workspace Tasks</h3>
             
             <div className="space-y-3 font-sans">
-              <div className="p-3 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 group hover:border-cyber-cyan/30 transition-all cursor-pointer">
-                <div className="flex items-center justify-between text-[9px] font-mono">
-                  <span className="text-cyber-cyan font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Code className="h-3 w-3" /> Engineering
-                  </span>
-                  <span className="text-[var(--foreground)]/50">Friday</span>
+              {tasksList.slice(0, 3).map((task) => (
+                <div key={task.id} className="p-3 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 group hover:border-cyber-cyan/30 transition-all cursor-pointer">
+                  <div className="flex items-center justify-between text-[9px] font-mono">
+                    <span className="text-cyber-cyan font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Code className="h-3 w-3" /> {task.priority || "normal"}
+                    </span>
+                    <span className="text-[var(--foreground)]/50">{task.deadline || "No deadline"}</span>
+                  </div>
+                  <h4 className="text-xs font-semibold text-[var(--foreground)] group-hover:text-cyber-cyan transition-colors leading-tight">{task.title}</h4>
+                  <div className="flex items-center gap-1.5 text-[9px] text-[var(--foreground)]/70">
+                    <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(task.owner)}`} className="h-4.5 w-4.5 rounded-md border border-[var(--color-obsidian-border)] shrink-0" />
+                    <span>Owned by {task.owner}</span>
+                  </div>
                 </div>
-                <h4 className="text-xs font-semibold text-[var(--foreground)] group-hover:text-cyber-cyan transition-colors leading-tight">Implement core database migrations</h4>
-                <div className="flex items-center gap-1.5 text-[9px] text-[var(--foreground)]/70">
-                  <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Aman" className="h-4.5 w-4.5 rounded-md border border-[var(--color-obsidian-border)] shrink-0" />
-                  <span>Owned by Aman G.</span>
-                </div>
-              </div>
-
-              <div className="p-3 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 group hover:border-cyber-purple/30 transition-all cursor-pointer">
-                <div className="flex items-center justify-between text-[9px] font-mono">
-                  <span className="text-cyber-purple font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Tv className="h-3 w-3" /> Design
-                  </span>
-                  <span className="text-[var(--foreground)]/50">Monday</span>
-                </div>
-                <h4 className="text-xs font-semibold text-[var(--foreground)] group-hover:text-cyber-purple transition-colors leading-tight">Update UI components with new design system</h4>
-                <div className="flex items-center gap-1.5 text-[9px] text-[var(--foreground)]/70">
-                  <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Reeti" className="h-4.5 w-4.5 rounded-md border border-[var(--color-obsidian-border)] shrink-0" />
-                  <span>Owned by Reeti S.</span>
-                </div>
-              </div>
+              ))}
+              {tasksList.length === 0 && (
+                <p className="text-[11px] text-[var(--foreground)]/50 italic text-center py-4">No active tasks in this workspace.</p>
+              )}
             </div>
             
             <div className="pt-2 flex gap-1 items-center text-[10px] text-cyber-cyan font-semibold cursor-pointer">

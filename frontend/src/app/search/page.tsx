@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { 
   Search, 
@@ -18,11 +19,10 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Suggestions list
 const SUGGESTED_QUERIES = [
   "When did we discuss authentication?",
   "What were the arguments against microservices?",
-  "What tasks are assigned to Aman?",
+  "Which tasks are currently open?",
   "Show decisions related to database selection."
 ];
 
@@ -64,6 +64,7 @@ const neuralNodeVariants = {
 };
 
 export default function SemanticSearch() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any | null>(null);
@@ -81,7 +82,7 @@ export default function SemanticSearch() {
       const res = await fetch("http://127.0.0.1:8000/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchQuery })
+        body: JSON.stringify({ query: searchQuery, user_email: user?.email || "" })
       });
 
       if (res.ok) {
@@ -91,51 +92,13 @@ export default function SemanticSearch() {
         throw new Error();
       }
     } catch (err) {
-      // High fidelity client-side mock search engine
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const q = searchQuery.toLowerCase();
-      
-      let answer = "";
-      let matchedMeetings: any[] = [];
-      let matchedDecisions: any[] = [];
-      let matchedTasks: any[] = [];
-      let snippets: any[] = [];
-
-      if (q.includes("microservices") || q.includes("monolith")) {
-        answer = "The team shifted architectural direction between meetings. In the **Project Kickoff Meeting (Meeting #1)**, Aman recommended avoiding microservices to minimize initial operational overhead. However, in the **SaaS Scaling Sync (Meeting #3)**, scaling load projections forced the team to override this decision and decide to **migrate to microservices for horizontal scaling**.";
-        matchedMeetings = [{ id: 3, title: "SaaS Scaling & Microservices Shift", date: "2026-05-18" }, { id: 1, title: "Project Alpha Kickoff & DB Planning", date: "2026-05-10" }];
-        matchedDecisions = [
-          { id: 3, text: "Migrate core user and feed profile modules to a microservices architecture to support horizontal load scaling.", status: "accepted", meeting_id: 3 },
-          { id: 1, text: "Avoid microservices and build a unified monolithic backend to avoid API gateway and networking overhead.", status: "changed", meeting_id: 1 }
-        ];
-        matchedTasks = [{ id: 3, title: "Update frontend configurations with microservices endpoints", owner: "Reeti", deadline: "2026-06-02", status: "todo" }];
-        snippets = [
-          { speaker: "Reeti (Frontend)", text: "Hi all, looking at the horizontal scaling needs for user sessions, I think we must migrate to a decoupled microservices layout for the user-profile API.", time: "0m 0s", title: "SaaS Scaling & Microservices Shift" },
-          { speaker: "Aman (Backend)", text: "I strongly propose we avoid microservices for this initial launch to prevent overhead.", time: "0m 0s", title: "Project Alpha Kickoff & DB Planning" }
-        ];
-      } else if (q.includes("auth") || q.includes("clerk") || q.includes("jwt")) {
-        answer = "Authentication was debated across two syncs. Custom JWT was initially proposed, but left unresolved due to pricing and engineering resource constraints. In the **SaaS Scaling Sync (Meeting #3)**, the team resolved to **implement Clerk OAuth for authentication** to accelerate launch speed.";
-        matchedMeetings = [{ id: 2, title: "Database & Auth Architecture Deep-Dive", date: "2026-05-14" }, { id: 3, title: "SaaS Scaling & Microservices Shift", date: "2026-05-18" }];
-        matchedDecisions = [{ id: 4, text: "Implement Clerk OAuth for user authentication to accelerate launch speed.", status: "accepted", meeting_id: 3 }];
-        matchedTasks = [{ id: 4, title: "Integrate Clerk OAuth library into the frontend shell", owner: "Reeti", deadline: "2026-05-29", status: "todo" }];
-        snippets = [
-          { speaker: "Sarah (Product)", text: "Now, for user login, should we build a custom JWT service or use Clerk?", time: "0m 46s", title: "Database & Auth Architecture Deep-Dive" },
-          { speaker: "Aman (Backend)", text: "Let's decide later on authentication, pending some pricing reviews.", time: "1m 16s", title: "Database & Auth Architecture Deep-Dive" }
-        ];
-      } else if (q.includes("aman")) {
-        answer = "Aman (Backend Engineer) is responsible for core database provisioning and scaling. He has one completed task: **'Implement core database migrations'** (completed Friday 28th), and one active, high-priority task: **'Configure production PostgreSQL clusters and connection pooling'** (due May 30th).";
-        matchedMeetings = [{ id: 2, title: "Database & Auth Architecture Deep-Dive", date: "2026-05-14" }];
-        matchedDecisions = [{ id: 2, text: "Select PostgreSQL as the primary relational database platform instead of SQLite for production durability.", status: "accepted", meeting_id: 2 }];
-        matchedTasks = [{ id: 2, title: "Configure production PostgreSQL clusters and connection pooling", owner: "Aman", deadline: "2026-05-30", status: "in_progress" }];
-        snippets = [
-          { speaker: "Aman (Backend)", text: "For the database, since we are moving towards production, let's select PostgreSQL over SQLite. It handles concurrent connections much better.", time: "0m 0s", title: "Database & Auth Architecture Deep-Dive" }
-        ];
-      } else {
-        answer = `I found general alignment matches for "${searchQuery}". Key discussion anchors show database selections and scaling decisions. Ask about 'microservices' or 'authentication' to view connected overrides.`;
-        matchedMeetings = [{ id: 3, title: "SaaS Scaling & Microservices Shift", date: "2026-05-18" }];
-      }
-
-      setResults({ answer, meetings: matchedMeetings, decisions: matchedDecisions, tasks: matchedTasks, snippets });
+      setResults({
+        answer: "Failed to query the semantic memory backend. Please verify that the MemoMind server is running locally.",
+        meetings: [],
+        decisions: [],
+        tasks: [],
+        snippets: []
+      });
     } finally {
       setLoading(false);
     }

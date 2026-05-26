@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { 
   Calendar, 
@@ -19,13 +20,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Robust Fallbacks
-const MOCK_DECISIONS = [
-  { id: 4, text: "Implement Clerk OAuth for user authentication to accelerate launch speed.", status: "accepted", meeting_id: 3, meeting_title: "SaaS Scaling & Microservices Shift", date: "2026-05-18", related_options: ["Custom JWT token engine", "Auth0 enterprise"], overrides_decision_id: null },
-  { id: 3, text: "Migrate core user and feed profile modules to a microservices architecture to support horizontal load scaling.", status: "accepted", meeting_id: 3, meeting_title: "SaaS Scaling & Microservices Shift", date: "2026-05-18", related_options: ["Monolithic architecture expansion"], overrides_decision_id: 1 },
-  { id: 2, text: "Select PostgreSQL as the primary relational database platform instead of SQLite for production durability.", status: "accepted", meeting_id: 2, meeting_title: "Database & Auth Architecture Deep-Dive", date: "2026-05-14", related_options: ["SQLite", "MySQL"], overrides_decision_id: null },
-  { id: 1, text: "Avoid microservices and build a unified monolithic backend to avoid API gateway and networking overhead.", status: "changed", meeting_id: 1, meeting_title: "Project Alpha Kickoff & DB Planning", date: "2026-05-10", related_options: ["Microservices cluster", "Serverless micro-routes"], overrides_decision_id: 3 }
-];
+// Empty state
+const MOCK_DECISIONS: any[] = [];
 
 const listContainerVariants = {
   hidden: { opacity: 0 },
@@ -43,7 +39,8 @@ const decisionItemVariants = {
 };
 
 export default function DecisionTimeline() {
-  const [decisions, setDecisions] = useState<any[]>(MOCK_DECISIONS);
+  const { user } = useAuth();
+  const [decisions, setDecisions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -51,16 +48,20 @@ export default function DecisionTimeline() {
   useEffect(() => {
     async function loadDecisions() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/decisions");
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/decisions?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/decisions";
+        const res = await fetch(url);
         if (res.ok) {
-          setDecisions(await res.ok ? await res.json() : MOCK_DECISIONS);
+          const data = await res.json();
+          setDecisions(data);
         }
       } catch (err) {
-        console.log("Using mockup fallback for Decisions");
+        console.log("Failed to load decisions from backend");
       }
     }
     loadDecisions();
-  }, []);
+  }, [user]);
 
   const getFilteredDecisions = () => {
     return decisions.filter((d) => {

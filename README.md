@@ -1,118 +1,216 @@
-# MeetGraph: Organizational Memory Intelligence System
+# 🧠 MemoMind — Organizational Memory Intelligence System
 
-MeetGraph is a modern, premium, futuristic full-stack SaaS platform designed to serve as a long-term intelligent memory layer for organizations. Unlike a standard meeting summarizer, MeetGraph records transcripts and maps them onto a unified **Organizational Memory Graph** that tracks decision histories, accountability tasks, pending items, circular debates, and contradictions across meetings.
+> **Turn every meeting into permanent, searchable, actionable organizational memory.**
 
----
-
-## Key Features
-
-1. **Speech-to-Text Ingestion**: Drag-and-drop meeting uploads (MP3, WAV, MP4) with simulated and real Whisper STT pipelines + automatic multi-speaker diarization.
-2. **Live Microphone Stream Workspace**: Pulsing microphone recording dock that feeds speech segments in real-time, extracting tasks and decision blocks.
-3. **Accountability Kanban Board**: A task tracking workspace mapped directly to resolved decisions. Mapped to assignees (Aman, Reeti, Sarah) with statuses updated directly in the backend SQLite database.
-4. **Decision Lineage Timeline**: Audits chronological policy choices, highlighting overriding states and indexing rejected alternatives discussed during sync sessions.
-5. **Policy Contradiction Detection**: AI compares new decisions with past ones using semantic vector embeddings and alerts users if a new stance conflicts with a past sync (e.g. monolith vs microservices).
-6. **Circular Debate Detection**: Flags recurring topics that appear across multiple consecutive meetings without reaching a definitive resolution.
-7. **Semantic Memory Search**: ChatGPT-style search workspace where natural language queries receive direct answers, linked meeting nodes, related task listings, and precise spoken transcript snippets.
-8. **Force-Directed SVG Graph Canvas**: An interactive node-link trace canvas (Meetings ↔ Decisions ↔ Tasks ↔ Members) supporting zoom, pan, drags, and sidebar inspectors.
+MemoMind is a premium full-stack SaaS platform that acts as a long-term intelligent memory layer for teams and organizations. It goes far beyond a meeting summarizer — MemoMind records real transcripts, detects accountability tasks, surfaces decision contradictions, identifies circular debates, and maps everything onto an interactive **Organizational Memory Graph**.
 
 ---
 
-## Directory Structure
+## ✨ Feature Highlights
+
+### 🎙️ Three-Mode Capture System
+
+| Mode | Description |
+|------|-------------|
+| **Upload File** | Drag-and-drop audio/video files (MP3, WAV, MP4, WebM). Binary upload progress tracked via `XMLHttpRequest`. |
+| **Use Microphone** | Browser-native mic recording via `getUserMedia` + `MediaRecorder`. Real-time waveform visualizer powered by Web Audio `AnalyserNode`. Audio-only — no screen share prompt. |
+| **Live Assistant** | Full screen-share + microphone capture via `getDisplayMedia`. Mixes system audio with mic input. Includes live video preview feed and optional Vision AI screen analysis. |
+
+### 🤖 AI-Powered Intelligence
+
+- **Whisper Transcription** — OpenAI Whisper API for accurate speech-to-text with speaker diarization.
+- **GPT-4o-mini Analysis** — Structured extraction of summaries, action items, decisions, and contradictions.
+- **Vision AI Agent** — Periodic screen frame capture (JPEG) sent over WebSocket for visual context analysis (Live Assistant only).
+- **Real-Time Speech Recognition** — Browser-native `SpeechRecognition` API for instant live transcript display during capture.
+- **Semantic Search** — Natural language memory search using text embeddings and cosine similarity:
+
+$$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
+
+### 📊 Organizational Intelligence Dashboards
+
+- **Dashboard** — Metrics overview with meeting counts, task completion rates, and team activity.
+- **Accountability Kanban Board** — Track action items mapped to owners and decisions.
+- **Decision Lineage & Contradiction Alerts** — Chronological decision history with override detection.
+- **Circular Debate Detection** — Flags recurring unresolved topics across meetings.
+- **Analytics** — Friction charts, turnaround metrics, and engagement scores.
+- **Interactive Memory Graph** — Force-directed SVG network linking meetings, decisions, tasks, and team members.
+
+### 🔐 Authentication & Team Management
+
+- **Firebase Authentication** — Email/password login with Google Sign-In.
+- **Phone OTP Verification** — SMS-based two-factor authentication via Firebase.
+- **Team Management** — Invite members, assign roles, and manage organizational access.
+- **Settings Panel** — User profile management and app configuration.
+
+### 🎨 Design & UX
+
+- **Light / Dark Mode** — System-aware theme toggle with smooth transitions.
+- **Glassmorphic UI** — Premium frosted-glass effects, gradients, and micro-animations.
+- **Animated Login Wall** — Terrain-line animated background with glass card login.
+- **Responsive Layout** — Sidebar navigation with collapsible design.
+
+---
+
+## 📁 Project Structure
 
 ```
 MemoMind/
-├── frontend/                     # Next.js Frontend
+├── frontend/                          # Next.js 16 Frontend
 │   ├── src/
-│   │   ├── app/                  # App Router Core pages
-│   │   │   ├── page.tsx          # Dashboard Metrics
-│   │   │   ├── upload/           # Drag & Drop + Recording Waveforms
-│   │   │   ├── meetings/         # Searchable Diarized Transcripts
-│   │   │   ├── tasks/            # Kanban accountability board
-│   │   │   ├── decisions/        # Overrides & Alternative dropdowns
-│   │   │   ├── search/           # Semantic chat query input
-│   │   │   ├── analytics/        # Friction charts & Turnaround metrics
-│   │   │   ├── graph/            # SVG force-link memory graph
-│   │   │   └── layout.tsx        # Global shell and typography
+│   │   ├── app/
+│   │   │   ├── page.tsx               # Dashboard — metrics & overview
+│   │   │   ├── upload/page.tsx        # 3-tab capture: Upload / Mic / Live Assistant
+│   │   │   ├── meetings/page.tsx      # Meeting list & diarized transcript viewer
+│   │   │   ├── tasks/page.tsx         # Kanban accountability board
+│   │   │   ├── decisions/page.tsx     # Decision lineage & contradiction alerts
+│   │   │   ├── search/page.tsx        # Semantic memory search
+│   │   │   ├── analytics/page.tsx     # Friction charts & turnaround metrics
+│   │   │   ├── graph/page.tsx         # SVG force-directed memory graph
+│   │   │   ├── team/page.tsx          # Team management & invitations
+│   │   │   ├── settings/page.tsx      # User settings & preferences
+│   │   │   ├── login/page.tsx         # Authentication entry point
+│   │   │   ├── layout.tsx             # Root layout with providers
+│   │   │   └── globals.css            # Design tokens & theme variables
 │   │   └── components/
-│   │       └── Sidebar.tsx       # Glassmorphic Side navigation
-├── backend/                      # FastAPI Python Backend
+│   │       ├── AuthProvider.tsx        # Firebase auth context & session management
+│   │       ├── GlassLoginWall.tsx      # Animated glassmorphic login gate
+│   │       ├── LayoutClient.tsx        # Client-side layout with sidebar
+│   │       ├── Sidebar.tsx             # Navigation sidebar
+│   │       ├── TerrainLines.tsx        # Animated terrain background
+│   │       ├── ThemeProvider.tsx        # next-themes provider
+│   │       └── ThemeToggle.tsx          # Light/dark mode switch
+│   └── package.json
+│
+├── backend/                            # FastAPI Python Backend
 │   ├── app/
-│   │   ├── models.py             # SQLModel Database Schemas
-│   │   ├── database.py           # SQLite engines & table creators
-│   │   ├── ai_service.py         # Whisper, Vector Similarity & Fallbacks
-│   │   ├── sample_data.py        # Enterprise seed script
-│   │   └── main.py               # REST & WebSockets router
-│   ├── requirements.txt          # Python dependencies
-│   └── run.py                    # App bootstrap script
-└── README.md                     # Detailed developer operations manual
+│   │   ├── main.py                    # REST API routes & WebSocket handlers
+│   │   ├── models.py                  # SQLModel database schemas
+│   │   ├── database.py                # SQLite engine & table creation
+│   │   ├── ai_service.py             # Whisper, GPT, embeddings & similarity
+│   │   ├── agents.py                  # Vision AI agent & advanced analysis
+│   │   └── sample_data.py            # Enterprise seed data script
+│   ├── requirements.txt
+│   └── run.py                         # App bootstrap
+│
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
-* **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide React, Framer Motion
-* **Backend**: FastAPI, Uvicorn, Python 3.13
-* **Database & Vectors**: SQLite, SQLModel (SQLAlchemy + Pydantic), local Token-Embeddings / Cosine Similarity indexers
-* **AI Utilities**: OpenAI Whisper API, Sentence Transformers
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | Next.js 16 (App Router), React 19, Tailwind CSS v4, Framer Motion, Lucide React, next-themes |
+| **Backend** | FastAPI, Uvicorn, Python 3.13+ |
+| **Database** | SQLite, SQLModel (SQLAlchemy + Pydantic) |
+| **AI / ML** | OpenAI Whisper API, GPT-4o-mini, Sentence Transformers, Cosine Similarity |
+| **Auth** | Firebase Authentication (Email, Google, Phone OTP), firebase-admin SDK |
+| **Real-Time** | WebSockets (binary audio streaming), Web Audio API, MediaRecorder, SpeechRecognition |
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
-### 1. Backend Setup (FastAPI & SQLite)
+### Prerequisites
 
-Make sure you have Python 3.13+ installed. Open a terminal and run:
+- **Python** 3.13+
+- **Node.js** 22.16+
+- **OpenAI API Key** (for Whisper & GPT)
+- **Firebase Project** (for authentication)
+
+### 1. Backend Setup
 
 ```bash
-# Navigate to backend directory
 cd backend
 
-# Create a virtual environment
-python -m venv venv
-venv\Scripts\activate   # Windows
+# Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS/Linux
 
-# Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# Run the backend (will auto-create meetgraph.db and seed it with realistic data!)
+# Run the server (auto-creates DB & seeds sample data)
 python run.py
 ```
 
-The FastAPI backend runs on `http://127.0.0.1:8000`. You can inspect the Swagger documentation at `http://127.0.0.1:8000/docs`.
+The API runs at **http://127.0.0.1:8000** — Swagger docs at `/docs`.
 
-### 1.1 Welcome Email Configuration
-To enable the backend to send real welcome emails upon user registration or sign-in:
-1. In `backend/.env`, configure the email parameters:
-   - `SENDER_EMAIL=reetikhandelwal09@gmail.com`
-   - `SMTP_HOST=smtp.gmail.com`
-   - `SMTP_PORT=587`
-   - `SMTP_USER=reetikhandelwal09@gmail.com`
-   - `SMTP_PASSWORD="your_google_app_password"`
-2. Set up a 16-character App Password via your Google Account's Security panel.
+### 2. Environment Variables
 
-### 2. Frontend Setup (Next.js & Tailwind CSS)
+Create `backend/.env`:
 
-Make sure you have Node v22.16+ installed. Open a separate terminal and run:
+```env
+OPENAI_API_KEY=sk-your-openai-key
+
+# Email notifications (optional)
+SENDER_EMAIL=your@email.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your@email.com
+SMTP_PASSWORD=your_app_password
+```
+
+Firebase credentials are configured in the frontend via `firebase` config in `AuthProvider.tsx`.
+
+### 3. Frontend Setup
 
 ```bash
-# Navigate to frontend directory
 cd frontend
 
-# Install Node dependencies
+# Install dependencies
 npm install
 
-# Start the Next.js development server
+# Start the dev server
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser. The application is completely wired to communicate with the FastAPI backend, but also contains fully integrated, high-fidelity fallback states so the visual layouts work beautifully out of the box even if the API server is starting up.
+Open **http://localhost:3000** in your browser.
 
 ---
 
-## Smart AI Workflows & Match Algorithms
+## 🔄 WebSocket Streaming Pipeline
 
-* **Semantic Search**: Meets queries using a robust mathematical text embedding service. It transforms text blocks into 384-dimensional similarity arrays and queries them using local cosine vectors:
-  $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
-* **Contradiction Search**: Matches newly added decision tokens against past database rows. If semantic overlaps match highly (> 0.58) but negative tokens exist (e.g. shift from "avoid microservices" to "migrate to microservices"), it flags a contradiction alert immediately.
-* **Circular Loops**: Scans historical transcript records. If active keywords (like "authentication") appear in 3 or more sync sessions without status resolving, it issues a "Circular discussion warning" banner.
+```
+Browser (MediaRecorder)
+    │
+    ├─ Binary audio chunks (1s intervals) ──► /ws/meeting-stream
+    │                                              │
+    │                                              ├─ Whisper transcription (background thread)
+    │                                              ├─ GPT structured analysis
+    │                                              └─ Live segments pushed back to client
+    │
+    └─ Screen frames (JPEG, 5s intervals) ──► Vision AI Agent (Live Assistant only)
+```
+
+---
+
+## 📸 Key Pages
+
+| Page | Route | Description |
+|------|-------|-------------|
+| Dashboard | `/` | Org metrics, meeting counts, task completion |
+| Add Meeting | `/upload` | Three-tab capture system |
+| Meetings | `/meetings` | Browse & view transcripts with speaker labels |
+| Tasks | `/tasks` | Kanban board for accountability items |
+| Decisions | `/decisions` | Decision history with contradiction flags |
+| Search | `/search` | Semantic natural-language memory query |
+| Analytics | `/analytics` | Charts for friction, turnaround, engagement |
+| Memory Graph | `/graph` | Interactive force-directed knowledge graph |
+| Team | `/team` | Member management & invitations |
+| Settings | `/settings` | Profile & app configuration |
+
+---
+
+## 📄 License
+
+This project is for educational and demonstration purposes.
+
+---
+
+<p align="center">
+  Built with 💜 by <a href="https://github.com/Reeti090206">Reeti</a>
+</p>

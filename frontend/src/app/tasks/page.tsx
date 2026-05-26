@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { 
   Plus, 
@@ -18,12 +19,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // Robust Fallbacks
-const MOCK_TASKS = [
-  { id: 4, title: "Integrate Clerk OAuth library into the frontend shell", owner: "Reeti", deadline: "2026-05-29", priority: "high", status: "todo", meeting_id: 3, meeting_title: "SaaS Scaling & Microservices Shift" },
-  { id: 3, title: "Update frontend configurations with microservices endpoints", owner: "Reeti", deadline: "2026-06-02", priority: "medium", status: "todo", meeting_id: 3, meeting_title: "SaaS Scaling & Microservices Shift" },
-  { id: 2, title: "Configure production PostgreSQL clusters and connection pooling", owner: "Aman", deadline: "2026-05-30", priority: "high", status: "in_progress", meeting_id: 2, meeting_title: "Database & Auth Architecture Deep-Dive" },
-  { id: 1, title: "Implement core database migrations", owner: "Aman", deadline: "2026-05-28", priority: "high", status: "done", meeting_id: 1, meeting_title: "Project Alpha Kickoff & DB Planning" }
-];
+// Empty initialization
+const MOCK_TASKS: any[] = [];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,6 +38,7 @@ const columnVariants = {
 };
 
 export default function TaskBoard() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>(MOCK_TASKS);
   const [filterOwner, setFilterOwner] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
@@ -51,7 +49,10 @@ export default function TaskBoard() {
   useEffect(() => {
     async function loadTasks() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/tasks");
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/tasks?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/tasks";
+        const res = await fetch(url);
         if (res.ok) {
           const list = await res.json();
           // Map database structures or add mockup title details
@@ -70,7 +71,7 @@ export default function TaskBoard() {
       }
     }
     loadTasks();
-  }, []);
+  }, [user]);
 
   const updateTaskStatus = async (taskId: number, newStatus: string) => {
     // Optimistic UI updates
@@ -155,8 +156,9 @@ export default function TaskBoard() {
             className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-1.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all cursor-pointer"
           >
             <option value="all">Everyone</option>
-            <option value="Aman">Aman (Backend)</option>
-            <option value="Reeti">Reeti (Frontend)</option>
+            {Array.from(new Set(tasks.map((t) => t.owner).filter(Boolean))).map((owner: any) => (
+              <option key={owner} value={owner}>{owner}</option>
+            ))}
           </select>
 
           {/* Priority Filter */}
@@ -331,15 +333,12 @@ export default function TaskBoard() {
                 <form onSubmit={saveTaskDetails} className="space-y-5 pt-4">
                   <div className="space-y-1.5">
                     <label className="block text-[10px] uppercase font-mono tracking-wider text-[var(--foreground)]/70">Assignee</label>
-                    <select
+                    <input
+                      type="text"
                       value={selectedTask.owner}
                       onChange={(e) => setSelectedTask({ ...selectedTask, owner: e.target.value })}
-                      className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-2.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all cursor-pointer"
-                    >
-                      <option value="Aman">Aman (Backend)</option>
-                      <option value="Reeti">Reeti (Frontend)</option>
-                      <option value="Sarah">Sarah (Product)</option>
-                    </select>
+                      className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-2.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all font-sans"
+                    />
                   </div>
 
                   <div className="space-y-1.5">

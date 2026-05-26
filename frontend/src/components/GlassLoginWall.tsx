@@ -276,7 +276,7 @@ export default function GlassLoginWall() {
       let registeredUsers = registeredStr ? JSON.parse(registeredStr) : {};
       
       // Only register if doesn't exist
-      if (!registeredUsers[emailKey] && !["aman.g@MemoMind.ai", "reeti.s@MemoMind.ai", "sarah.j@MemoMind.ai"].includes(emailKey)) {
+      if (!registeredUsers[emailKey]) {
         registeredUsers[emailKey] = {
           ...targetProfile,
           password: googlePasswordInput

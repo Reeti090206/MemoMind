@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { 
   BarChart3, 
@@ -21,26 +22,17 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // Robust Fallbacks
+// Empty initial state
 const MOCK_ANALYTICS = {
-  repeated_discussions: [
-    { topic: "Authentication Strategy", occurrence_count: 3, warning: "Circular discussion warning: 'Authentication Strategy' has appeared in 3 consecutive syncs (Meeting #1, #2, #3) without a definitive conclusion, impacting decision velocity." },
-    { topic: "Real-time Gateway Choice", occurrence_count: 2, warning: "Friction alert: 'Real-time Gateway' has appeared in 2 syncs without consensus between FastAPI and Node." }
-  ],
-  unresolved_trend: [
-    { label: "Project Alpha Kickoff", open: 0, resolved: 0 },
-    { label: "Database Deep-Dive", open: 1, resolved: 0 },
-    { label: "SaaS Scaling Shift", open: 1, resolved: 1 }
-  ],
-  speaking_distribution: { "Aman (Backend)": 43, "Reeti (Frontend)": 37, "Sarah (Product)": 20 },
-  decision_turnaround: 20.1,
-  efficiency_timeline: [
-    { date: "2026-05-10", score: 92.0, tension: 8.0, title: "Project Alpha Kickoff & DB Planning" },
-    { date: "2026-05-14", score: 78.5, tension: 24.0, title: "Database & Auth Architecture Deep-Dive" },
-    { date: "2026-05-18", score: 86.0, tension: 15.0, title: "SaaS Scaling & Microservices Shift" }
-  ],
-  contradictions_log: [
-    { id: 1, meeting_id: 3, description: "Shifted architectural direction: previously decided to 'Avoid microservices' (Meeting #1) to minimize complexity, but recently 'Decided to migrate to microservices' (Meeting #3) for user-profile scaling.", confidence: 0.88 }
-  ]
+  repeated_discussions: [],
+  unresolved_trend: [],
+  speaking_distribution: {},
+  decision_turnaround: 0,
+  efficiency_timeline: [],
+  contradictions_log: [],
+  total_opened: 0,
+  total_resolved: 0,
+  awaiting_review: 0
 };
 
 const pageContainerVariants = {
@@ -82,21 +74,25 @@ const listItemVariants = {
 };
 
 export default function AnalyticsDashboard() {
+  const { user } = useAuth();
   const [data, setData] = useState<any>(MOCK_ANALYTICS);
 
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/analytics");
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/analytics?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/analytics";
+        const res = await fetch(url);
         if (res.ok) {
           setData(await res.json());
         }
       } catch (err) {
-        console.log("Using mockup fallback for Analytics");
+        console.error("Failed to load analytics details", err);
       }
     }
     loadAnalytics();
-  }, []);
+  }, [user]);
 
   return (
     <motion.div 
@@ -329,21 +325,21 @@ export default function AnalyticsDashboard() {
                 className="flex justify-between p-2.5 rounded bg-obsidian-light/50 border border-obsidian-border hover:border-obsidian-border/80 transition-colors"
               >
                 <span className="text-[var(--foreground)]/70">Total Opened</span>
-                <span className="text-[var(--foreground)] font-bold">2 items</span>
+                <span className="text-[var(--foreground)] font-bold">{data.total_opened ?? 0} item{(data.total_opened ?? 0) !== 1 ? "s" : ""}</span>
               </motion.div>
               <motion.div 
                 whileHover={{ x: 2 }}
                 className="flex justify-between p-2.5 rounded bg-obsidian-light/50 border border-obsidian-border hover:border-cyber-emerald/10 transition-colors"
               >
                 <span className="text-cyber-emerald">Total Resolved</span>
-                <span className="text-cyber-emerald font-bold">1 item</span>
+                <span className="text-cyber-emerald font-bold">{data.total_resolved ?? 0} item{(data.total_resolved ?? 0) !== 1 ? "s" : ""}</span>
               </motion.div>
               <motion.div 
                 whileHover={{ x: 2 }}
-                className="flex justify-between p-2.5 rounded bg-obsidian-light/50 border border-cyber-rose/10 hover:border-cyber-rose/25 transition-colors"
+                className="flex justify-between p-2.5 rounded bg-obsidian-light/50 border border-obsidian-border hover:border-cyber-rose/10 hover:border-cyber-rose/25 transition-colors"
               >
                 <span className="text-cyber-rose">Awaiting Review</span>
-                <span className="text-cyber-rose font-bold animate-pulse">1 item</span>
+                <span className="text-cyber-rose font-bold animate-pulse">{data.awaiting_review ?? 0} item{(data.awaiting_review ?? 0) !== 1 ? "s" : ""}</span>
               </motion.div>
             </div>
           </motion.div>

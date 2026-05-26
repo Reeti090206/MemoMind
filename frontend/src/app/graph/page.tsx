@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { 
   Network, 
@@ -21,54 +22,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // Pre-calculated force coordinates for stable rendering & interactive feeling
-const GRAPH_NODES = [
-  { id: "meet_1", label: "Kickoff & DB sync", type: "meeting", x: 150, y: 150, details: "Date: 2026-05-10 | Primary kickoff planning session." },
-  { id: "meet_2", label: "Database Deep-Dive", type: "meeting", x: 300, y: 350, details: "Date: 2026-05-14 | Auth debate and database selected." },
-  { id: "meet_3", label: "SaaS Scaling Shift", type: "meeting", x: 500, y: 150, details: "Date: 2026-05-18 | Migration to microservices finalized." },
-  
-  { id: "dec_1", label: "Avoid microservices", type: "decision", x: 250, y: 80, details: "Avoid microservices for light architectural footprint.", status: "changed" },
-  { id: "dec_2", label: "Select PostgreSQL", type: "decision", x: 180, y: 300, details: "Select PostgreSQL instead of SQLite for production.", status: "accepted" },
-  { id: "dec_3", label: "Migrate microservices", type: "decision", x: 420, y: 80, details: "Migrate user feed modules to microservices for load.", status: "accepted" },
-  { id: "dec_4", label: "Implement Clerk", type: "decision", x: 600, y: 250, details: "Implement Clerk OAuth instead of custom JWT.", status: "accepted" },
-  
-  { id: "task_1", label: "DB Schema Migration", type: "task", x: 80, y: 250, details: "Assignee: Aman | Status: Done | Due: May 28" },
-  { id: "task_2", label: "Configure Pooling", type: "task", x: 320, y: 450, details: "Assignee: Aman | Status: In Progress | Due: May 30" },
-  { id: "task_3", label: "Frontend updates", type: "task", x: 520, y: 320, details: "Assignee: Reeti | Status: Todo | Due: June 2" },
-  
-  { id: "owner_aman", label: "Aman (Backend)", type: "owner", x: 80, y: 400, details: "Team Member | Backend Systems Engineer." },
-  { id: "owner_reeti", label: "Reeti (Frontend)", type: "owner", x: 640, y: 400, details: "Team Member | Lead UI Systems Architect." },
-  
-  { id: "unres_2", label: "WebSockets Gateway", type: "unresolved", x: 450, y: 280, details: "FastAPI vs Node Socket.io gateway unresolved." }
-];
-
-const GRAPH_EDGES = [
-  // Meeting resolves Decision
-  { source: "meet_1", target: "dec_1", label: "resolved_in", pulse: false },
-  { source: "meet_2", target: "dec_2", label: "resolved_in", pulse: false },
-  { source: "meet_3", target: "dec_3", label: "resolved_in", pulse: false },
-  { source: "meet_3", target: "dec_4", label: "resolved_in", pulse: false },
-  
-  // Meeting assigns Task
-  { source: "meet_1", target: "task_1", label: "assigned_in", pulse: false },
-  { source: "meet_2", target: "task_2", label: "assigned_in", pulse: false },
-  { source: "meet_3", target: "task_3", label: "assigned_in", pulse: false },
-  
-  // Task implements Decision
-  { source: "dec_1", target: "task_1", label: "implements", pulse: false },
-  { source: "dec_2", target: "task_2", label: "implements", pulse: false },
-  { source: "dec_3", target: "task_3", label: "implements", pulse: false },
-  
-  // Owner owns Task
-  { source: "owner_aman", target: "task_1", label: "owns", pulse: false },
-  { source: "owner_aman", target: "task_2", label: "owns", pulse: false },
-  { source: "owner_reeti", target: "task_3", label: "owns", pulse: false },
-  
-  // Unresolved deferred
-  { source: "meet_3", target: "unres_2", label: "deferred_in", pulse: true },
-  
-  // Overrides decision conflict path (Dotted pulsing red path!)
-  { source: "dec_3", target: "dec_1", label: "overrides", pulse: true, isOverride: true }
-];
+// Empty graph initialization
+const GRAPH_NODES: any[] = [];
+const GRAPH_EDGES: any[] = [];
 
 const pageContainerVariants = {
   hidden: { opacity: 0 },
@@ -94,43 +50,75 @@ const fadeUpVariants = {
 };
 
 export default function MemoryGraph() {
-  const [nodes, setNodes] = useState(GRAPH_NODES);
-  const [edges, setEdges] = useState(GRAPH_EDGES);
+  const { user } = useAuth();
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   
+  // Selection filter states
+  const [meetingsList, setMeetingsList] = useState<any[]>([]);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string>("all");
+
   // Zoom & Pan states
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
+  // Load list of meetings for selector dropdown
+  useEffect(() => {
+    async function loadMeetings() {
+      try {
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/meetings?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/meetings";
+        const res = await fetch(url);
+        if (res.ok) {
+          const list = await res.json();
+          setMeetingsList(list);
+        }
+      } catch (err) {
+        console.error("Failed to load meetings list", err);
+      }
+    }
+    loadMeetings();
+  }, [user]);
+
+  // Fetch filtered graph nodes and edges
   useEffect(() => {
     async function loadGraphData() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/graph");
+        const baseUrl = selectedMeetingId === "all"
+          ? "http://127.0.0.1:8000/api/graph"
+          : `http://127.0.0.1:8000/api/graph?meeting_id=${selectedMeetingId}`;
+        const url = user?.email
+          ? `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}user_email=${encodeURIComponent(user.email)}`
+          : baseUrl;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          // Map backend coordinates to display smoothly inside SVG frame
           const mappedNodes = data.nodes.map((n: any, idx: number) => {
-            const staticNode = GRAPH_NODES.find((s) => s.id === n.id);
-            if (staticNode) return { ...n, x: staticNode.x, y: staticNode.y };
-            
-            // Randomize position within canvas boundaries if new upload
+            const count = data.nodes.length;
+            const angle = (idx / count) * 2 * Math.PI;
+            const radius = 150;
+            const cx = 360;
+            const cy = 230;
             return {
               ...n,
-              x: 100 + Math.random() * 500,
-              y: 100 + Math.random() * 300
+              x: cx + radius * Math.cos(angle),
+              y: cy + radius * Math.sin(angle)
             };
           });
           setNodes(mappedNodes);
           setEdges(data.edges);
+          setSelectedNode(null); // Reset inspector selection on view switch
         }
       } catch (err) {
-        console.log("Using dynamic force coordinates for visualizer");
+        console.error("Failed to load memory graph", err);
       }
     }
     loadGraphData();
-  }, []);
+  }, [selectedMeetingId, user]);
 
   // SVG Pan Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -178,6 +166,23 @@ export default function MemoryGraph() {
           <p className="text-[var(--foreground)]/70 text-sm mt-0.5">
             Interactive spatial trace map displaying Meeting → Decision → Task overrides and owner connections.
           </p>
+        </div>
+
+        {/* Meeting Filter Dropdown Selector */}
+        <div className="flex items-center gap-3">
+          <label className="text-xs font-mono font-bold uppercase text-[var(--foreground)]/70">Trace View:</label>
+          <select
+            value={selectedMeetingId}
+            onChange={(e) => setSelectedMeetingId(e.target.value)}
+            className="bg-black/65 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs font-bold text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all cursor-pointer min-w-[220px]"
+          >
+            <option value="all">Global Workspace Overview</option>
+            {meetingsList.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </select>
         </div>
       </motion.div>
 

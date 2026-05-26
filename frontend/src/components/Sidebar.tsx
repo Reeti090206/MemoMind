@@ -30,7 +30,10 @@ export default function Sidebar() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/analytics/widgets");
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/analytics/widgets?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/analytics/widgets";
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setContradictionCount(data.contradictions_count || 0);

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import Link from "next/link";
 import { 
   Calendar, 
   Clock, 
@@ -18,90 +20,6 @@ import {
   Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Robust Fallbacks
-const MOCK_MEETINGS_DATA: Record<number, any> = {
-  3: {
-    id: 3,
-    title: "SaaS Scaling & Microservices Shift",
-    date: "2026-05-18 11:15",
-    duration: 3240,
-    summary: "The team aligned on core architectural shifts, resolving that the system needs to migrate to microservices for the new user profile and feed components to support scaling loads. Clerk OAuth was finalized to save engineering time. Reeti will upgrade frontend routers, and Aman will configure pooling.",
-    efficiency_score: 86.0,
-    tension_score: 15.0,
-    speaker_stats: { "Aman (Backend)": 35.0, "Reeti (Frontend)": 45.0, "Sarah (Product)": 20.0 },
-    segments: [
-      { id: 1, speaker_label: "Reeti (Frontend)", start_time: 0.0, text: "Hi all, looking at the horizontal scaling needs for user sessions, I think we must migrate to a decoupled microservices layout for the user-profile API." },
-      { id: 2, speaker_label: "Aman (Backend)", start_time: 41.0, text: "I know I originally recommended avoiding microservices, but with the load forecasts for user feeds, I agree. We decided to migrate to microservices for the new user profile models." },
-      { id: 3, speaker_label: "Sarah (Product)", start_time: 81.0, text: "Perfect, let's document that choice. We are migrating to microservices. Also, Clerk oauth is finalized to launch quickly." },
-      { id: 4, speaker_label: "Reeti (Frontend)", start_time: 111.0, text: "Excellent. I will start upgrading the frontend routing and dashboard configurations by next Tuesday." }
-    ],
-    decisions: [
-      { id: 3, text: "Migrate core user and feed profile modules to a microservices architecture to support horizontal load scaling.", status: "accepted" },
-      { id: 4, text: "Implement Clerk OAuth for user authentication to accelerate launch speed.", status: "accepted" }
-    ],
-    tasks: [
-      { id: 3, title: "Update frontend configurations with microservices endpoints", owner: "Reeti", deadline: "2026-06-02", priority: "medium", status: "todo" },
-      { id: 4, title: "Integrate Clerk OAuth library into the frontend shell", owner: "Reeti", deadline: "2026-05-29", priority: "high", status: "todo" }
-    ],
-    contradictions: [
-      { id: 1, description: "Shifted architectural direction: previously decided to 'Avoid microservices' (Meeting #1) to minimize complexity, but recently 'Decided to migrate to microservices' (Meeting #3) for user-profile scaling.", confidence_score: 0.88, old_decision_text: "Avoid microservices and build a unified monolithic backend to avoid API gateway and networking overhead.", new_decision_text: "Migrate core user and feed profile modules to a microservices architecture to support horizontal load scaling." }
-    ],
-    unresolved_topics: [
-      { id: 2, topic_name: "Real-time WebSockets Gateway", context: "Debated between using Node.js Socket.io or FastAPI WebSockets for live notifications. Unresolved, pending throughput load-testing.", status: "open" }
-    ]
-  },
-  2: {
-    id: 2,
-    title: "Database & Auth Architecture Deep-Dive",
-    date: "2026-05-14 14:30",
-    duration: 2880,
-    summary: "Technical deep-dive on auth setup and database selection. PostgreSQL was chosen. Auth choice deferred due to pricing reviews.",
-    efficiency_score: 78.5,
-    tension_score: 24.0,
-    speaker_stats: { "Aman (Backend)": 50.0, "Reeti (Frontend)": 20.0, "Sarah (Product)": 30.0 },
-    segments: [
-      { id: 1, speaker_label: "Aman (Backend)", start_time: 0.0, text: "For the database, since we are moving towards production, let's select PostgreSQL over SQLite. It handles concurrent connections much better." },
-      { id: 2, speaker_label: "Sarah (Product)", start_time: 46.0, text: "Agreed, we decided on PostgreSQL. Now, for user login, should we build a custom JWT service or use Clerk?" },
-      { id: 3, speaker_label: "Aman (Backend)", start_time: 76.0, text: "Building custom JWT takes longer, but using Clerk adds external pricing overhead. We need to analyze this in detail. Let's decide later on authentication, pending some pricing reviews." }
-    ],
-    decisions: [
-      { id: 2, text: "Select PostgreSQL as the primary relational database platform instead of SQLite for production durability.", status: "accepted" }
-    ],
-    tasks: [
-      { id: 2, title: "Configure production PostgreSQL clusters and connection pooling", owner: "Aman", deadline: "2026-05-30", priority: "high", status: "in_progress" }
-    ],
-    contradictions: [],
-    unresolved_topics: [
-      { id: 1, topic_name: "Authentication Strategy", context: "Clerk OAuth vs Custom JWT tokens. Aman expressed pricing concerns. Deferred for pricing analysis.", status: "resolved" }
-    ]
-  },
-  1: {
-    id: 1,
-    title: "Project Alpha Kickoff & DB Planning",
-    date: "2026-05-10 10:00",
-    duration: 3540,
-    summary: "Kickoff sync for Project Alpha. Aman recommended avoiding microservices to keep the architectural footprint light.",
-    efficiency_score: 92.0,
-    tension_score: 8.0,
-    speaker_stats: { "Aman (Backend)": 45.0, "Reeti (Frontend)": 35.0, "Sarah (Product)": 20.0 },
-    segments: [
-      { id: 1, speaker_label: "Aman (Backend)", start_time: 0.0, text: "Welcome team to the Project Alpha Kickoff. We need to align on structure. I strongly propose we avoid microservices for this initial launch to prevent overhead." },
-      { id: 2, speaker_label: "Reeti (Frontend)", start_time: 31.0, text: "Agreed. From the frontend side, drawing endpoints from a single monolithic service makes integrating state and data queries way smoother." },
-      { id: 3, speaker_label: "Sarah (Product)", start_time: 56.0, text: "Sounds reasonable. Let's start with a clean monolith. Aman, can you write the database migrations and draft our schemas by this Friday?" },
-      { id: 4, speaker_label: "Aman (Backend)", start_time: 76.0, text: "Yes, I will complete the backend SQLite schema and migration setups by Friday." }
-    ],
-    decisions: [
-      { id: 1, text: "Avoid microservices and build a unified monolithic backend to avoid API gateway and networking overhead.", status: "changed" }
-    ],
-    tasks: [
-      { id: 1, title: "Implement core database migrations", owner: "Aman", deadline: "2026-05-28", priority: "high", status: "done" }
-    ],
-    contradictions: [],
-    unresolved_topics: []
-  }
-};
-
 const sidebarContainerVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -137,9 +55,10 @@ const cardItemVariants = {
 
 function MeetingContent() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [meetingsList, setMeetingsList] = useState<any[]>([]);
-  const [selectedId, setSelectedId] = useState<number>(3);
-  const [meetingData, setMeetingData] = useState<any>(MOCK_MEETINGS_DATA[3]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [meetingData, setMeetingData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedText, setHighlightedText] = useState("");
 
@@ -147,19 +66,31 @@ function MeetingContent() {
   useEffect(() => {
     async function loadMeetings() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/meetings");
+        const url = user?.email
+          ? `http://127.0.0.1:8000/api/meetings?user_email=${encodeURIComponent(user.email)}`
+          : "http://127.0.0.1:8000/api/meetings";
+        const res = await fetch(url);
         if (res.ok) {
           const list = await res.json();
           setMeetingsList(list);
-        } else {
-          setMeetingsList(Object.values(MOCK_MEETINGS_DATA));
+          if (list.length > 0) {
+            const idParam = searchParams.get("id");
+            if (idParam) {
+              const parsed = parseInt(idParam);
+              if (!isNaN(parsed) && list.some((m: any) => m.id === parsed)) {
+                setSelectedId(parsed);
+                return;
+              }
+            }
+            setSelectedId(list[0].id);
+          }
         }
       } catch (err) {
-        setMeetingsList(Object.values(MOCK_MEETINGS_DATA));
+        console.error("Failed to fetch meetings from API", err);
       }
     }
     loadMeetings();
-  }, []);
+  }, [searchParams, user]);
 
   useEffect(() => {
     const idParam = searchParams.get("id");
@@ -172,17 +103,16 @@ function MeetingContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (selectedId === null) return;
     async function loadSelectedMeeting() {
       try {
         const res = await fetch(`http://127.0.0.1:8000/api/meetings/${selectedId}`);
         if (res.ok) {
           const data = await res.json();
           setMeetingData(data);
-        } else {
-          setMeetingData(MOCK_MEETINGS_DATA[selectedId] || MOCK_MEETINGS_DATA[3]);
         }
       } catch (err) {
-        setMeetingData(MOCK_MEETINGS_DATA[selectedId] || MOCK_MEETINGS_DATA[3]);
+        console.error("Failed to load selected meeting details", err);
       }
     }
     loadSelectedMeeting();
@@ -202,6 +132,21 @@ function MeetingContent() {
       s.speaker_label.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
+
+  if (meetingsList.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center border border-[var(--color-obsidian-border)] rounded-3xl bg-[var(--foreground)]/[0.01] backdrop-blur-md min-h-[400px]">
+        <Calendar className="h-12 w-12 text-cyber-cyan animate-pulse mb-4" />
+        <h3 className="text-lg font-bold text-[var(--foreground)]">No Meetings Stored</h3>
+        <p className="text-xs text-[var(--foreground)]/70 max-w-sm mt-2 leading-relaxed">
+          MemoMind acts as your team's autonomous memory intelligence engine. Start recording or upload a file to populate your workspace.
+        </p>
+        <Link href="/upload" className="mt-6 px-5 py-3 text-xs bg-gradient-to-tr from-cyber-purple to-cyber-cyan rounded-xl text-[var(--foreground)] font-bold tracking-wider uppercase">
+          Record or Upload Meeting
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -388,25 +333,34 @@ function MeetingContent() {
                           const speakerName = seg.speaker_label || "AI Assistant";
                           const initials = speakerName.split(" ")[0].slice(0, 2).toUpperCase();
                           
-                          // Determine styling colors based on speaker name
-                          let speakerColorClass = "border-[var(--color-obsidian-border)] bg-[var(--foreground)]/[0.01] hover:bg-white/[0.03]";
-                          let avatarColorClass = "bg-[var(--foreground)]/[0.05] text-[var(--foreground)]/70 border-[var(--color-obsidian-border)]";
-                          
-                          if (speakerName.toLowerCase().includes("aman")) {
-                            speakerColorClass = isSelected ? "border-cyber-purple bg-cyber-purple/20" : "border-cyber-purple/20 bg-cyber-purple/5 hover:bg-cyber-purple/10";
-                            avatarColorClass = "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/30";
-                          } else if (speakerName.toLowerCase().includes("reeti")) {
-                            speakerColorClass = isSelected ? "border-cyber-cyan bg-cyber-cyan/20" : "border-cyber-cyan/20 bg-cyber-cyan/5 hover:bg-cyber-cyan/10";
-                            avatarColorClass = "bg-cyber-cyan/15 text-cyber-cyan border-cyber-cyan/30";
-                          } else if (speakerName.toLowerCase().includes("sarah")) {
-                            speakerColorClass = isSelected ? "border-cyber-rose bg-cyber-rose/20" : "border-cyber-rose/20 bg-cyber-rose/5 hover:bg-cyber-rose/10";
-                            avatarColorClass = "bg-cyber-rose/15 text-cyber-rose border-cyber-rose/30";
-                          } else {
-                            if (isSelected) {
-                              speakerColorClass = "border-cyber-purple bg-cyber-purple/20";
-                              avatarColorClass = "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/30";
+                          // Determine styling colors based on speaker name dynamically using hashing
+                          const getSpeakerColors = (name: string, isSel: boolean) => {
+                            let hash = 0;
+                            for (let i = 0; i < name.length; i++) {
+                              hash = name.charCodeAt(i) + ((hash << 5) - hash);
                             }
-                          }
+                            const index = Math.abs(hash) % 3;
+                            if (index === 0) {
+                              return {
+                                speaker: isSel ? "border-cyber-cyan bg-cyber-cyan/20" : "border-cyber-cyan/20 bg-cyber-cyan/5 hover:bg-cyber-cyan/10",
+                                avatar: "bg-cyber-cyan/15 text-cyber-cyan border-cyber-cyan/30"
+                              };
+                            } else if (index === 1) {
+                              return {
+                                speaker: isSel ? "border-cyber-purple bg-cyber-purple/20" : "border-cyber-purple/20 bg-cyber-purple/5 hover:bg-cyber-purple/10",
+                                avatar: "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/30"
+                              };
+                            } else {
+                              return {
+                                speaker: isSel ? "border-cyber-rose bg-cyber-rose/20" : "border-cyber-rose/20 bg-cyber-rose/5 hover:bg-cyber-rose/10",
+                                avatar: "bg-cyber-rose/15 text-cyber-rose border-cyber-rose/30"
+                              };
+                            }
+                          };
+
+                          const colors = getSpeakerColors(speakerName, isSelected);
+                          let speakerColorClass = colors.speaker;
+                          let avatarColorClass = colors.avatar;
 
                           return (
                             <motion.div

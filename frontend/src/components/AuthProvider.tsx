@@ -17,29 +17,7 @@ export interface UserProfile {
   color: string;
 }
 
-export const SEED_PROFILES: Record<string, UserProfile> = {
-  aman: {
-    name: "Aman Gupta",
-    email: "aman.g@MemoMind.ai",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Aman",
-    role: "Backend Architect",
-    color: "from-cyber-cyan to-blue-500",
-  },
-  reeti: {
-    name: "Reeti Khandelwal",
-    email: "reeti.s@MemoMind.ai",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Reeti",
-    role: "Frontend Engineer",
-    color: "from-[#eca72c] to-[#ee5622]",
-  },
-  sarah: {
-    name: "Sarah Jenkins",
-    email: "sarah.j@MemoMind.ai",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Sarah",
-    role: "Lead Product Manager",
-    color: "from-cyber-emerald to-cyber-cyan",
-  },
-};
+export const SEED_PROFILES: Record<string, UserProfile> = {};
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -355,9 +333,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
     const allUsers = {
-      "aman.g@MemoMind.ai": { ...SEED_PROFILES.aman, password: "password" },
-      "reeti.s@MemoMind.ai": { ...SEED_PROFILES.reeti, password: "password" },
-      "sarah.j@MemoMind.ai": { ...SEED_PROFILES.sarah, password: "password" },
       ...registeredUsers,
     };
 
@@ -389,7 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
     let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
-    if (registeredUsers[emailKey] || ["aman.g@MemoMind.ai", "reeti.s@MemoMind.ai", "sarah.j@MemoMind.ai"].includes(emailKey)) {
+    if (registeredUsers[emailKey]) {
       return { success: false, error: "An account with this email already exists." };
     }
 

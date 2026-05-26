@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 import { 
   Calendar, 
@@ -19,29 +20,16 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Mock fallbacks for robust local rendering
-const MOCK_WIDGETS = {
-  total_meetings: 3,
-  unresolved_discussions: 1,
-  active_tasks: 3,
-  overdue_items: 2,
-  total_decisions: 4,
-  contradictions_count: 1,
-  latest_insight: "Contradiction alert! Shift in decision detected: Decision on microservices scaling contradicts previous monolithic architecture strategy from Kickoff sync."
+// Default initial state
+const DEFAULT_WIDGETS = {
+  total_meetings: 0,
+  unresolved_discussions: 0,
+  active_tasks: 0,
+  overdue_items: 0,
+  total_decisions: 0,
+  contradictions_count: 0,
+  latest_insight: "All decisions and action plans are currently aligned across the workspace."
 };
-
-const MOCK_MEETINGS = [
-  { id: 3, title: "SaaS Scaling & Microservices Shift", date: "2026-05-18 11:15", duration: 3240, efficiency_score: 86.0, summary: "Decided to shift to microservices for user profile APIs due to horizontal scale expectations. Clerk OAuth was finalized." },
-  { id: 2, title: "Database & Auth Architecture Deep-Dive", date: "2026-05-14 14:30", duration: 2880, efficiency_score: 78.5, summary: "Technical deep-dive on auth setup and database selection. PostgreSQL was chosen. Auth choice deferred due to pricing reviews." },
-  { id: 1, title: "Project Alpha Kickoff & DB Planning", date: "2026-05-10 10:00", duration: 3540, efficiency_score: 92.0, summary: "Kickoff sync for Project Alpha. Aman recommended avoiding microservices to minimize initial architecture overhead." }
-];
-
-const MOCK_DECISIONS = [
-  { id: 3, text: "Migrate core user and feed profile modules to a microservices architecture to support horizontal load scaling.", status: "accepted", meeting_title: "SaaS Scaling & Microservices Shift", date: "2026-05-18" },
-  { id: 4, text: "Implement Clerk OAuth for user authentication to accelerate launch speed.", status: "accepted", meeting_title: "SaaS Scaling & Microservices Shift", date: "2026-05-18" },
-  { id: 2, text: "Select PostgreSQL as the primary relational database platform instead of SQLite for production durability.", status: "accepted", meeting_title: "Database & Auth Architecture Deep-Dive", date: "2026-05-14" },
-  { id: 1, text: "Avoid microservices and build a unified monolithic backend to avoid API gateway and networking overhead.", status: "changed", meeting_title: "Project Alpha Kickoff & DB Planning", date: "2026-05-10" }
-];
 
 // Framer Motion Animation Settings
 const containerVariants = {
@@ -60,47 +48,45 @@ const itemVariants = {
 };
 
 export default function Dashboard() {
-  const [widgets, setWidgets] = useState(MOCK_WIDGETS);
-  const [meetings, setMeetings] = useState(MOCK_MEETINGS);
-  const [decisions, setDecisions] = useState(MOCK_DECISIONS);
+  const { user } = useAuth();
+  const [widgets, setWidgets] = useState(DEFAULT_WIDGETS);
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [decisions, setDecisions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
+        const emailParam = user?.email ? `?user_email=${encodeURIComponent(user.email)}` : "";
         const [widgetsRes, meetingsRes, decisionsRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/analytics/widgets"),
-          fetch("http://127.0.0.1:8000/api/meetings"),
-          fetch("http://127.0.0.1:8000/api/decisions")
+          fetch(`http://127.0.0.1:8000/api/analytics/widgets${emailParam}`),
+          fetch(`http://127.0.0.1:8000/api/meetings${emailParam}`),
+          fetch(`http://127.0.0.1:8000/api/decisions${emailParam}`)
         ]);
 
         if (widgetsRes.ok) setWidgets(await widgetsRes.json());
         if (meetingsRes.ok) setMeetings(await meetingsRes.json());
         if (decisionsRes.ok) setDecisions(await decisionsRes.json());
       } catch (err) {
-        console.log("Using dynamic mockup fallbacks for Dashboard");
+        console.log("Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
     }
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   const formatDuration = (sec: number) => {
     const mins = Math.floor(sec / 60);
     return `${mins} min${mins !== 1 ? "s" : ""}`;
   };
 
-  // Convert technical raw insights into simple and friendly team statements
   const getFriendlyAlertText = (rawInsight: string) => {
-    if (rawInsight.toLowerCase().includes("contradiction")) {
-      return (
-        <span>
-          <strong>Plan Change Warning:</strong> Your team recently agreed to <span className="text-[var(--foreground)] font-semibold">use microservices</span> (in SaaS Scaling & Microservices Shift), which changes the earlier plan to <span className="text-[var(--foreground)]/70 line-through">avoid microservices</span> from the Kickoff meeting.
-        </span>
-      );
-    }
-    return rawInsight;
+    return (
+      <span>
+        <strong>Workspace Intelligence Alert:</strong> {rawInsight}
+      </span>
+    );
   };
 
   return (

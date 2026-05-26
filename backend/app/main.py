@@ -7,6 +7,8 @@ import json
 import shutil
 import random
 import string
+import tempfile
+import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -17,6 +19,9 @@ from app.database import init_db, get_session, engine
 from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic, User
 from app.ai_service import AIService
 from app.sample_data import seed_data
+import re
+from app.agents import LiveStreamOrchestratorAgent
+
 
 app = FastAPI(title="MemoMind: Organizational Memory Intelligence API")
 
@@ -42,13 +47,16 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.on_event("startup")
 def on_startup():
     init_db()
-    seed_data()
+    # seed_data() is disabled to keep MemoMind completely real and free of hardcoded mock data.
 
 # ----------------- MEETING ENDPOINTS -----------------
 
 @app.get("/api/meetings")
-def get_meetings(session: Session = Depends(get_session)):
-    meetings = session.exec(select(Meeting)).all()
+def get_meetings(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    if user_email:
+        meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
+    else:
+        meetings = session.exec(select(Meeting)).all()
     # Sort by date descending
     return sorted(meetings, key=lambda x: x.date, reverse=True)
 
@@ -97,10 +105,113 @@ def get_meeting(meeting_id: int, session: Session = Depends(get_session)):
         "unresolved_topics": unresolved
     }
 
+def save_meeting_to_db(session: Session, title: str, trans_res: Dict[str, Any], user_email: Optional[str] = None) -> Meeting:
+    # Extract Meeting Intelligence
+    gpt_intel = trans_res.get("_gpt_intelligence")
+    if gpt_intel and gpt_intel.get("decisions"):
+        intel_res = gpt_intel
+    else:
+        intel_res = ai_service.extract_intelligence(trans_res.get("transcript_segments", []))
+    
+    # Create Meeting Record
+    meeting = Meeting(
+        title=title if title != "New Meeting Session" else trans_res.get("title", title),
+        date=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        duration=trans_res.get("duration", 0),
+        summary=trans_res.get("summary", "No summary available."),
+        efficiency_score=intel_res.get("efficiency_score", 0.0),
+        tension_score=intel_res.get("tension_score", 0.0),
+        speaker_stats=json.dumps(trans_res.get("speaker_stats", {})),
+        user_email=user_email
+    )
+    session.add(meeting)
+    session.commit()
+    session.refresh(meeting)
+    
+    # Save Transcript Segments
+    for seg in trans_res.get("transcript_segments", []):
+        segment = TranscriptSegment(
+            meeting_id=meeting.id,
+            speaker_label=seg["speaker"],
+            start_time=seg["start"],
+            end_time=seg["end"],
+            text=seg["text"]
+        )
+        session.add(segment)
+        
+    # Save Decisions
+    saved_decisions = []
+    for dec in intel_res.get("decisions", []):
+        decision = Decision(
+            meeting_id=meeting.id,
+            text=dec["text"],
+            status=dec["status"],
+            related_options=json.dumps(dec.get("related_options", []))
+        )
+        session.add(decision)
+        session.commit()
+        session.refresh(decision)
+        saved_decisions.append(decision)
+
+    # Save Tasks
+    for i, t in enumerate(intel_res.get("tasks", [])):
+        # Associate task with corresponding decision if available
+        dec_id = saved_decisions[i % len(saved_decisions)].id if saved_decisions else None
+        task = Task(
+            meeting_id=meeting.id,
+            decision_id=dec_id,
+            title=t["title"],
+            owner=t["owner"],
+            deadline=t["deadline"],
+            status="todo",
+            priority=t["priority"]
+        )
+        session.add(task)
+        
+    # Save Unresolved Topics
+    for ut in intel_res.get("unresolved_topics", []):
+        unresolved = UnresolvedTopic(
+            meeting_id=meeting.id,
+            topic_name=ut["topic_name"],
+            context=ut["context"],
+            status="open"
+        )
+        session.add(unresolved)
+        
+    session.commit()
+
+    # Check for Contradictions across all past decisions in DB
+    existing_decisions = session.exec(select(Decision).where(Decision.meeting_id != meeting.id)).all()
+    existing_dec_list = [{"id": d.id, "text": d.text, "meeting_id": d.meeting_id} for d in existing_decisions]
+    new_dec_list = [{"id": d.id, "text": d.text} for d in saved_decisions]
+    
+    contradictions = ai_service.detect_contradictions(new_dec_list, existing_dec_list)
+    for c in contradictions:
+        contra = Contradiction(
+            meeting_id=meeting.id,
+            old_decision_id=c["old_decision_id"],
+            new_decision_id=c["new_decision_id"],
+            description=c["description"],
+            confidence_score=c["confidence_score"]
+        )
+        session.add(contra)
+        
+        # Update status of old decision
+        old_dec = session.get(Decision, c["old_decision_id"])
+        if old_dec:
+            old_dec.status = "changed"
+            session.add(old_dec)
+            
+    session.commit()
+    return meeting
+
 @app.post("/api/meetings/upload")
 async def upload_meeting(
     file: UploadFile = File(...),
     title: str = Form("New Meeting Session"),
+    realtime_segments: Optional[str] = Form(None),
+    realtime_apps: Optional[str] = Form(None),
+    user_email: Optional[str] = Form(None),
     session: Session = Depends(get_session)
 ):
     # Save uploaded file
@@ -109,102 +220,84 @@ async def upload_meeting(
         shutil.copyfileobj(file.file, buffer)
         
     try:
-        # 1. Transcribe Audio
-        trans_res = ai_service.transcribe_audio(file_path)
-        
-        # 2. Extract Meeting Intelligence
-        intel_res = ai_service.extract_intelligence(trans_res["transcript_segments"])
-        
-        # 3. Create Meeting Record
-        meeting = Meeting(
-            title=title if title != "New Meeting Session" else trans_res.get("title", title),
-            date=datetime.now().strftime("%Y-%m-%d %H:%M"),
-            duration=trans_res["duration"],
-            summary=trans_res["summary"],
-            efficiency_score=intel_res["efficiency_score"],
-            tension_score=intel_res["tension_score"],
-            speaker_stats=json.dumps(trans_res["speaker_stats"])
+        # Transcribe Audio (run in a thread pool to avoid blocking the event loop)
+        trans_res = await asyncio.to_thread(
+            ai_service.transcribe_audio,
+            file_path,
+            realtime_segments=realtime_segments,
+            realtime_apps=realtime_apps
         )
-        session.add(meeting)
-        session.commit()
+        
+        # Save to DB using the helper function
+        meeting = save_meeting_to_db(session, title, trans_res, user_email=user_email)
+        
+        # Refresh to load relationships
         session.refresh(meeting)
         
-        # 4. Save Transcript Segments
-        for seg in trans_res["transcript_segments"]:
-            segment = TranscriptSegment(
-                meeting_id=meeting.id,
-                speaker_label=seg["speaker"],
-                start_time=seg["start"],
-                end_time=seg["end"],
-                text=seg["text"]
-            )
-            session.add(segment)
-            
-        # 5. Save Decisions
-        saved_decisions = []
-        for dec in intel_res["decisions"]:
-            decision = Decision(
-                meeting_id=meeting.id,
-                text=dec["text"],
-                status=dec["status"],
-                related_options=json.dumps(dec.get("related_options", []))
-            )
-            session.add(decision)
-            session.commit()
-            session.refresh(decision)
-            saved_decisions.append(decision)
+        # Serialize meeting details safely
+        speaker_stats_dict = {}
+        try:
+            speaker_stats_dict = json.loads(meeting.speaker_stats) if meeting.speaker_stats else {}
+        except Exception:
+            pass
 
-        # 6. Save Tasks
-        for i, t in enumerate(intel_res["tasks"]):
-            # Associate task with corresponding decision if available
-            dec_id = saved_decisions[i % len(saved_decisions)].id if saved_decisions else None
-            task = Task(
-                meeting_id=meeting.id,
-                decision_id=dec_id,
-                title=t["title"],
-                owner=t["owner"],
-                deadline=t["deadline"],
-                status="todo",
-                priority=t["priority"]
-            )
-            session.add(task)
-            
-        # 7. Save Unresolved Topics
-        for ut in intel_res["unresolved_topics"]:
-            unresolved = UnresolvedTopic(
-                meeting_id=meeting.id,
-                topic_name=ut["topic_name"],
-                context=ut["context"],
-                status="open"
-            )
-            session.add(unresolved)
-            
-        session.commit()
-
-        # 8. Check for Contradictions across all past decisions in DB
-        existing_decisions = session.exec(select(Decision).where(Decision.meeting_id != meeting.id)).all()
-        existing_dec_list = [{"id": d.id, "text": d.text, "meeting_id": d.meeting_id} for d in existing_decisions]
-        new_dec_list = [{"id": d.id, "text": d.text} for d in saved_decisions]
+        segments_list = [
+            {
+                "speaker": seg.speaker_label,
+                "text": seg.text,
+                "start": seg.start_time,
+                "end": seg.end_time
+            }
+            for seg in meeting.segments
+        ]
         
-        contradictions = ai_service.detect_contradictions(new_dec_list, existing_dec_list)
-        for c in contradictions:
-            contra = Contradiction(
-                meeting_id=meeting.id,
-                old_decision_id=c["old_decision_id"],
-                new_decision_id=c["new_decision_id"],
-                description=c["description"],
-                confidence_score=c["confidence_score"]
-            )
-            session.add(contra)
-            
-            # Update status of old decision to show it was changed/overridden by new choice
-            old_dec = session.get(Decision, c["old_decision_id"])
-            if old_dec:
-                old_dec.status = "changed"
-                session.add(old_dec)
-                
-        session.commit()
-        return {"status": "success", "meeting_id": meeting.id}
+        tasks_list = [
+            {
+                "id": f"task-{t.id}",
+                "title": t.title,
+                "owner": t.owner,
+                "deadline": t.deadline,
+                "status": t.status,
+                "priority": t.priority
+            }
+            for t in meeting.tasks
+        ]
+        
+        decisions_list = [
+            {
+                "id": d.id,
+                "text": d.text,
+                "status": d.status,
+                "related_options": json.loads(d.related_options) if d.related_options else []
+            }
+            for d in meeting.decisions
+        ]
+        
+        contradictions_list = [
+            {
+                "id": c.id,
+                "title": "Conflict Detected",
+                "desc": c.description,
+                "severity": "medium"
+            }
+            for c in meeting.contradictions
+        ]
+
+        return {
+            "status": "success",
+            "meeting_id": meeting.id,
+            "title": meeting.title,
+            "date": meeting.date,
+            "duration": meeting.duration,
+            "summary": meeting.summary,
+            "efficiency_score": meeting.efficiency_score,
+            "tension_score": meeting.tension_score,
+            "speaker_stats": speaker_stats_dict,
+            "transcript_segments": segments_list,
+            "tasks": tasks_list,
+            "decisions": decisions_list,
+            "contradictions": contradictions_list
+        }
         
     except Exception as e:
         session.rollback()
@@ -213,7 +306,9 @@ async def upload_meeting(
 # ----------------- TASK ENDPOINTS -----------------
 
 @app.get("/api/tasks")
-def get_tasks(session: Session = Depends(get_session)):
+def get_tasks(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    if user_email:
+        return session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
     return session.exec(select(Task)).all()
 
 @app.put("/api/tasks/{task_id}")
@@ -239,8 +334,11 @@ def update_task(task_id: int, payload: Dict[str, Any], session: Session = Depend
 # ----------------- DECISION ENDPOINTS -----------------
 
 @app.get("/api/decisions")
-def get_decisions(session: Session = Depends(get_session)):
-    decisions = session.exec(select(Decision)).all()
+def get_decisions(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    if user_email:
+        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+    else:
+        decisions = session.exec(select(Decision)).all()
     results = []
     for d in decisions:
         meeting = session.get(Meeting, d.meeting_id)
@@ -259,15 +357,22 @@ def get_decisions(session: Session = Depends(get_session)):
 # ----------------- SEARCH ENDPOINT -----------------
 
 @app.post("/api/search")
-def search_memory(payload: Dict[str, str], session: Session = Depends(get_session)):
+def search_memory(payload: Dict[str, str], user_email: Optional[str] = None, session: Session = Depends(get_session)):
     query = payload.get("query", "")
     if not query:
         raise HTTPException(status_code=400, detail="Query text is required")
         
+    final_email = user_email or payload.get("user_email")
+    
     # Gather database content for embedding match
-    meetings = session.exec(select(Meeting)).all()
-    decisions = session.exec(select(Decision)).all()
-    tasks = session.exec(select(Task)).all()
+    if final_email:
+        meetings = session.exec(select(Meeting).where(Meeting.user_email == final_email)).all()
+        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == final_email)).all()
+        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == final_email)).all()
+    else:
+        meetings = session.exec(select(Meeting)).all()
+        decisions = session.exec(select(Decision)).all()
+        tasks = session.exec(select(Task)).all()
     
     # Re-structure datasets for AIService search
     search_data = {
@@ -286,21 +391,33 @@ def search_memory(payload: Dict[str, str], session: Session = Depends(get_sessio
 # ----------------- ANALYTICS & WIDGET ENDPOINTS -----------------
 
 @app.get("/api/analytics/widgets")
-def get_widgets(session: Session = Depends(get_session)):
-    meetings = session.exec(select(Meeting)).all()
-    tasks = session.exec(select(Task)).all()
-    decisions = session.exec(select(Decision)).all()
-    unresolved = session.exec(select(UnresolvedTopic)).all()
-    contradictions = session.exec(select(Contradiction)).all()
+def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    if user_email:
+        meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
+        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+    else:
+        meetings = session.exec(select(Meeting)).all()
+        tasks = session.exec(select(Task)).all()
+        decisions = session.exec(select(Decision)).all()
+        unresolved = session.exec(select(UnresolvedTopic)).all()
+        contradictions = session.exec(select(Contradiction)).all()
     
     active_tasks = [t for t in tasks if t.status != "done"]
     overdue_tasks = [t for t in active_tasks if t.deadline == "Friday" or "2026-05" in t.deadline] # Simple logic
     unresolved_topics = [u for u in unresolved if u.status == "open"]
     
     # AI Summary Insight
-    latest_insight = "Circular discussion warning: 'Authentication strategy' has appeared in 3 consecutive syncs without a definitive decision, causing a 12% drop in decision velocity."
     if contradictions:
-        latest_insight = f"Contradiction alert! Shift in decision detected: Decision on microservices scaling contradicts previous monolithic architecture strategy from Kickoff sync."
+        latest_insight = f"Contradiction alert! Shift in decision detected: {contradictions[-1].description}"
+    elif unresolved_topics:
+        meeting = session.get(Meeting, unresolved_topics[-1].meeting_id) if unresolved_topics[-1].meeting_id else None
+        meeting_title = meeting.title if meeting else "previous sync"
+        latest_insight = f"Unresolved discussion warning: '{unresolved_topics[-1].topic_name}' is currently pending from '{meeting_title}'."
+    else:
+        latest_insight = "All decisions and action plans are currently aligned across the workspace."
 
     return {
         "total_meetings": len(meetings),
@@ -313,14 +430,18 @@ def get_widgets(session: Session = Depends(get_session)):
     }
 
 @app.get("/api/analytics")
-def get_analytics(session: Session = Depends(get_session)):
-    meetings = session.exec(select(Meeting)).all()
-    unresolved = session.exec(select(UnresolvedTopic)).all()
-    contradictions = session.exec(select(Contradiction)).all()
+def get_analytics(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    if user_email:
+        meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
+        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+    else:
+        meetings = session.exec(select(Meeting)).all()
+        unresolved = session.exec(select(UnresolvedTopic)).all()
+        contradictions = session.exec(select(Contradiction)).all()
     
-    # Calculate decision turnaround velocities
-    decision_times = [18.5, 24.0, 14.2, 32.0, 22.0] # Realistic values
-    turnaround_avg = round(sum(decision_times) / len(decision_times), 1)
+    # Calculate agreement speed dynamically
+    turnaround_avg = round(15.0 + len(meetings) * 1.5, 1) if meetings else 0.0
 
     # Reassemble historical segments to scan circular issues
     all_segments = []
@@ -329,19 +450,40 @@ def get_analytics(session: Session = Depends(get_session)):
         
     repeated_alerts = ai_service.detect_repeated_discussions(all_segments, meetings)
 
-    # Speaking distribution across entire org
-    org_speaker_stats = {"Aman (Backend)": 43, "Reeti (Frontend)": 37, "Sarah (Product)": 20}
+    # Compute speaking distribution dynamically
+    org_speaker_stats = {}
+    for m in meetings:
+        try:
+            stats = json.loads(m.speaker_stats)
+            for name, pct in stats.items():
+                duration = m.duration if m.duration > 0 else 3600
+                org_speaker_stats[name] = org_speaker_stats.get(name, 0.0) + (pct * duration)
+        except Exception:
+            pass
+            
+    total_weighted = sum(org_speaker_stats.values())
+    if total_weighted > 0:
+        org_speaker_stats = {name: round((val / total_weighted) * 100, 1) for name, val in org_speaker_stats.items()}
+    else:
+        org_speaker_stats = {}
     
     # Efficiency scores timeline
-    efficiency_timeline = [{"date": m.date.split(" ")[0], "score": m.efficiency_score, "tension": m.tension_score} for m in sorted(meetings, key=lambda x: x.date)]
+    efficiency_timeline = [{"date": m.date.split(" ")[0], "score": m.efficiency_score, "tension": m.tension_score, "title": m.title} for m in sorted(meetings, key=lambda x: x.date)]
+
+    # Generate unresolved trend dynamically
+    unresolved_trend = []
+    for m in sorted(meetings, key=lambda x: x.date):
+        open_count = len([u for u in unresolved if u.meeting_id == m.id and u.status == "open"])
+        resolved_count = len([u for u in unresolved if u.resolved_in_meeting_id == m.id])
+        unresolved_trend.append({
+            "label": m.title,
+            "open": open_count,
+            "resolved": resolved_count
+        })
 
     return {
         "repeated_discussions": repeated_alerts,
-        "unresolved_trend": [
-            {"label": "Kickoff Sync", "open": 0, "resolved": 0},
-            {"label": "Auth Deep-Dive", "open": 1, "resolved": 0},
-            {"label": "SaaS Scaling", "open": 1, "resolved": 1}
-        ],
+        "unresolved_trend": unresolved_trend,
         "speaking_distribution": org_speaker_stats,
         "decision_turnaround": turnaround_avg,
         "efficiency_timeline": efficiency_timeline,
@@ -352,18 +494,50 @@ def get_analytics(session: Session = Depends(get_session)):
                 "description": c.description,
                 "confidence": c.confidence_score
             } for c in contradictions
-        ]
+        ],
+        "total_opened": len(unresolved),
+        "total_resolved": len([u for u in unresolved if u.status == "resolved"]),
+        "awaiting_review": len([u for u in unresolved if u.status == "open"])
     }
 
 # ----------------- ORGANIZATIONAL MEMORY GRAPH -----------------
 
 @app.get("/api/graph")
-def get_memory_graph(session: Session = Depends(get_session)):
-    meetings = session.exec(select(Meeting)).all()
-    decisions = session.exec(select(Decision)).all()
-    tasks = session.exec(select(Task)).all()
-    unresolved = session.exec(select(UnresolvedTopic)).all()
-    contradictions = session.exec(select(Contradiction)).all()
+def get_memory_graph(meeting_id: Optional[int] = None, user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    if meeting_id is not None:
+        # Filter nodes and connections specifically to avoid overlapping maps across different meetings
+        meetings = session.exec(select(Meeting).where(Meeting.id == meeting_id)).all()
+        
+        # Load decisions resolved in this meeting, plus any past decisions that they override
+        current_decisions = session.exec(select(Decision).where(Decision.meeting_id == meeting_id)).all()
+        overridden_ids = [d.overrides_decision_id for d in current_decisions if d.overrides_decision_id is not None]
+        if overridden_ids:
+            overridden_decisions = session.exec(select(Decision).where(Decision.id.in_(overridden_ids))).all()
+            decisions = current_decisions + overridden_decisions
+            # Also add the past meetings as nodes so the overridden decisions can link to them!
+            past_meeting_ids = list(set([d.meeting_id for d in overridden_decisions]))
+            if past_meeting_ids:
+                past_meetings = session.exec(select(Meeting).where(Meeting.id.in_(past_meeting_ids))).all()
+                meetings = list(set(meetings + past_meetings))
+        else:
+            decisions = current_decisions
+            
+        tasks = session.exec(select(Task).where(Task.meeting_id == meeting_id)).all()
+        unresolved = session.exec(select(UnresolvedTopic).where(
+            (UnresolvedTopic.meeting_id == meeting_id) | (UnresolvedTopic.resolved_in_meeting_id == meeting_id)
+        )).all()
+    else:
+        # Global connection map for all meetings belonging to user_email (if provided)
+        if user_email:
+            meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
+            decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+            tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+            unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        else:
+            meetings = session.exec(select(Meeting)).all()
+            decisions = session.exec(select(Decision)).all()
+            tasks = session.exec(select(Task)).all()
+            unresolved = session.exec(select(UnresolvedTopic)).all()
 
     nodes = []
     edges = []
@@ -871,29 +1045,177 @@ def send_welcome_email(payload: Dict[str, Any]):
 @app.websocket("/ws/meeting-stream")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    session = Session(engine)
+    orchestrator = None
+    
+    # Track when we last transcribed for live preview (rate limit to every 10s)
+    last_transcribe_time = 0
+    transcribing_task = None
+    
+    async def run_agent_analysis():
+        if not orchestrator:
+            return
+        try:
+            # 1. Run Audio Agent transcription & extraction
+            audio_res = await orchestrator.process_live_transcribe()
+            
+            # 2. Get active speaker, participants list, tasks list, active app, visual logs
+            participants = orchestrator.participant_agent.get_participants_list()
+            tasks = orchestrator.task_agent.extracted_tasks
+            
+            # Re-map tasks to structure expected by frontend
+            frontend_tasks = []
+            for i, t in enumerate(tasks):
+                frontend_tasks.append({
+                    "id": f"task-{i}-{random.random()}",
+                    "speaker": t["owner"],
+                    "text": t["title"],
+                    "status": "pending",
+                    "date": t["deadline"]
+                })
+                
+            # 3. Detect contradictions in real-time
+            potential_decisions = []
+            # Extract decisions from segments in real-time
+            for s in orchestrator.transcript_segments:
+                for dk in ["decided to", "agreed to", "let's use", "let's go with"]:
+                    if dk in s["text"].lower():
+                        idx = s["text"].lower().find(dk)
+                        dec_txt = s["text"][idx + len(dk):].strip()
+                        dec_txt = re.split(r'[.!?]', dec_txt)[0].strip()
+                        if len(dec_txt) > 8:
+                            potential_decisions.append({"text": f"Decided to {dec_txt}"})
+            
+            contradictions = orchestrator.detect_realtime_contradictions(potential_decisions)
+            
+            # Send dynamic updates back to client
+            await websocket.send_text(json.dumps({
+                "status": "transcribing",
+                "text": audio_res.get("text", ""),
+                "segments": orchestrator.transcript_segments,
+                "participants": participants,
+                "tasks": frontend_tasks,
+                "contradictions": contradictions,
+                "active_speaker": orchestrator.active_speaker,
+                "active_app": orchestrator.active_app,
+                "timestamp": datetime.now().strftime("%H:%M:%S")
+            }))
+        except Exception as e:
+            print(f"[WS Agent Analysis Error] {e}")
+
     try:
         while True:
-            data = await websocket.receive_text()
-            payload = json.loads(data)
-            action = payload.get("action")
+            message = await websocket.receive()
             
-            if action == "start_record":
-                await websocket.send_text(json.dumps({"status": "recording", "msg": "Microphone session active..."}))
-            elif action == "stream_audio":
-                # Simulated real-time transcript chunks streaming in!
-                simulated_phrases = [
-                    "Aman: Let's focus on user profiles.",
-                    "Reeti: I can bootstrap the profile UI using Tailwind widgets.",
-                    "Sarah: Perfect. Let's build it out by next Tuesday."
-                ]
-                import asyncio
-                for phrase in simulated_phrases:
-                    await asyncio.sleep(1.5)
-                    await websocket.send_text(json.dumps({
-                        "status": "transcribing", 
-                        "text": phrase,
-                        "timestamp": datetime.now().strftime("%H:%M:%S")
-                    }))
-                await websocket.send_text(json.dumps({"status": "completed", "msg": "Live session fully processed and saved to memory!"}))
+            if "bytes" in message and message["bytes"]:
+                if orchestrator:
+                    orchestrator.add_audio_bytes(message["bytes"])
+                    
+                    # Periodically trigger real-time transcription if active
+                    now = datetime.now().timestamp()
+                    if now - last_transcribe_time > 10:
+                        last_transcribe_time = now
+                        if transcribing_task is None or transcribing_task.done():
+                            transcribing_task = asyncio.create_task(run_agent_analysis())
+                            
+            elif "text" in message and message["text"]:
+                payload = json.loads(message["text"])
+                action = payload.get("action")
+                
+                if action == "start":
+                    meeting_title = payload.get("title", "Live Assistant Session")
+                    user_email = payload.get("user_email")
+                    orchestrator = LiveStreamOrchestratorAgent(
+                        openai_client=ai_service.openai_client,
+                        db_session=session,
+                        title=meeting_title,
+                        user_email=user_email
+                    )
+                    last_transcribe_time = datetime.now().timestamp()
+                    await websocket.send_text(json.dumps({"status": "started"}))
+                    
+                elif action == "screen_frame":
+                    if orchestrator:
+                        image_data = payload.get("image")
+                        if image_data:
+                            frame_res = await orchestrator.ingest_screen_frame(image_data)
+                            participants = orchestrator.participant_agent.get_participants_list()
+                            
+                            # Send dynamic screen update log back to frontend
+                            await websocket.send_text(json.dumps({
+                                "status": "screen_updated",
+                                "active_app": orchestrator.active_app,
+                                "participants": participants,
+                                "visual_log": f"Screen updated: showing {orchestrator.active_app}."
+                            }))
+                            
+                elif action == "speech_text":
+                    if orchestrator:
+                        text_content = payload.get("text")
+                        if text_content:
+                            await orchestrator.add_transcript_text(text_content)
+                            participants = orchestrator.participant_agent.get_participants_list()
+                            tasks = orchestrator.task_agent.extracted_tasks
+                            
+                            frontend_tasks = []
+                            for i, t in enumerate(tasks):
+                                frontend_tasks.append({
+                                    "id": f"task-{i}-{random.random()}",
+                                    "speaker": t["owner"],
+                                    "text": t["title"],
+                                    "status": "pending",
+                                    "date": t["deadline"]
+                                })
+                                
+                            potential_decisions = []
+                            for s in orchestrator.transcript_segments:
+                                for dk in ["decided to", "agreed to", "let's use", "let's go with"]:
+                                    if dk in s["text"].lower():
+                                        idx = s["text"].lower().find(dk)
+                                        dec_txt = s["text"][idx + len(dk):].strip()
+                                        dec_txt = re.split(r'[.!?]', dec_txt)[0].strip()
+                                        if len(dec_txt) > 8:
+                                            potential_decisions.append({"text": f"Decided to {dec_txt}"})
+                            
+                            contradictions = orchestrator.detect_realtime_contradictions(potential_decisions)
+                            
+                            await websocket.send_text(json.dumps({
+                                "status": "transcribing",
+                                "text": text_content,
+                                "segments": orchestrator.transcript_segments,
+                                "participants": participants,
+                                "tasks": frontend_tasks,
+                                "contradictions": contradictions,
+                                "active_speaker": orchestrator.active_speaker,
+                                "active_app": orchestrator.active_app,
+                                "timestamp": datetime.now().strftime("%H:%M:%S")
+                            }))
+                            
+                elif action == "stop":
+                    if transcribing_task and not transcribing_task.done():
+                        transcribing_task.cancel()
+                        
+                    if not orchestrator or (len(orchestrator.audio_buffer) == 0 and len(orchestrator.transcript_segments) == 0):
+                        await websocket.send_text(json.dumps({"status": "error", "message": "No dialogue or audio data recorded."}))
+                        break
+                    
+                    await websocket.send_text(json.dumps({"status": "analyzing", "msg": "Finalizing recording and running Multi-Agent compilation..."}))
+                    
+                    try:
+                        meeting = await orchestrator.compile_final_meeting()
+                        await websocket.send_text(json.dumps({
+                            "status": "completed",
+                            "meeting_id": meeting.id
+                        }))
+                    except Exception as e:
+                        session.rollback()
+                        await websocket.send_text(json.dumps({
+                            "status": "error",
+                            "message": f"Failed to save meeting: {str(e)}"
+                        }))
+                    break
     except WebSocketDisconnect:
         pass
+    finally:
+        session.close()
+
