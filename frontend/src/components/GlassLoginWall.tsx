@@ -249,7 +249,13 @@ export default function GlassLoginWall() {
       setSuccessMsg(`Redirecting secure ${provider} SSO session...`);
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || `${provider} authentication was cancelled or failed.`);
+      let errMsg = `${provider} authentication was cancelled or failed.`;
+      if (err.code === "auth/account-exists-with-different-credential") {
+        errMsg = "An account already exists with this email using a different sign-in method (e.g. Password or Google). Please sign in using that original method.";
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      setErrorMsg(errMsg);
     } finally {
       setLoading(false);
     }

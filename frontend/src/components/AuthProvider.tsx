@@ -230,8 +230,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let firebaseProvider;
         if (provider === "github") {
           firebaseProvider = new GithubAuthProvider();
+          // Force GitHub to prompt for consent/re-authorization, allowing account switching
+          firebaseProvider.setCustomParameters({ prompt: "consent" });
         } else {
           firebaseProvider = new GoogleAuthProvider();
+          // Force Google to prompt the user to select an account
+          firebaseProvider.setCustomParameters({ prompt: "select_account" });
         }
         
         setIsLoading(true);
