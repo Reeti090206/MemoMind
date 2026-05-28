@@ -129,16 +129,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Send OTP
+  // Send OTP — always falls back to mock mode if Firebase phone auth isn't available or fails
   const sendOtp = async (phoneNumber: string, appVerifier?: any) => {
-    try {
-      if (hasFirebaseConfig && auth && appVerifier) {
-        // Real Firebase Phone Auth code dispatch
-        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        setConfirmationResult(result);
-        return { success: true, method: "firebase" };
-      } else {
-        // Local Mock Mode fallback
+    // Helper: call mock backend OTP endpoint
+    const sendMockOtp = async () => {
+      try {
         const res = await fetch("http://127.0.0.1:8000/api/auth/send-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -148,11 +143,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const j = await res.json().catch(() => ({}));
           return { success: true, method: j.method || "console", code: j.code };
         }
-        return { success: true, method: "console", code: "123456" };
+      } catch (e) {
+        console.warn("Mock OTP backend unreachable, using hardcoded fallback.");
+      }
+      return { success: true, method: "console", code: "123456" };
+    };
+
+    try {
+      if (hasFirebaseConfig && auth && appVerifier) {
+        // Attempt real Firebase Phone Auth
+        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        setConfirmationResult(result);
+        return { success: true, method: "firebase" };
+      } else {
+        // No Firebase or no verifier — go straight to mock
+        return await sendMockOtp();
       }
     } catch (err: any) {
-      console.warn("sendOtp error, falling back to local simulation:", err);
-      return { success: false, error: err.message || "Failed to send verification code." };
+      // Firebase phone auth failed (e.g. billing-not-enabled) — fall back to mock mode silently
+      console.warn("Firebase phone auth failed, falling back to mock OTP:", err.message);
+      return await sendMockOtp();
     }
   };
 

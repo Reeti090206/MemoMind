@@ -128,10 +128,26 @@ export default function GlassLoginWall() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
   };
 
-  // Setup invisible Recaptcha Verifier
+  // Setup invisible Recaptcha Verifier safely and handle unmounting/recreation
   const setupRecaptcha = () => {
-    if (hasFirebaseConfig && auth && !(window as any).recaptchaVerifier) {
+    if (hasFirebaseConfig && auth) {
       try {
+        // Clear any existing verifier instance to prevent stale DOM element references
+        if ((window as any).recaptchaVerifier) {
+          try {
+            (window as any).recaptchaVerifier.clear();
+          } catch (e) {
+            // Ignore error during clear
+          }
+          (window as any).recaptchaVerifier = null;
+        }
+
+        const container = document.getElementById('recaptcha-container');
+        if (!container) {
+          console.warn("reCAPTCHA container element not found in DOM.");
+          return;
+        }
+
         (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: () => {}
@@ -248,6 +264,15 @@ export default function GlassLoginWall() {
       await loginWithOAuth(provider);
       setSuccessMsg(`Redirecting secure ${provider} SSO session...`);
     } catch (err: any) {
+      // User simply closed the popup — not an error, just silently reset
+      if (
+        err.code === "auth/popup-closed-by-user" ||
+        err.code === "auth/cancelled-popup-request"
+      ) {
+        setLoading(false);
+        return;
+      }
+
       console.error(err);
       let errMsg = `${provider} authentication was cancelled or failed.`;
       if (err.code === "auth/account-exists-with-different-credential") {
@@ -407,6 +432,9 @@ export default function GlassLoginWall() {
   return (
     <div className="fixed inset-0 w-screen h-screen bg-[#0b0b10] text-[var(--foreground)] flex items-center justify-center overflow-y-auto z-50 px-4 py-8 select-none font-sans">
       
+      {/* Hidden anchor for ReCAPTCHA - positioned globally inside wrapper to prevent unmount errors */}
+      <div id="recaptcha-container" className="hidden"></div>
+
       {/* Background Radial Glow Blobs */}
       <div className="absolute inset-0 bg-[#0b0b10]/95 z-0" />
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyber-purple/10 rounded-full blur-[150px] pointer-events-none z-0" />
@@ -732,9 +760,6 @@ export default function GlassLoginWall() {
                         exit={{ opacity: 0 }}
                         className="space-y-4"
                       >
-                        {/* Hidden anchor for ReCAPTCHA */}
-                        <div id="recaptcha-container" className="hidden"></div>
-
                         {!codeSent ? (
                           <div className="space-y-4">
                             <div className="space-y-1.5 relative">
