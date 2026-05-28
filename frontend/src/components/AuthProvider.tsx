@@ -6,7 +6,14 @@ import {
   signInWithPhoneNumber, 
   signOut, 
   onAuthStateChanged,
-  ConfirmationResult
+  ConfirmationResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 
 export interface UserProfile {
@@ -29,6 +36,7 @@ interface AuthContextType {
   sendOtp: (phoneNumber: string, appVerifier?: any) => Promise<{ success: boolean; error?: string; method?: string; code?: string }>;
   loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithCredentials: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isClerkEnabled: boolean;
   welcomeEmail: { html: string; filePath: string } | null;
@@ -57,11 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const idToken = await firebaseUser.getIdToken(true);
             const phone = firebaseUser.phoneNumber || "";
+            const email = firebaseUser.email || "";
+            const name = firebaseUser.displayName || "";
 
             const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id_token: idToken, phone }),
+              body: JSON.stringify({ id_token: idToken, phone, email, name }),
             });
 
             if (res.ok) {
@@ -202,31 +212,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setWelcomeEmail(null);
   };
 
-  // Standard Login (Google OAuth simulator / Sandbox Profile)
-  const loginWithGoogle = async (profileKey?: string, customUser?: UserProfile) => {
-    let selectedUser: UserProfile;
-
-    if (profileKey && SEED_PROFILES[profileKey]) {
-      selectedUser = SEED_PROFILES[profileKey];
-    } else if (customUser) {
-      selectedUser = customUser;
-    } else {
-      selectedUser = {
-        name: "Developer Guest",
-        email: "guest.developer@MemoMind.ai",
-        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest",
-        role: "Workspace Administrator",
-        color: "from-gray-400 to-slate-600",
-      };
+  // Google OAuth Login — delegates to Firebase when configured
+  const loginWithGoogle = async (_profileKey?: string, _customUser?: UserProfile) => {
+    // Always go through Firebase OAuth when configured
+    if (hasFirebaseConfig && auth) {
+      return loginWithOAuth("google");
     }
-
-    // Persist Mock session
-    if (!hasFirebaseConfig) {
-      localStorage.setItem("MemoMind_session", JSON.stringify(selectedUser));
-    }
-
-    triggerWelcomeEmail(selectedUser.email, selectedUser.name);
-    setUser(selectedUser);
+    // Dev-only fallback: block access without credentials in local sandbox
+    throw new Error("Firebase is not configured. Please set up Firebase credentials to enable Google login.");
   };
 
   // Generic OAuth Login (Google, Apple, GitHub, Hugging Face)
@@ -263,12 +256,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.error("Backend OAuth verification failed");
         }
-        setIsLoading(false);
-        return;
       }
-    } catch (err) {
+    } catch (err: any) {
       setIsLoading(false);
-      console.warn("Firebase OAuth failed, falling back to local simulation:", err);
+      console.warn("Firebase OAuth failed:", err);
+      if (hasFirebaseConfig) {
+        throw err;
+      }
+    }
+
+    if (hasFirebaseConfig) {
+      return;
     }
 
     // Local Mock Mode simulation
@@ -329,68 +327,158 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Credentials Login
   const loginWithCredentials = async (email: string, password: string) => {
-    const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
-    let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
+    if (hasFirebaseConfig && auth) {
+      try {
+        setIsLoading(true);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await credential.user.getIdToken();
+        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: idToken, email, name: credential.user.displayName || "Email User" }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          setIsLoading(false);
+          return { success: true };
+        } else {
+          setIsLoading(false);
+          const errorData = await res.json().catch(() => ({}));
+          return { success: false, error: errorData.detail || "Server synchronization failed." };
+        }
+      } catch (err: any) {
+        setIsLoading(false);
+        let errorMsg = err.message || "Authentication failed.";
+        if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-email") {
+          errorMsg = "Incorrect password. Please try again.";
+        } else if (err.code === "auth/user-not-found") {
+          errorMsg = "No account found with this email.";
+        }
+        return { success: false, error: errorMsg };
+      }
+    } else {
+      const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
+      let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
-    const allUsers = {
-      ...registeredUsers,
-    };
+      const allUsers = {
+        ...registeredUsers,
+      };
 
-    const targetUser = allUsers[email.toLowerCase().trim()];
-    if (!targetUser) {
-      return { success: false, error: "No account found with this email." };
+      const targetUser = allUsers[email.toLowerCase().trim()];
+      if (!targetUser) {
+        return { success: false, error: "No account found with this email." };
+      }
+
+      if (targetUser.password !== password) {
+        return { success: false, error: "Incorrect password. Please try again." };
+      }
+
+      const { password: _, ...userProfile } = targetUser;
+      
+      // Persist Mock session
+      if (!hasFirebaseConfig) {
+        localStorage.setItem("MemoMind_session", JSON.stringify(userProfile));
+      }
+
+      triggerWelcomeEmail(userProfile.email, userProfile.name);
+      setUser(userProfile);
+      return { success: true };
     }
-
-    if (targetUser.password !== password) {
-      return { success: false, error: "Incorrect password. Please try again." };
-    }
-
-    const { password: _, ...userProfile } = targetUser;
-    
-    // Persist Mock session
-    if (!hasFirebaseConfig) {
-      localStorage.setItem("MemoMind_session", JSON.stringify(userProfile));
-    }
-
-    triggerWelcomeEmail(userProfile.email, userProfile.name);
-    setUser(userProfile);
-    return { success: true };
   };
 
   // Credentials Sign Up
   const signUpWithCredentials = async (name: string, email: string, password: string) => {
-    const emailKey = email.toLowerCase().trim();
+    if (hasFirebaseConfig && auth) {
+      try {
+        setIsLoading(true);
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(credential.user, { displayName: name });
+        const idToken = await credential.user.getIdToken(true);
+        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: idToken, email, name }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          if (data.is_new) {
+            await triggerWelcomeEmail(data.user.email, data.user.name);
+          }
+          setIsLoading(false);
+          return { success: true };
+        } else {
+          setIsLoading(false);
+          const errorData = await res.json().catch(() => ({}));
+          return { success: false, error: errorData.detail || "Server synchronization failed." };
+        }
+      } catch (err: any) {
+        setIsLoading(false);
+        let errorMsg = err.message || "Failed to create account.";
+        if (err.code === "auth/email-already-in-use") {
+          errorMsg = "An account with this email already exists.";
+        } else if (err.code === "auth/weak-password") {
+          errorMsg = "Password must be at least 6 characters long.";
+        } else if (err.code === "auth/invalid-email") {
+          errorMsg = "Please enter a valid email address.";
+        }
+        return { success: false, error: errorMsg };
+      }
+    } else {
+      const emailKey = email.toLowerCase().trim();
 
-    const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
-    let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
+      const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
+      let registeredUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : {};
 
-    if (registeredUsers[emailKey]) {
-      return { success: false, error: "An account with this email already exists." };
+      if (registeredUsers[emailKey]) {
+        return { success: false, error: "An account with this email already exists." };
+      }
+
+      const randomAvatarSeed = name.replace(/\s+/g, "");
+      const newUser = {
+        name,
+        email: emailKey,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomAvatarSeed}`,
+        role: "Workspace Contributor",
+        color: "from-cyber-purple to-cyber-cyan",
+        password,
+      };
+
+      registeredUsers[emailKey] = newUser;
+      localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
+
+      const { password: _, ...userProfile } = newUser;
+      
+      // Persist Mock session
+      if (!hasFirebaseConfig) {
+        localStorage.setItem("MemoMind_session", JSON.stringify(userProfile));
+      }
+
+      triggerWelcomeEmail(userProfile.email, userProfile.name);
+      setUser(userProfile);
+      return { success: true };
     }
+  };
 
-    const randomAvatarSeed = name.replace(/\s+/g, "");
-    const newUser = {
-      name,
-      email: emailKey,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomAvatarSeed}`,
-      role: "Workspace Contributor",
-      color: "from-cyber-purple to-cyber-cyan",
-      password,
-    };
-
-    registeredUsers[emailKey] = newUser;
-    localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
-
-    const { password: _, ...userProfile } = newUser;
-    
-    // Persist Mock session
-    if (!hasFirebaseConfig) {
-      localStorage.setItem("MemoMind_session", JSON.stringify(userProfile));
+  // Forgot Password using Firebase
+  const forgotPassword = async (email: string) => {
+    if (hasFirebaseConfig && auth) {
+      try {
+        await sendPasswordResetEmail(auth, email);
+        return { success: true };
+      } catch (err: any) {
+        let errorMsg = err.message || "Failed to send reset link.";
+        if (err.code === "auth/user-not-found") {
+          errorMsg = "No account found with this email address.";
+        } else if (err.code === "auth/invalid-email") {
+          errorMsg = "Please enter a valid email address.";
+        }
+        return { success: false, error: errorMsg };
+      }
+    } else {
+      return { success: true };
     }
-
-    triggerWelcomeEmail(userProfile.email, userProfile.name);
-    setUser(userProfile);
-    return { success: true };
   };
 
   // Sign out / clear state
@@ -420,6 +508,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sendOtp,
         loginWithCredentials,
         signUpWithCredentials,
+        forgotPassword,
         logout,
         isClerkEnabled,
         welcomeEmail,

@@ -212,5 +212,5 @@ This project is for educational and demonstration purposes.
 ---
 
 <p align="center">
-  Built with 💜 by <a href="https://github.com/Reeti090206">Reeti</a>
+  Built with 💜 by <a href="https://github.com/Reeti090206">Reeti</a> & <a href="https://github.com/Gargi0620">Gargi</a>
 </p>
