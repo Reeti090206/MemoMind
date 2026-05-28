@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import Sidebar from "./Sidebar";
 import GlassLoginWall from "./GlassLoginWall";
-import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert } from "lucide-react";
+import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert, HelpCircle, ShieldCheck, CheckCircle2, ChevronRight, Activity, BookOpen, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
@@ -13,6 +13,33 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const { isAuthenticated, isLoading, user, welcomeEmail } = useAuth();
   const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showHelpDrawer, setShowHelpDrawer] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const welcomeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUserEmailRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated && user && user.email !== lastUserEmailRef.current) {
+      setShowWelcome(true);
+      lastUserEmailRef.current = user.email;
+      
+      if (welcomeTimerRef.current) {
+        clearTimeout(welcomeTimerRef.current);
+      }
+      
+      welcomeTimerRef.current = setTimeout(() => {
+        setShowWelcome(false);
+      }, 3500);
+    }
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    return () => {
+      if (welcomeTimerRef.current) {
+        clearTimeout(welcomeTimerRef.current);
+      }
+    };
+  }, []);
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -54,7 +81,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       case "/meetings": return "Read Meetings";
       case "/tasks": return "Active Task Board";
       case "/decisions": return "Decision History";
-      case "/search": return "Ask the AI Assistant";
+      case "/help": return "Help & Guide Center";
       case "/analytics": return "Team Success Stats";
       case "/graph": return "Visual Meeting Connections Map";
       case "/team": return "Team Workspace";
@@ -73,6 +100,71 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         <p className="text-xs font-mono text-[var(--foreground)]/50 uppercase tracking-widest animate-pulse">
           Retrieving MemoMind Memory Index...
         </p>
+      </div>
+    );
+  }
+
+  if (showWelcome && user) {
+    return (
+      <div className="fixed inset-0 w-screen h-screen bg-[#0b0b10] z-50 flex flex-col items-center justify-center text-[var(--foreground)] overflow-hidden">
+        {/* Subtle ambient lighting overlays */}
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyber-purple/10 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-cyber-cyan/10 rounded-full blur-[150px] pointer-events-none" />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="relative max-w-md w-full bg-[#13121d]/85 border border-white/[0.06] rounded-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl text-center space-y-6 flex flex-col items-center"
+        >
+          {/* Pulse Node Core */}
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(139,92,246,0.3)] relative">
+            <Network className="h-8 w-8 text-[var(--foreground)] animate-pulse" />
+            <span className="absolute -top-1 -right-1 h-3 w-3 bg-cyber-emerald rounded-full border-2 border-[#13121d] animate-ping" />
+          </div>
+
+          <div className="space-y-2">
+            <motion.h2 
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-black text-[var(--foreground)] tracking-tight"
+            >
+              Welcome back, {user.name.split(" ")[0]}!
+            </motion.h2>
+            <motion.p 
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-xs text-[var(--foreground)]/60 font-mono uppercase tracking-widest"
+            >
+              {user.role}
+            </motion.p>
+          </div>
+
+          <div className="flex items-center gap-3 px-4 py-2 bg-[var(--foreground)]/[0.03] border border-white/[0.05] rounded-2xl w-full">
+            <img src={user.avatar} className="h-10 w-10 rounded-xl bg-slate-900 border border-[var(--color-obsidian-border)] p-0.5 shrink-0" />
+            <div className="text-left overflow-hidden">
+              <span className="text-xs font-bold text-[var(--foreground)] block leading-tight">{user.name}</span>
+              <span className="text-[10px] text-[var(--foreground)]/60 block truncate mt-0.5">{user.email}</span>
+            </div>
+          </div>
+
+          {/* Dynamic Progress Loader */}
+          <div className="w-full space-y-2">
+            <div className="h-1.5 w-full bg-[var(--foreground)]/[0.05] rounded-full overflow-hidden p-[1px] border border-white/[0.03]">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 3.2, ease: "easeInOut" }}
+                className="h-full bg-gradient-to-r from-cyber-purple to-cyber-cyan rounded-full"
+              />
+            </div>
+            <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest animate-pulse block">
+              Restoring secure organizational brain sync...
+            </span>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -126,6 +218,15 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
+            {/* Help & Info Center Trigger */}
+            <button
+              onClick={() => setShowHelpDrawer(true)}
+              className="relative p-2 rounded-xl bg-obsidian-light/15 hover:bg-obsidian-light/30 active:bg-obsidian-light/45 transition-all border border-obsidian-border group shadow-md text-[var(--foreground)]/70 hover:text-cyber-purple hover:border-cyber-purple/35"
+              title="Platform Help & Quick Guide"
+            >
+              <HelpCircle className="h-4.5 w-4.5" />
+            </button>
+
             {/* Notification trigger bell */}
             <button
               onClick={() => setShowNotifications(true)}
@@ -276,6 +377,107 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
               {/* Compliance note */}
               <div className="mt-auto border-t border-[var(--color-obsidian-border)] pt-4 text-[9px] font-mono text-[var(--foreground)]/50 leading-relaxed uppercase tracking-wider">
                 💡 Real-time notifications active
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Sliding Help Center Drawer Overlay */}
+      <AnimatePresence>
+        {showHelpDrawer && (
+          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+            {/* Backdrop opacity layer */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowHelpDrawer(false)}
+              className="absolute inset-0 bg-black backdrop-blur-sm"
+            />
+            
+            {/* Drawer Container Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="w-full max-w-md bg-[var(--background)] border-l border-obsidian-border h-full relative z-10 shadow-2xl flex flex-col p-6 overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-5 border-b border-[var(--color-obsidian-border)] mb-5 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8.5 w-8.5 rounded-xl bg-cyber-purple/10 border border-cyber-purple/20 flex items-center justify-center shadow-sm shrink-0">
+                    <HelpCircle className="h-4.5 w-4.5 text-cyber-purple animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--foreground)] tracking-tight">Help & Info Center</h3>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono">MemoMind Capabilities & Quick Guide</p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setShowHelpDrawer(false)}
+                  className="p-1.5 rounded-lg bg-[var(--foreground)]/[0.05] hover:bg-cyber-rose/10 text-[var(--foreground)]/70 hover:text-cyber-rose border border-[var(--color-obsidian-border)] hover:border-cyber-rose/25 transition-all shadow-md shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Guide Contents */}
+              <div className="flex-1 space-y-6 text-xs text-[var(--foreground)]/80 leading-relaxed font-sans overflow-y-auto pr-1">
+                <div className="p-4 bg-cyber-purple/5 border border-cyber-purple/10 rounded-2xl space-y-2">
+                  <h4 className="font-bold text-[var(--foreground)] flex items-center gap-1.5 text-xs">
+                    <Activity className="h-4 w-4 text-cyber-cyan" /> What is MemoMind?
+                  </h4>
+                  <p className="text-[11px] text-[var(--foreground)]/70">
+                    MemoMind acts as your team's autonomous organization memory brain, linking audio syncs, screen sharing details, dynamic decision logs, and team responsibilities seamlessly into interactive network connections.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-bold text-[var(--foreground)] uppercase font-mono tracking-wider text-[10px] border-b border-[var(--color-obsidian-border)] pb-1.5">
+                    Platform Mechanics & Functionality
+                  </h4>
+                  
+                  {/* Item 1 */}
+                  <div className="space-y-1">
+                    <span className="font-bold text-[var(--foreground)] text-[11px] block">🎙️ Real-Time Live Assistant</span>
+                    <p className="text-[11px] text-[var(--foreground)]/70">
+                      Streams microphone recordings and captures active Chrome browser windows frame-by-frame, writing real-time dialogues, discovering key assignees, and warning about scheduling conflicts instantly.
+                    </p>
+                  </div>
+
+                  {/* Item 2 */}
+                  <div className="space-y-1">
+                    <span className="font-bold text-[var(--foreground)] text-[11px] block">📁 Audio Meeting Uploads</span>
+                    <p className="text-[11px] text-[var(--foreground)]/70">
+                      Supports uploading recorded meeting clips in `.mp3`, `.wav`, or `.m4a` format to run full structural Whisper transcribe briefings and multi-agent decision Extractions.
+                    </p>
+                  </div>
+
+                  {/* Item 3 */}
+                  <div className="space-y-1">
+                    <span className="font-bold text-[var(--foreground)] text-[11px] block">🔗 Plan Contradiction Engine</span>
+                    <p className="text-[11px] text-[var(--foreground)]/70">
+                      Automatically reviews decisions resolved in fresh syncs against past logged directions in the SQLite memory table, flagging risks if direction contradictions emerge.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-center">
+                  <a
+                    href="/help"
+                    onClick={() => setShowHelpDrawer(false)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all rounded-xl text-white font-bold tracking-wider uppercase text-[10px] w-full"
+                  >
+                    <BookOpen className="h-4 w-4" /> Go to Full Help Guide
+                  </a>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-auto border-t border-[var(--color-obsidian-border)] pt-4 text-[9px] font-mono text-[var(--foreground)]/50 leading-relaxed uppercase tracking-wider">
+                💡 MemoMind Memory Hub v1.2.6-stable
               </div>
             </motion.div>
           </div>

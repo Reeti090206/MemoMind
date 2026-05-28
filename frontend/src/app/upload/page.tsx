@@ -36,6 +36,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import FloatingSharePopup from "@/components/FloatingSharePopup";
 
 interface TaskItem {
   id: string;
@@ -83,10 +84,11 @@ export default function MeetingUpload() {
   const [monitorLogs, setMonitorLogs] = useState<string[]>([]);
   const [monitorTasks, setMonitorTasks] = useState<TaskItem[]>([]);
   const [monitorContradictions, setMonitorContradictions] = useState<ContradictionItem[]>([]);
-  const [monitorMetrics, setMonitorMetrics] = useState({ fps: 60, bitrate: 1412, db: -48 });
+    const [monitorMetrics, setMonitorMetrics] = useState({ fps: 60, bitrate: 1412, db: -48 });
   const [monitorStage, setMonitorStage] = useState<"idle" | "capturing" | "analyzing" | "completed" | "summarized">("idle");
   const [activeSpeaker, setActiveSpeaker] = useState<string>("None");
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(false); // AI pause flag
+  const [isMicMuted, setIsMicMuted] = useState(false); // microphone mute flag
   const [enableVisionAI, setEnableVisionAI] = useState(false);
   const [detectedParticipants, setDetectedParticipants] = useState<string[]>([]);
   const [activeApp, setActiveApp] = useState<string>("None");
@@ -1306,6 +1308,18 @@ export default function MeetingUpload() {
             <Tv className="h-3.5 w-3.5" /> Invite Live Assistant
           </button>
         </div>
+{ (isRecording || isMonitoring) && (
+  <FloatingSharePopup
+    isRecording={isRecording || isMonitoring}
+    isPaused={isPaused}
+    timer={isRecording ? micTimer : monitorTimer}
+    activeApp={activeApp}
+    onStop={isRecording ? stopRecording : stopMonitor}
+    onPauseAI={pauseMonitor}
+    onMuteMic={() => setIsMicMuted(prev => !prev)}
+    onResumeRecording={() => setIsPaused(false)}
+  />
+) }
 
         {isProcessing ? (
           /* Global Compilation Progress Screen */

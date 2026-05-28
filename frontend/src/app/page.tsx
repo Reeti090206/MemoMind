@@ -18,7 +18,7 @@ import {
   Award,
   Info
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 
 // Default initial state
 const DEFAULT_WIDGETS = {
@@ -126,15 +126,6 @@ export default function Dashboard() {
               className="flex items-center gap-2 px-5 py-3 text-xs bg-gradient-to-tr from-cyber-purple to-cyber-cyan hover:shadow-[0_0_20px_rgba(139,92,246,0.35)] transition-all duration-300 rounded-xl text-[var(--foreground)] font-bold tracking-wider uppercase border border-[var(--color-obsidian-border)]"
             >
               <Plus className="h-4 w-4" /> Add Meeting
-            </Link>
-          </motion.div>
-          
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link 
-              href="/search" 
-              className="flex items-center gap-2 px-5 py-3 text-xs bg-[var(--foreground)]/[0.05] hover:bg-[var(--foreground)]/[0.10] border border-[var(--color-obsidian-border)] hover:border-[var(--color-obsidian-border)] transition-all duration-300 rounded-xl text-[var(--foreground)]/90 font-bold tracking-wider uppercase"
-            >
-              <HelpCircle className="h-4 w-4 text-cyber-cyan" /> Ask AI
             </Link>
           </motion.div>
         </div>
@@ -457,38 +448,6 @@ export default function Dashboard() {
               </div>
 
             </div>
-          </motion.div>
-
-          {/* Premium Search / Memory AI CTA */}
-          <motion.div 
-            variants={itemVariants}
-            className="p-6 rounded-3xl bg-gradient-to-br from-cyber-purple/15 via-cyber-cyan/15 to-transparent border border-cyber-purple/20 relative overflow-hidden group shadow-lg"
-          >
-            {/* Background floating sparkles */}
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-300">
-              <Sparkles className="h-16 w-16 text-cyber-cyan" />
-            </div>
-            
-            <h3 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-cyber-cyan animate-pulse" /> Ask Your Team Memory
-            </h3>
-            
-            <p className="text-xs text-[var(--foreground)]/80 mt-2.5 leading-relaxed">
-              Have a question about a past sync? Simply query your shared brain. We index every sentence so you can trace alignments instantly.
-            </p>
-            
-            <blockquote className="mt-3.5 p-3 rounded-xl bg-black/35 border border-[var(--color-obsidian-border)] text-[11px] text-[var(--foreground)]/70 font-mono leading-normal italic">
-              "When did we discuss switching to Clerk and what was the main concern?"
-            </blockquote>
-            
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-4">
-              <Link
-                href="/search"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-gray-100 transition-all duration-300 rounded-xl text-obsidian-dark text-xs font-black uppercase tracking-wider border border-[var(--color-obsidian-border)]"
-              >
-                Open AI Chat <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </motion.div>
           </motion.div>
 
         </div>
