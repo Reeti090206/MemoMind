@@ -21,8 +21,8 @@
   /* Map legacy semantic names used across the codebase */
   --color-cyber-cyan: var(--mm-accent);
   --color-cyber-purple: var(--mm-highlight);
-  --color-cyber-emerald: var(--mm-muted);
-  --color-cyber-rose: var(--mm-dark);
+  --color-cyber-emerald: #10b981;
+  --color-cyber-rose: #f43f5e;
 
   /* Glass Variables */
   --glass-bg: rgba(34, 30, 38, 0.65);
@@ -133,8 +133,8 @@ body {
 /* Map legacy utility classes (text-cyber-*, bg-cyber-*, border-cyber-*) to the new palette */
 .text-cyber-cyan { color: var(--mm-accent) !important; }
 .text-cyber-purple { color: var(--mm-highlight) !important; }
-.text-cyber-emerald { color: var(--mm-muted) !important; }
-.text-cyber-rose { color: var(--mm-dark) !important; }
+.text-cyber-emerald { color: var(--color-cyber-emerald) !important; }
+.text-cyber-rose { color: #f43f5e !important; }
 
 .bg-cyber-cyan\/10 { background-color: color-mix(in srgb, var(--mm-accent) 12%, transparent) !important; }
 .bg-cyber-cyan\/15 { background-color: color-mix(in srgb, var(--mm-accent) 15%, transparent)  !important; }
@@ -142,6 +142,7 @@ body {
 .border-cyber-cyan\/20 { border-color: color-mix(in srgb, var(--mm-accent) 20%, rgba(255,255,255,0.02)) !important; }
 .border-cyber-cyan\/25 { border-color: color-mix(in srgb, var(--mm-accent) 25%, rgba(255,255,255,0.02)) !important; }
 .border-cyber-cyan\/30 { border-color: color-mix(in srgb, var(--mm-accent) 30%, rgba(255,255,255,0.02)) !important; }
+
 
 .bg-cyber-purple\/15 { background-color: color-mix(in srgb, var(--mm-highlight) 15%, transparent) !important; }
 .border-cyber-purple\/20 { border-color: color-mix(in srgb, var(--mm-highlight) 20%, rgba(255,255,255,0.02)) !important; }
@@ -180,4 +181,14 @@ body {
 
 .drift-particle {
   animation: slow-drift 12s infinite ease-in-out alternate;
+}
+
+/* Next.js dev indicator overlay text customization if present */
+[data-nextjs-indicator-wrapper], 
+[data-nextjs-indicator], 
+[data-nextjs-portal], 
+nextjs-portal, 
+#next-feedback {
+  --foreground: var(--mm-accent) !important;
+  color: var(--mm-accent) !important;
 }

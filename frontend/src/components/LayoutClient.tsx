@@ -238,7 +238,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
                 <Bell className="h-4.5 w-4.5 text-[var(--foreground)]/70 group-hover:text-[var(--foreground)]" />
               )}
               {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-cyber-rose rounded-full text-[8px] font-mono font-bold flex items-center justify-center border border-obsidian-dark shadow-[0_0_8px_rgba(244,63,94,0.6)]">
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-cyber-rose rounded-full text-[8px] font-mono font-bold flex items-center justify-center text-white border border-obsidian-dark shadow-[0_0_8px_rgba(244,63,94,0.6)]">
                   {notifications.length}
                 </span>
               )}

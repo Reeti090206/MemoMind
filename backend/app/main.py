@@ -54,7 +54,7 @@ def on_startup():
 @app.get("/api/meetings")
 def get_meetings(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
+        meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
     # Sort by date descending
@@ -102,10 +102,23 @@ def get_meeting(meeting_id: int, session: Session = Depends(get_session)):
         "decisions": decisions,
         "tasks": tasks,
         "contradictions": resolved_contradictions,
-        "unresolved_topics": unresolved
+        "unresolved_topics": unresolved,
+        "team_name": meeting.team_name
     }
 
-def save_meeting_to_db(session: Session, title: str, trans_res: Dict[str, Any], user_email: Optional[str] = None) -> Meeting:
+def resolve_team_name(title: str, team_name_param: Optional[str] = None) -> str:
+    if team_name_param:
+        return team_name_param
+    title_lower = title.lower() if title else ""
+    if "backend" in title_lower or "database" in title_lower or "auth" in title_lower:
+        return "Backend Team"
+    if "client" in title_lower or "acme" in title_lower:
+        return "Acme Corp"
+    if "saas" in title_lower or "scaling" in title_lower or "cloud" in title_lower:
+        return "Cloud Team"
+    return "Team Alpha"
+
+def save_meeting_to_db(session: Session, title: str, trans_res: Dict[str, Any], user_email: Optional[str] = None, team_name: Optional[str] = None) -> Meeting:
     # Extract Meeting Intelligence
     gpt_intel = trans_res.get("_gpt_intelligence")
     if gpt_intel and gpt_intel.get("decisions"):
@@ -113,16 +126,19 @@ def save_meeting_to_db(session: Session, title: str, trans_res: Dict[str, Any], 
     else:
         intel_res = ai_service.extract_intelligence(trans_res.get("transcript_segments", []))
     
+    resolved_title = title if title != "New Meeting Session" else trans_res.get("title", title)
+    
     # Create Meeting Record
     meeting = Meeting(
-        title=title if title != "New Meeting Session" else trans_res.get("title", title),
+        title=resolved_title,
         date=datetime.now().strftime("%Y-%m-%d %H:%M"),
         duration=trans_res.get("duration", 0),
         summary=trans_res.get("summary", "No summary available."),
         efficiency_score=intel_res.get("efficiency_score", 0.0),
         tension_score=intel_res.get("tension_score", 0.0),
         speaker_stats=json.dumps(trans_res.get("speaker_stats", {})),
-        user_email=user_email
+        user_email=user_email,
+        team_name=resolve_team_name(resolved_title, team_name)
     )
     session.add(meeting)
     session.commit()
@@ -212,6 +228,7 @@ async def upload_meeting(
     realtime_segments: Optional[str] = Form(None),
     realtime_apps: Optional[str] = Form(None),
     user_email: Optional[str] = Form(None),
+    team_name: Optional[str] = Form(None),
     session: Session = Depends(get_session)
 ):
     # Save uploaded file
@@ -229,7 +246,7 @@ async def upload_meeting(
         )
         
         # Save to DB using the helper function
-        meeting = save_meeting_to_db(session, title, trans_res, user_email=user_email)
+        meeting = save_meeting_to_db(session, title, trans_res, user_email=user_email, team_name=team_name)
         
         # Refresh to load relationships
         session.refresh(meeting)
@@ -308,7 +325,7 @@ async def upload_meeting(
 @app.get("/api/tasks")
 def get_tasks(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        return session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        return session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
     return session.exec(select(Task)).all()
 
 @app.put("/api/tasks/{task_id}")
@@ -336,7 +353,7 @@ def update_task(task_id: int, payload: Dict[str, Any], session: Session = Depend
 @app.get("/api/decisions")
 def get_decisions(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
     else:
         decisions = session.exec(select(Decision)).all()
     results = []
@@ -366,9 +383,9 @@ def search_memory(payload: Dict[str, str], user_email: Optional[str] = None, ses
     
     # Gather database content for embedding match
     if final_email:
-        meetings = session.exec(select(Meeting).where(Meeting.user_email == final_email)).all()
-        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == final_email)).all()
-        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == final_email)).all()
+        meetings = session.exec(select(Meeting).where((Meeting.user_email == final_email) | (Meeting.user_email == None))).all()
+        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == final_email) | (Meeting.user_email == None))).all()
+        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == final_email) | (Meeting.user_email == None))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
         decisions = session.exec(select(Decision)).all()
@@ -393,11 +410,11 @@ def search_memory(payload: Dict[str, str], user_email: Optional[str] = None, ses
 @app.get("/api/analytics/widgets")
 def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
-        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
-        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
-        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
-        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
         tasks = session.exec(select(Task)).all()
@@ -432,9 +449,9 @@ def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get
 @app.get("/api/analytics")
 def get_analytics(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
-        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
-        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+        meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
         unresolved = session.exec(select(UnresolvedTopic)).all()
@@ -529,10 +546,10 @@ def get_memory_graph(meeting_id: Optional[int] = None, user_email: Optional[str]
     else:
         # Global connection map for all meetings belonging to user_email (if provided)
         if user_email:
-            meetings = session.exec(select(Meeting).where(Meeting.user_email == user_email)).all()
-            decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
-            tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
-            unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where(Meeting.user_email == user_email)).all()
+            meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+            decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+            tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+            unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
         else:
             meetings = session.exec(select(Meeting)).all()
             decisions = session.exec(select(Decision)).all()

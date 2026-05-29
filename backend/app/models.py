@@ -18,6 +18,7 @@ class Meeting(SQLModel, table=True):
     tension_score: float = 12.0
     speaker_stats: str = Field(default="{}")  # JSON string representing {"Speaker A": percentage, ...}
     user_email: Optional[str] = Field(default=None, index=True)
+    team_name: Optional[str] = Field(default=None)
 
     # Relationships
     segments: List["TranscriptSegment"] = Relationship(back_populates="meeting")

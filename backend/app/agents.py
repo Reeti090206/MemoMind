@@ -682,6 +682,16 @@ class LiveStreamOrchestratorAgent:
             total = sum(speaker_counts.values())
             speaker_stats = {spk: round((val / total) * 100, 1) for spk, val in speaker_counts.items()} if total > 0 else {}
 
+        # Determine team name based on title or other indicators, default to "Team Alpha"
+        title_lower = self.meeting_title.lower() if self.meeting_title else ""
+        guessed_team = "Team Alpha"
+        if "backend" in title_lower or "database" in title_lower or "auth" in title_lower:
+            guessed_team = "Backend Team"
+        elif "client" in title_lower or "acme" in title_lower:
+            guessed_team = "Acme Corp"
+        elif "saas" in title_lower or "scaling" in title_lower or "cloud" in title_lower:
+            guessed_team = "Cloud Team"
+
         # 3. Create Meeting Record
         meeting = Meeting(
             title=self.meeting_title,
@@ -691,7 +701,8 @@ class LiveStreamOrchestratorAgent:
             efficiency_score=summary_res.get("efficiency_score", 85.0),
             tension_score=summary_res.get("tension_score", 10.0),
             speaker_stats=json.dumps(speaker_stats),
-            user_email=self.user_email
+            user_email=self.user_email,
+            team_name=guessed_team
         )
         self.db.add(meeting)
         self.db.commit()

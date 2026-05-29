@@ -20,7 +20,8 @@ def seed_data():
             summary="Kickoff sync for Project Alpha. Focused heavily on high-level database architecture, frontend layout, and developer setup. Aman recommended avoiding microservices to keep the architectural footprint light.",
             efficiency_score=92.0,
             tension_score=8.0,
-            speaker_stats=json.dumps({"Aman (Backend)": 45.0, "Reeti (Frontend)": 35.0, "Sarah (Product)": 20.0})
+            speaker_stats=json.dumps({"Aman (Backend)": 45.0, "Reeti (Frontend)": 35.0, "Sarah (Product)": 20.0}),
+            team_name="Team Alpha"
         )
 
         m2 = Meeting(
@@ -30,7 +31,8 @@ def seed_data():
             summary="Technical deep-dive on auth setup and database schema details. Decided on PostgreSQL. Custom JWT authentication vs Clerk OAuth was debated heavily and left unresolved due to pricing and custom schema requirements.",
             efficiency_score=78.5,
             tension_score=24.0,
-            speaker_stats=json.dumps({"Aman (Backend)": 50.0, "Reeti (Frontend)": 20.0, "Sarah (Product)": 30.0})
+            speaker_stats=json.dumps({"Aman (Backend)": 50.0, "Reeti (Frontend)": 20.0, "Sarah (Product)": 30.0}),
+            team_name="Backend Team"
         )
 
         m3 = Meeting(
@@ -40,7 +42,8 @@ def seed_data():
             summary="A critical alignment sync where the architectural direction changed. The team decided to shift to microservices for the new user profile and real-time feed endpoints due to updated horizontal scaling projections. Clerk OAuth was finalized.",
             efficiency_score=86.0,
             tension_score=15.0,
-            speaker_stats=json.dumps({"Aman (Backend)": 35.0, "Reeti (Frontend)": 45.0, "Sarah (Product)": 20.0})
+            speaker_stats=json.dumps({"Aman (Backend)": 35.0, "Reeti (Frontend)": 45.0, "Sarah (Product)": 20.0}),
+            team_name="Cloud Team"
         )
 
         session.add_all([m1, m2, m3])
