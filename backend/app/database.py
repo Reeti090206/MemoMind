@@ -9,6 +9,7 @@ connect_args = {"check_same_thread": False}
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 def init_db():
+    from app.models import UserSettings, SettingsHistory
     SQLModel.metadata.create_all(engine)
     # Check if user_email column exists, if not, add it
     from sqlalchemy import inspect, text
@@ -46,6 +47,13 @@ def init_db():
                     text("UPDATE meeting SET team_name = :team WHERE id = :id"),
                     {"team": guessed_team, "id": m_id}
                 )
+            session.commit()
+            
+    # Check if reminder_sent column exists in task table
+    task_columns = [col["name"] for col in inspector.get_columns("task")]
+    if "reminder_sent" not in task_columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE task ADD COLUMN reminder_sent BOOLEAN DEFAULT 0"))
             session.commit()
 
 def get_session():

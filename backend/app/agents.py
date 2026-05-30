@@ -7,7 +7,7 @@ import base64
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from sqlmodel import Session, select
-from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic
+from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic, UserSettings
 
 # Custom logger for agents
 def agent_log(agent_name: str, message: str):
@@ -628,6 +628,11 @@ class LiveStreamOrchestratorAgent:
 
     def detect_realtime_contradictions(self, current_decisions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Checks current decisions against historical memory."""
+        if self.user_email:
+            settings = self.db.get(UserSettings, self.user_email)
+            if settings and not settings.notification_contradictions:
+                return []
+                
         contradictions = []
         for new_dec in current_decisions:
             new_text = new_dec.get("text", "").lower()
@@ -692,6 +697,20 @@ class LiveStreamOrchestratorAgent:
         elif "saas" in title_lower or "scaling" in title_lower or "cloud" in title_lower:
             guessed_team = "Cloud Team"
 
+        # Save audio buffer to file if not empty
+        audio_path = None
+        if self.audio_buffer:
+            import uuid
+            os.makedirs("uploads", exist_ok=True)
+            filename = f"live_session_{uuid.uuid4().hex}.webm"
+            path = os.path.join("uploads", filename)
+            try:
+                with open(path, "wb") as f:
+                    f.write(self.audio_buffer)
+                audio_path = path
+            except Exception as e:
+                print(f"[Orchestrator Save Audio Error] {e}")
+
         # 3. Create Meeting Record
         meeting = Meeting(
             title=self.meeting_title,
@@ -702,7 +721,8 @@ class LiveStreamOrchestratorAgent:
             tension_score=summary_res.get("tension_score", 10.0),
             speaker_stats=json.dumps(speaker_stats),
             user_email=self.user_email,
-            team_name=guessed_team
+            team_name=guessed_team,
+            audio_path=audio_path
         )
         self.db.add(meeting)
         self.db.commit()

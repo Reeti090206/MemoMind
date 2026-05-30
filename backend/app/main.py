@@ -16,11 +16,105 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.database import init_db, get_session, engine
-from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic, User, MeetingInvitation
+from app.models import (
+    Meeting, TranscriptSegment, Decision, Task, Contradiction, 
+    UnresolvedTopic, User, MeetingInvitation, UserSettings, SettingsHistory
+)
 from app.ai_service import AIService
 from app.sample_data import seed_data
 import re
 from app.agents import LiveStreamOrchestratorAgent
+import base64
+import hashlib
+from cryptography.fernet import Fernet
+
+def get_encryption_key() -> bytes:
+    # Deterministic 32-byte key derived from OPENAI_API_KEY or static secret
+    seed = os.getenv("OPENAI_API_KEY", "MemoMind_Fallback_Symmetric_Secret_Key_2026_Salt")
+    key_hash = hashlib.sha256(seed.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(key_hash)
+
+def encrypt_key(plain_text: str) -> str:
+    if not plain_text:
+        return ""
+    if "••••" in plain_text:
+        return plain_text
+    try:
+        f = Fernet(get_encryption_key())
+        return f.encrypt(plain_text.encode("utf-8")).decode("utf-8")
+    except Exception as e:
+        print(f"[Encryption Error]: {e}")
+        return plain_text
+
+def decrypt_key(cipher_text: str) -> str:
+    if not cipher_text:
+        return ""
+    if "••••" in cipher_text:
+        return cipher_text
+    try:
+        f = Fernet(get_encryption_key())
+        return f.decrypt(cipher_text.encode("utf-8")).decode("utf-8")
+    except Exception as e:
+        return cipher_text
+
+
+class PrivateNetworkCORSMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        # Extract Origin from request headers
+        origin = None
+        for key, value in scope.get("headers", []):
+            if key == b"origin":
+                origin = value.decode("utf-8")
+                break
+
+        # Check if origin is a local address
+        is_local_origin = False
+        if origin:
+            is_local_origin = (
+                "localhost" in origin 
+                or "127.0.0.1" in origin 
+                or origin.startswith("http://192.168.")
+                or origin.startswith("http://10.")
+                or origin.startswith("http://172.16.")
+            )
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = message.setdefault("headers", [])
+                
+                # 1. Add Access-Control-Allow-Private-Network header
+                has_pna = any(h[0] == b"access-control-allow-private-network" for h in headers)
+                if not has_pna:
+                    headers.append((b"access-control-allow-private-network", b"true"))
+                
+                # 2. If it is a local origin and CORS headers are missing/blocked, inject them
+                if is_local_origin:
+                    has_origin = any(h[0] == b"access-control-allow-origin" for h in headers)
+                    if not has_origin:
+                        headers.append((b"access-control-allow-origin", origin.encode("utf-8")))
+                        
+                        has_credentials = any(h[0] == b"access-control-allow-credentials" for h in headers)
+                        if not has_credentials:
+                            headers.append((b"access-control-allow-credentials", b"true"))
+                            
+                        has_methods = any(h[0] == b"access-control-allow-methods" for h in headers)
+                        if not has_methods:
+                            headers.append((b"access-control-allow-methods", b"*"))
+                            
+                        has_headers = any(h[0] == b"access-control-allow-headers" for h in headers)
+                        if not has_headers:
+                            headers.append((b"access-control-allow-headers", b"*"))
+
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
 
 
 app = FastAPI(title="MemoMind: Organizational Memory Intelligence API")
@@ -36,6 +130,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(PrivateNetworkCORSMiddleware)
+
 
 # AI Service Instance
 ai_service = AIService()
@@ -45,9 +141,10 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     init_db()
     # seed_data() is disabled to keep MemoMind completely real and free of hardcoded mock data.
+    asyncio.create_task(background_scheduler_loop())
 
 # ----------------- MEETING ENDPOINTS -----------------
 
@@ -166,7 +263,8 @@ def save_meeting_to_db(
     team_name: Optional[str] = None,
     parent_meeting_id: Optional[int] = None,
     description: Optional[str] = None,
-    invited_emails: Optional[List[str]] = None
+    invited_emails: Optional[List[str]] = None,
+    audio_path: Optional[str] = None
 ) -> Meeting:
     # Extract Meeting Intelligence
     gpt_intel = trans_res.get("_gpt_intelligence")
@@ -189,7 +287,8 @@ def save_meeting_to_db(
         user_email=user_email,
         team_name=resolve_team_name(resolved_title, team_name),
         parent_meeting_id=parent_meeting_id,
-        description=description
+        description=description,
+        audio_path=audio_path
     )
     session.add(meeting)
     session.commit()
@@ -392,7 +491,8 @@ async def upload_meeting(
             team_name=team_name,
             parent_meeting_id=parent_meeting_id,
             description=description,
-            invited_emails=emails_list
+            invited_emails=emails_list,
+            audio_path=file_path
         )
         
         # Refresh to load relationships
@@ -1408,7 +1508,10 @@ def get_user_progress(user_email: str, session: Session = Depends(get_session)):
         elif "fletcher" in user_email.lower():
             user = User(phone="+15550100004", name="Fletcher (QA)", email="fletcher@company.com", role="Workspace Contributor")
         else:
-            user = User(phone="+15550199999", name=user_email.split("@")[0].capitalize(), email=user_email, role="Workspace Contributor")
+            import hashlib
+            email_hash = int(hashlib.md5(user_email.encode('utf-8')).hexdigest(), 16) % 10000000
+            phone_num = f"+1555{email_hash:07d}"
+            user = User(phone=phone_num, name=user_email.split("@")[0].capitalize(), email=user_email, role="Workspace Contributor")
         session.add(user)
         session.commit()
         session.refresh(user)
@@ -1465,7 +1568,7 @@ def get_user_progress(user_email: str, session: Session = Depends(get_session)):
     # Calculate decision contributions
     decisions_count = 0
     for m_id in [m["id"] for m in attended_meetings]:
-        decisions_count += session.exec(select(Decision).where(Decision.meeting_id == m_id)).count()
+        decisions_count += len(session.exec(select(Decision).where(Decision.meeting_id == m_id)).all())
         
     recent_tasks = sorted(user_tasks, key=lambda x: x.id or 0, reverse=True)[:3]
     recent_meetings = sorted(attended_meetings, key=lambda x: x["date"], reverse=True)[:3]
@@ -1546,4 +1649,451 @@ def respond_meeting_invitation(meeting_id: int, payload: Dict[str, str], session
     session.add(inv)
     session.commit()
     return {"status": "success", "invitation_status": inv.status}
+
+
+# ----------------- SETTINGS MANAGEMENT ENDPOINTS -----------------
+
+def get_default_settings(user_email: str) -> UserSettings:
+    return UserSettings(
+        user_email=user_email,
+        gmeet=True,
+        zoom=False,
+        teams=False,
+        discord=True,
+        tls_secure=True,
+        record_indicator=True,
+        auto_purge=False,
+        purge_after_days="Never",
+        notification_email=True,
+        notification_push=False,
+        notification_inapp=True,
+        notification_contradictions=True,
+        openai_key=None,
+        postgres_url=None,
+        vector_db="Cloud Search Database"
+    )
+
+@app.get("/api/users/{user_email}/settings")
+def get_user_settings(user_email: str, session: Session = Depends(get_session)):
+    settings = session.get(UserSettings, user_email)
+    if not settings:
+        settings = get_default_settings(user_email)
+        session.add(settings)
+        session.commit()
+        session.refresh(settings)
+    
+    # Return masked values for secret configs to prevent exposing keys in client responses
+    masked_openai = "sk-proj-••••••••••••••••••••" if settings.openai_key else ""
+    
+    masked_db = ""
+    if settings.postgres_url:
+        db_str = decrypt_key(settings.postgres_url)
+        if "@" in db_str:
+            prefix, suffix = db_str.split("@", 1)
+            if "://" in prefix:
+                proto, creds = prefix.split("://", 1)
+                masked_db = f"{proto}://••••••••@{suffix}"
+            else:
+                masked_db = f"••••••••@{suffix}"
+        else:
+            masked_db = "••••••••"
+
+    return {
+        "user_email": settings.user_email,
+        "gmeet": settings.gmeet,
+        "zoom": settings.zoom,
+        "teams": settings.teams,
+        "discord": settings.discord,
+        "tls_secure": settings.tls_secure,
+        "record_indicator": settings.record_indicator,
+        "auto_purge": settings.auto_purge,
+        "purge_after_days": settings.purge_after_days,
+        "notification_email": settings.notification_email,
+        "notification_push": settings.notification_push,
+        "notification_inapp": settings.notification_inapp,
+        "notification_contradictions": settings.notification_contradictions,
+        "openai_key": masked_openai,
+        "postgres_url": masked_db,
+        "vector_db": settings.vector_db,
+        "updated_at": settings.updated_at.isoformat() if settings.updated_at else datetime.utcnow().isoformat()
+    }
+
+@app.post("/api/users/{user_email}/settings")
+def save_user_settings(user_email: str, payload: Dict[str, Any], session: Session = Depends(get_session)):
+    settings = session.get(UserSettings, user_email)
+    if not settings:
+        settings = get_default_settings(user_email)
+        session.add(settings)
+        session.commit()
+        session.refresh(settings)
+
+    changed_by = payload.get("changed_by", user_email)
+    
+    def log_change(field_name: str, old_val: Any, new_val: Any):
+        if old_val != new_val:
+            history = SettingsHistory(
+                user_email=user_email,
+                setting_name=field_name,
+                old_value=str(old_val) if old_val is not None else None,
+                new_value=str(new_val) if new_val is not None else None,
+                changed_by=changed_by
+            )
+            session.add(history)
+
+    boolean_fields = [
+        "gmeet", "zoom", "teams", "discord",
+        "tls_secure", "record_indicator", "auto_purge",
+        "notification_email", "notification_push", "notification_inapp", "notification_contradictions"
+    ]
+    for field in boolean_fields:
+        if field in payload:
+            new_val = bool(payload[field])
+            old_val = getattr(settings, field)
+            log_change(field, old_val, new_val)
+            setattr(settings, field, new_val)
+            
+    if "purge_after_days" in payload:
+        new_val = str(payload["purge_after_days"])
+        old_val = settings.purge_after_days
+        log_change("purge_after_days", old_val, new_val)
+        settings.purge_after_days = new_val
+        
+    if "vector_db" in payload:
+        new_val = str(payload["vector_db"])
+        old_val = settings.vector_db
+        log_change("vector_db", old_val, new_val)
+        settings.vector_db = new_val
+
+    if "openai_key" in payload:
+        new_key = payload["openai_key"]
+        if new_key and "••••" not in new_key:
+            old_key_masked = "sk-proj-••••••••••••••••••••" if settings.openai_key else ""
+            log_change("openai_key", old_key_masked, "sk-proj-••••••••••••••••••••")
+            settings.openai_key = encrypt_key(new_key)
+            
+    if "postgres_url" in payload:
+        new_db = payload["postgres_url"]
+        if new_db and "••••" not in new_db:
+            old_db_masked = "postgresql://••••••••@..." if settings.postgres_url else ""
+            log_change("postgres_url", old_db_masked, "postgresql://••••••••@...")
+            settings.postgres_url = encrypt_key(new_db)
+
+    settings.updated_at = datetime.utcnow()
+    session.add(settings)
+    session.commit()
+    
+    return {"status": "success", "message": "Settings updated successfully"}
+
+@app.post("/api/users/{user_email}/settings/test-ai")
+def test_openai_key(user_email: str, payload: Dict[str, Any], session: Session = Depends(get_session)):
+    key_to_test = payload.get("openai_key")
+    
+    if not key_to_test or "••••" in key_to_test:
+        settings = session.get(UserSettings, user_email)
+        if settings and settings.openai_key:
+            key_to_test = decrypt_key(settings.openai_key)
+            
+    if not key_to_test:
+        return {"status": "error", "message": "No OpenAI API key configured or provided to test."}
+        
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=key_to_test)
+        client.models.list()
+        return {"status": "success", "message": "OpenAI API Key verified successfully! Connection established."}
+    except Exception as e:
+        return {"status": "error", "message": f"Validation failed: {str(e)}"}
+
+@app.post("/api/users/{user_email}/settings/test-db")
+def test_database_connection(user_email: str, payload: Dict[str, Any], session: Session = Depends(get_session)):
+    db_to_test = payload.get("postgres_url")
+    
+    if not db_to_test or "••••" in db_to_test:
+        settings = session.get(UserSettings, user_email)
+        if settings and settings.postgres_url:
+            db_to_test = decrypt_key(settings.postgres_url)
+            
+    if not db_to_test:
+        return {"status": "error", "message": "No database connection string configured or provided to test."}
+        
+    try:
+        from sqlalchemy import create_engine, text
+        test_engine = create_engine(db_to_test, connect_args={"connect_timeout": 5} if "postgres" in db_to_test else {})
+        with test_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "success", "message": "Database connection verified successfully! Connection established."}
+    except Exception as e:
+        return {"status": "error", "message": f"Connection failed: {str(e)}"}
+
+@app.get("/api/users/{user_email}/settings/history")
+def get_settings_history(user_email: str, session: Session = Depends(get_session)):
+    history = session.exec(
+        select(SettingsHistory)
+        .where(SettingsHistory.user_email == user_email)
+        .order_by(SettingsHistory.timestamp.desc())
+    ).all()
+    
+    return [
+        {
+            "id": h.id,
+            "setting_name": h.setting_name,
+            "old_value": h.old_value,
+            "new_value": h.new_value,
+            "changed_by": h.changed_by,
+            "timestamp": h.timestamp.isoformat()
+        }
+        for h in history
+    ]
+
+@app.post("/api/users/{user_email}/settings/reset")
+def reset_settings_defaults(user_email: str, payload: Dict[str, Any], session: Session = Depends(get_session)):
+    settings = session.get(UserSettings, user_email)
+    if settings:
+        session.delete(settings)
+        session.commit()
+    
+    changed_by = payload.get("changed_by", user_email)
+    history = SettingsHistory(
+        user_email=user_email,
+        setting_name="all_settings",
+        old_value="custom",
+        new_value="defaults_restored",
+        changed_by=changed_by
+    )
+    session.add(history)
+    session.commit()
+    
+    return {"status": "success", "message": "Settings restored to defaults successfully"}
+
+@app.get("/api/users/{user_email}/settings/export")
+def export_settings(user_email: str, session: Session = Depends(get_session)):
+    settings = session.get(UserSettings, user_email)
+    if not settings:
+        settings = get_default_settings(user_email)
+        
+    return {
+        "gmeet": settings.gmeet,
+        "zoom": settings.zoom,
+        "teams": settings.teams,
+        "discord": settings.discord,
+        "tls_secure": settings.tls_secure,
+        "record_indicator": settings.record_indicator,
+        "auto_purge": settings.auto_purge,
+        "purge_after_days": settings.purge_after_days,
+        "notification_email": settings.notification_email,
+        "notification_push": settings.notification_push,
+        "notification_inapp": settings.notification_inapp,
+        "notification_contradictions": settings.notification_contradictions,
+        "openai_key": decrypt_key(settings.openai_key) if settings.openai_key else "",
+        "postgres_url": decrypt_key(settings.postgres_url) if settings.postgres_url else "",
+        "vector_db": settings.vector_db
+    }
+
+@app.post("/api/users/{user_email}/settings/import")
+def import_settings(user_email: str, payload: Dict[str, Any], session: Session = Depends(get_session)):
+    settings = session.get(UserSettings, user_email)
+    if not settings:
+        settings = get_default_settings(user_email)
+        
+    changed_by = payload.get("changed_by", user_email)
+    
+    def log_change(field_name: str, old_val: Any, new_val: Any):
+        if old_val != new_val:
+            history = SettingsHistory(
+                user_email=user_email,
+                setting_name=field_name,
+                old_value=str(old_val) if old_val is not None else None,
+                new_value=str(new_val) if new_val is not None else None,
+                changed_by=changed_by
+            )
+            session.add(history)
+
+    config = payload.get("settings", {})
+    
+    boolean_fields = [
+        "gmeet", "zoom", "teams", "discord",
+        "tls_secure", "record_indicator", "auto_purge",
+        "notification_email", "notification_push", "notification_inapp", "notification_contradictions"
+    ]
+    for field in boolean_fields:
+        if field in config:
+            new_val = bool(config[field])
+            old_val = getattr(settings, field)
+            log_change(field, old_val, new_val)
+            setattr(settings, field, new_val)
+            
+    if "purge_after_days" in config:
+        new_val = str(config["purge_after_days"])
+        old_val = settings.purge_after_days
+        log_change("purge_after_days", old_val, new_val)
+        settings.purge_after_days = new_val
+        
+    if "vector_db" in config:
+        new_val = str(config["vector_db"])
+        old_val = settings.vector_db
+        log_change("vector_db", old_val, new_val)
+        settings.vector_db = new_val
+
+    if "openai_key" in config:
+        new_key = config["openai_key"]
+        if new_key:
+            old_key_masked = "sk-proj-••••••••••••••••••••" if settings.openai_key else ""
+            log_change("openai_key", old_key_masked, "sk-proj-••••••••••••••••••••")
+            settings.openai_key = encrypt_key(new_key)
+            
+    if "postgres_url" in config:
+        new_db = config["postgres_url"]
+        if new_db:
+            old_db_masked = "postgresql://••••••••@..." if settings.postgres_url else ""
+            log_change("postgres_url", old_db_masked, "postgresql://••••••••@...")
+            settings.postgres_url = encrypt_key(new_db)
+
+    settings.updated_at = datetime.utcnow()
+    session.add(settings)
+    session.commit()
+    
+    return {"status": "success", "message": "Settings imported successfully"}
+
+
+# ----------------- BACKGROUND TASKS & NOTIFICATIONS -----------------
+
+def send_email_notification(to_email: str, subject: str, body_text: str, body_html: str):
+    os.makedirs("sent_emails", exist_ok=True)
+    filename = f"sent_emails/reminder_{to_email.replace('@', '_at_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(body_html)
+        
+    sender_email = os.getenv("SENDER_EMAIL", "reetikhandelwal09@gmail.com")
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = os.getenv("SMTP_PORT")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    
+    if smtp_host and smtp_port and smtp_user and smtp_password:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"MemoMind AI Reminders <{sender_email}>"
+            msg["To"] = to_email
+            
+            msg.attach(MIMEText(body_text, "plain"))
+            msg.attach(MIMEText(body_html, "html"))
+            
+            if smtp_port == "465":
+                server = smtplib.SMTP_SSL(smtp_host, int(smtp_port))
+            else:
+                server = smtplib.SMTP(smtp_host, int(smtp_port))
+                server.starttls()
+                
+            server.login(smtp_user, smtp_password)
+            server.sendmail(sender_email, to_email, msg.as_string())
+            server.quit()
+            print(f"[SMTP Email Sent] To: {to_email}, Subject: {subject}")
+        except Exception as e:
+            print(f"[SMTP Email Error]: {e}")
+
+async def check_and_delete_audio_files():
+    session = Session(engine)
+    try:
+        meetings = session.exec(select(Meeting).where(Meeting.audio_path != None)).all()
+        for m in meetings:
+            if not m.user_email:
+                continue
+            settings = session.get(UserSettings, m.user_email)
+            if settings and settings.auto_purge:
+                days_str = settings.purge_after_days
+                if days_str == "Never":
+                    continue
+                    
+                try:
+                    meet_date = datetime.strptime(m.date, "%Y-%m-%d %H:%M")
+                    age = datetime.now() - meet_date
+                    
+                    days_threshold = 0
+                    if days_str == "1":
+                        days_threshold = 1
+                    elif days_str == "7":
+                        days_threshold = 7
+                    elif days_str == "30":
+                        days_threshold = 30
+                        
+                    if days_threshold > 0 and age.days >= days_threshold:
+                        if m.audio_path and os.path.exists(m.audio_path):
+                            os.remove(m.audio_path)
+                            print(f"[Auto-Purge] Deleted audio file: {m.audio_path} for Meeting #{m.id}")
+                        m.audio_path = None
+                        session.add(m)
+                        session.commit()
+                except Exception as e:
+                    print(f"[Auto-Purge Error] For meeting #{m.id}: {e}")
+    finally:
+        session.close()
+
+async def check_and_send_task_reminders():
+    session = Session(engine)
+    try:
+        tasks = session.exec(select(Task).where(Task.status != "done", Task.reminder_sent == False)).all()
+        for t in tasks:
+            m = session.get(Meeting, t.meeting_id)
+            if not m or not m.user_email:
+                continue
+                
+            settings = session.get(UserSettings, m.user_email)
+            if not settings or not settings.notification_email:
+                continue
+                
+            due_soon = False
+            deadline_str = t.deadline
+            
+            try:
+                due_date = datetime.strptime(deadline_str.strip(), "%Y-%m-%d")
+                delta = due_date - datetime.now()
+                if delta.days <= 1:
+                    due_soon = True
+            except ValueError:
+                dl_lower = deadline_str.lower()
+                if "today" in dl_lower or "tomorrow" in dl_lower or "friday" in dl_lower:
+                    due_soon = True
+            
+            if due_soon:
+                subject = f"⚠️ MemoMind Task Reminder: '{t.title}' is due soon!"
+                body_text = f"Hello,\n\nThis is a reminder that the task '{t.title}' assigned to {t.owner} is due on {t.deadline}.\n\nAccess your workspace: http://localhost:3000\n\nBest,\nMemoMind AI"
+                body_html = f"""
+                <html>
+                <body style="font-family: sans-serif; background-color: #0b0b10; color: #ffffff; padding: 20px;">
+                  <div style="max-width: 600px; margin: 0 auto; background-color: #13121d; border: 1px solid #232230; padding: 25px; border-radius: 16px;">
+                    <h2 style="color: #f59e0b; margin-top: 0;">⚠️ Task Due Alert</h2>
+                    <p>Hello,</p>
+                    <p>This is an automated reminder that the following task is due soon:</p>
+                    <div style="background-color: rgba(255,255,255,0.03); border: 1px solid #232230; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                      <strong style="color: #fff; font-size: 14px;">{t.title}</strong><br/>
+                      <span style="font-size: 12px; color: #a1a1aa;">Assignee: {t.owner} | Due: {t.deadline}</span>
+                    </div>
+                    <p><a href="http://localhost:3000/tasks" style="display: inline-block; padding: 10px 20px; background-color: #8b5cf6; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 12px;">View Task Board</a></p>
+                    <hr style="border: 0; border-top: 1px solid #232230; margin: 20px 0;"/>
+                    <p style="font-size: 10px; color: #71717a;">You received this because 'Email me before a task is due' is enabled in your MemoMind settings.</p>
+                  </div>
+                </body>
+                </html>
+                """
+                send_email_notification(m.user_email, subject, body_text, body_html)
+                t.reminder_sent = True
+                session.add(t)
+                session.commit()
+    finally:
+        session.close()
+
+async def background_scheduler_loop():
+    print("[Scheduler] Background scheduler loop started.")
+    while True:
+        try:
+            await check_and_delete_audio_files()
+            await check_and_send_task_reminders()
+        except Exception as e:
+            print(f"[Scheduler Exception]: {e}")
+        await asyncio.sleep(30)
 

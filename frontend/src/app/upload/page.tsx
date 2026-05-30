@@ -65,6 +65,65 @@ export default function MeetingUpload() {
   const [activeTab, setActiveTab] = useState<"upload" | "mic" | "live_monitor">("upload");
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [settings, setSettings] = useState<any>(null);
+
+  // Helper to determine the platform being monitored
+  const getMonitoredPlatform = (title: string, trackLabel: string) => {
+    const combined = `${title} ${trackLabel}`.toLowerCase();
+    if (combined.includes("meet") || combined.includes("google")) {
+      return { key: "gmeet", name: "Google Meet" };
+    }
+    if (combined.includes("zoom")) {
+      return { key: "zoom", name: "Zoom" };
+    }
+    if (combined.includes("teams") || combined.includes("microsoft")) {
+      return { key: "teams", name: "Microsoft Teams" };
+    }
+    if (combined.includes("discord")) {
+      return { key: "discord", name: "Discord" };
+    }
+    return null;
+  };
+
+  // Request browser notification permissions on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Fetch settings from API or localStorage
+  useEffect(() => {
+    if (!user?.email) return;
+    const email = user.email;
+    async function loadSettings() {
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(email)}/settings`);
+        if (res.ok) {
+          const data = await res.json();
+          setSettings(data);
+        } else {
+          const stored = localStorage.getItem("MemoMind_settings");
+          if (stored) {
+            try {
+              setSettings(JSON.parse(stored));
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load settings in upload page:", err);
+        const stored = localStorage.getItem("MemoMind_settings");
+        if (stored) {
+          try {
+            setSettings(JSON.parse(stored));
+          } catch (e) {}
+        }
+      }
+    }
+    loadSettings();
+  }, [user?.email]);
 
   // Continuation and invitations states
   const [meetingType, setMeetingType] = useState<"new" | "continue">("new");
@@ -380,9 +439,28 @@ export default function MeetingUpload() {
   // Start real microphone recording (Tab 2)
   const startRecording = async () => {
     try {
+      const activeSettings = settings || {
+        gmeet: true,
+        zoom: false,
+        teams: false,
+        discord: true,
+        record_indicator: true
+      };
+
+      const initialLogs = ["Initializing Microphone Audio...", "Requesting Microphone permission..."];
+      if (activeSettings.record_indicator !== false) {
+        initialLogs.push("🚨 AI Assistant Recording Active");
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          new Notification("MemoMind Ingestion Active", {
+            body: "🚨 AI Assistant Recording Active",
+            icon: "/favicon.ico"
+          });
+        }
+      }
+
       setMicStage("capturing");
       setIsRecording(true);
-      setRecordedLogs(["Initializing Microphone Audio...", "Requesting Microphone permission..."]);
+      setRecordedLogs(initialLogs);
       setRecordedSegments([]);
       setMicTimer(0);
       setMonitorTasks([]);
@@ -448,10 +526,23 @@ export default function MeetingUpload() {
 
         mediaRecorder.start(1000);
 
-        setRecordedLogs([
+        const openLogs = [
           "Hearing active.",
           "Recording microphone stream."
-        ]);
+        ];
+        if (activeSettings.record_indicator !== false) {
+          openLogs.push("🚨 AI Assistant Recording Active");
+        }
+        const platformInfo = getMonitoredPlatform(meetingTitle || "Microphone Sync Session", "");
+        if (platformInfo) {
+          const allowed = activeSettings[platformInfo.key as keyof typeof activeSettings];
+          if (allowed === false) {
+            const warningMsg = `⚠️ Warning: ${platformInfo.name} integration is disabled in settings.`;
+            openLogs.push(warningMsg);
+            console.warn(warningMsg);
+          }
+        }
+        setRecordedLogs(openLogs);
 
         timerRef.current = setInterval(() => {
           setMicTimer((prev) => prev + 1);
@@ -745,9 +836,28 @@ export default function MeetingUpload() {
   // ==========================================
 
   const startMonitorObserver = async () => {
+    const activeSettings = settings || {
+      gmeet: true,
+      zoom: false,
+      teams: false,
+      discord: true,
+      record_indicator: true
+    };
+
+    const initialLogs = ["Initializing Live AI Observer engine...", "Requesting Screen & Audio permissions..."];
+    if (activeSettings.record_indicator !== false) {
+      initialLogs.push("🚨 AI Assistant Recording Active");
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification("MemoMind Ingestion Active", {
+          body: "🚨 AI Assistant Recording Active",
+          icon: "/favicon.ico"
+        });
+      }
+    }
+
     setIsMonitoring(true);
     setMonitorStage("capturing");
-    setMonitorLogs(["Initializing Live AI Observer engine...", "Requesting Screen & Audio permissions..."]);
+    setMonitorLogs(initialLogs);
     setMonitorTasks([]);
     setMonitorContradictions([]);
     setDetectedParticipants([]);
@@ -841,10 +951,27 @@ export default function MeetingUpload() {
         };
 
         mediaRecorder.start(1000);
-        setMonitorLogs([
+        
+        const openLogs = [
           "Screen share display tracks bound successfully.",
           hasScreenAudio ? "Recording and mixing system audio + microphone." : "Recording microphone stream (no screen audio detected)."
-        ]);
+        ];
+        if (activeSettings.record_indicator !== false) {
+          openLogs.push("🚨 AI Assistant Recording Active");
+        }
+        
+        const track = screenStream?.getVideoTracks()[0];
+        const trackLabel = track ? track.label : "";
+        const platformInfo = getMonitoredPlatform(meetingTitle || "Live Observer Sync Session", trackLabel);
+        if (platformInfo) {
+          const allowed = activeSettings[platformInfo.key as keyof typeof activeSettings];
+          if (allowed === false) {
+            const warningMsg = `⚠️ Warning: ${platformInfo.name} integration is disabled in settings.`;
+            openLogs.push(warningMsg);
+            console.warn(warningMsg);
+          }
+        }
+        setMonitorLogs(openLogs);
 
         startAudioAnalyser(dest.stream);
 

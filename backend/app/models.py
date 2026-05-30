@@ -76,6 +76,7 @@ class Task(SQLModel, table=True):
     deadline: str  # e.g., "2026-05-28" or "Friday"
     status: str = Field(default="todo")  # todo, in_progress, done
     priority: str = Field(default="medium")  # low, medium, high
+    reminder_sent: bool = Field(default=False)
 
     # Relationships
     meeting: Optional[Meeting] = Relationship(back_populates="tasks")
@@ -137,3 +138,31 @@ class MeetingInvitation(SQLModel, table=True):
 
     # Relationship
     meeting: Optional[Meeting] = Relationship(back_populates="invitations")
+
+class UserSettings(SQLModel, table=True):
+    user_email: str = Field(primary_key=True, index=True)
+    gmeet: bool = Field(default=True)
+    zoom: bool = Field(default=False)
+    teams: bool = Field(default=False)
+    discord: bool = Field(default=True)
+    tls_secure: bool = Field(default=False)
+    record_indicator: bool = Field(default=True)
+    auto_purge: bool = Field(default=False)
+    purge_after_days: str = Field(default="Never")
+    notification_email: bool = Field(default=True)
+    notification_push: bool = Field(default=False)
+    notification_inapp: bool = Field(default=True)
+    notification_contradictions: bool = Field(default=True)
+    openai_key: Optional[str] = Field(default=None)
+    postgres_url: Optional[str] = Field(default=None)
+    vector_db: str = Field(default="Cloud Search Database")
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class SettingsHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_email: str = Field(index=True)
+    setting_name: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    changed_by: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Settings, 
   Layers, 
@@ -13,12 +13,25 @@ import {
   Video, 
   MessageSquare,
   Lock,
-  Globe
+  Globe,
+  Loader2,
+  Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../../components/AuthProvider";
 
+interface AuditLog {
+  id: number;
+  setting_name: string;
+  old_value: string;
+  new_value: string;
+  changed_by: string;
+  timestamp: string;
+}
 
 export default function SettingsHub() {
+  const { user } = useAuth();
+
   // Integration States
   const [integrations, setIntegrations] = useState({
     gmeet: true,
@@ -30,12 +43,13 @@ export default function SettingsHub() {
   // API Config states
   const [openaiKey, setOpenaiKey] = useState("sk-proj-••••••••••••••••••••");
   const [postgresUrl, setPostgresUrl] = useState("postgresql://reeti:••••••••@ep-MemoMind-db.us-east.aws.neon.tech/MemoMind");
-  const [vectorDb, setVectorDb] = useState("Pinecone Remote Cloud");
+  const [vectorDb, setVectorDb] = useState("Cloud Search Database");
 
   // Compliance toggles
   const [tlsSecure, setTlsSecure] = useState(true);
   const [recordIndicator, setRecordIndicator] = useState(true);
   const [autoPurge, setAutoPurge] = useState(false);
+  const [purgeAfterDays, setPurgeAfterDays] = useState("Never");
 
   // Notification checkboxes
   const [notifications, setNotifications] = useState({
@@ -47,10 +61,237 @@ export default function SettingsHub() {
 
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  // Settings History Audit Logs
+  const [historyLogs, setHistoryLogs] = useState<AuditLog[]>([]);
+
+  // Testing states
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
+
+  const [isTestingDb, setIsTestingDb] = useState(false);
+  const [dbTestResult, setDbTestResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
+
+  // Dynamic URL secure connection mapping
+  const getApiUrl = (path: string) => {
+    const base = tlsSecure ? "https://127.0.0.1:8000" : "http://127.0.0.1:8000";
+    return `${base}${path}`;
+  };
+
+  // Load settings and history from backend
+  const fetchSettings = async () => {
+    if (!user?.email) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings`));
+      if (res.ok) {
+        const data = await res.json();
+        setIntegrations({
+          gmeet: data.gmeet,
+          zoom: data.zoom,
+          teams: data.teams,
+          discord: data.discord
+        });
+        setOpenaiKey(data.openai_key);
+        setPostgresUrl(data.postgres_url);
+        setVectorDb(data.vector_db);
+        setTlsSecure(data.tls_secure);
+        setRecordIndicator(data.record_indicator);
+        setAutoPurge(data.auto_purge);
+        setPurgeAfterDays(data.purge_after_days);
+        setNotifications({
+          email: data.notification_email,
+          push: data.notification_push,
+          inapp: data.notification_inapp,
+          contradictions: data.notification_contradictions
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load settings:", e);
+    }
+  };
+
+  const fetchHistory = async () => {
+    if (!user?.email) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings/history`));
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryLogs(data);
+      }
+    } catch (e) {
+      console.error("Failed to load settings history:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.email) {
+      fetchSettings();
+      fetchHistory();
+    }
+  }, [user?.email, tlsSecure]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
+    if (!user?.email) return;
+
+    try {
+      const payload = {
+        gmeet: integrations.gmeet,
+        zoom: integrations.zoom,
+        teams: integrations.teams,
+        discord: integrations.discord,
+        tls_secure: tlsSecure,
+        record_indicator: recordIndicator,
+        auto_purge: autoPurge,
+        purge_after_days: purgeAfterDays,
+        notification_email: notifications.email,
+        notification_push: notifications.push,
+        notification_inapp: notifications.inapp,
+        notification_contradictions: notifications.contradictions,
+        openai_key: openaiKey,
+        postgres_url: postgresUrl,
+        vector_db: vectorDb,
+        changed_by: user.name
+      };
+
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2500);
+        fetchSettings();
+        fetchHistory();
+      } else {
+        alert("Failed to save settings.");
+      }
+    } catch (e) {
+      console.error("Error saving settings:", e);
+      alert("Error saving settings.");
+    }
+  };
+
+  const testOpenAiKey = async () => {
+    if (!user?.email) return;
+    setIsTestingAi(true);
+    setAiTestResult(null);
+    try {
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings/test-ai`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openai_key: openaiKey })
+      });
+      const data = await res.json();
+      setAiTestResult({
+        status: data.status,
+        message: data.message
+      });
+    } catch (e) {
+      setAiTestResult({
+        status: "error",
+        message: "Failed to connect to backend validator."
+      });
+    } finally {
+      setIsTestingAi(false);
+    }
+  };
+
+  const testDbConnection = async () => {
+    if (!user?.email) return;
+    setIsTestingDb(true);
+    setDbTestResult(null);
+    try {
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings/test-db`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postgres_url: postgresUrl })
+      });
+      const data = await res.json();
+      setDbTestResult({
+        status: data.status,
+        message: data.message
+      });
+    } catch (e) {
+      setDbTestResult({
+        status: "error",
+        message: "Failed to connect to backend validator."
+      });
+    } finally {
+      setIsTestingDb(false);
+    }
+  };
+
+  const handleRestoreDefaults = async () => {
+    if (!user?.email) return;
+    if (!confirm("Are you sure you want to restore defaults? All custom settings will be reset.")) return;
+
+    try {
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings/reset`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changed_by: user.name })
+      });
+      if (res.ok) {
+        fetchSettings();
+        fetchHistory();
+        alert("Settings restored to defaults!");
+      }
+    } catch (e) {
+      console.error("Failed to restore defaults:", e);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!user?.email) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings/export`));
+      if (res.ok) {
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `memomind_settings_${user.email.replace("@", "_at_")}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      console.error("Failed to export settings:", e);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user?.email || !e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const importedConfig = JSON.parse(event.target?.result as string);
+        const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(user.email)}/settings/import`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            settings: importedConfig,
+            changed_by: user.name
+          })
+        });
+        if (res.ok) {
+          fetchSettings();
+          fetchHistory();
+          alert("Settings imported successfully!");
+        } else {
+          alert("Failed to import settings.");
+        }
+      } catch (err) {
+        alert("Invalid settings JSON format.");
+      }
+    };
+    reader.readAsText(file);
   };
 
   const toggleIntegration = (key: keyof typeof integrations) => {
@@ -200,22 +441,54 @@ export default function SettingsHub() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">AI Provider Key</label>
-                <input
-                  type="password"
-                  value={openaiKey}
-                  onChange={(e) => setOpenaiKey(e.target.value)}
-                  className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-mono"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={openaiKey}
+                    onChange={(e) => setOpenaiKey(e.target.value)}
+                    className="flex-1 bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={testOpenAiKey}
+                    disabled={isTestingAi}
+                    className="px-4 py-2.5 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] hover:border-cyber-cyan/50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+                  >
+                    {isTestingAi && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Test Key
+                  </button>
+                </div>
+                {aiTestResult && (
+                  <p className={`text-[10px] mt-1.5 font-semibold ${aiTestResult.status === "success" ? "text-cyber-emerald" : "text-cyber-rose"}`}>
+                    {aiTestResult.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">Database Connection String</label>
-                <input
-                  type="text"
-                  value={postgresUrl}
-                  onChange={(e) => setPostgresUrl(e.target.value)}
-                  className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-mono"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={postgresUrl}
+                    onChange={(e) => setPostgresUrl(e.target.value)}
+                    className="flex-1 bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={testDbConnection}
+                    disabled={isTestingDb}
+                    className="px-4 py-2.5 bg-[var(--foreground)]/[0.05] border border-[var(--color-obsidian-border)] hover:border-cyber-cyan/50 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+                  >
+                    {isTestingDb && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Test Connection
+                  </button>
+                </div>
+                {dbTestResult && (
+                  <p className={`text-[10px] mt-1.5 font-semibold ${dbTestResult.status === "success" ? "text-cyber-emerald" : "text-cyber-rose"}`}>
+                    {dbTestResult.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -223,11 +496,12 @@ export default function SettingsHub() {
                 <select
                   value={vectorDb}
                   onChange={(e) => setVectorDb(e.target.value)}
-                  className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all cursor-pointer"
+                  className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all cursor-pointer font-sans"
                 >
-                  <option value="Pinecone Remote Cloud">Cloud Search Database</option>
-                  <option value="Local ChromaDB Cluster">Local Search Database</option>
-                  <option value="PGVector PostgreSQL">Integrated Database Search</option>
+                  <option value="Cloud Search Database">Cloud Search Database</option>
+                  <option value="Vector Search">Vector Search</option>
+                  <option value="Hybrid Search">Hybrid Search</option>
+                  <option value="Semantic Search">Semantic Search</option>
                 </select>
               </div>
             </div>
@@ -284,23 +558,41 @@ export default function SettingsHub() {
               </label>
 
               {/* Auto purge */}
-              <label className="flex items-start justify-between cursor-pointer group">
-                <div className="space-y-0.5 pr-2">
-                  <span className="text-xs font-bold text-[var(--foreground)] group-hover:text-cyber-cyan transition-colors font-sans">Auto-Delete Audio Files</span>
-                  <p className="text-[9px] text-[var(--foreground)]/50 font-sans leading-relaxed">Remove raw audio recordings once the transcript is processed.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAutoPurge(!autoPurge)}
-                  className={`w-9 h-5 rounded-full transition-colors relative shrink-0 focus:outline-none p-0.5 cursor-pointer ${
-                    autoPurge ? "bg-cyber-cyan" : "bg-[var(--foreground)]/[0.10]"
-                  }`}
-                >
-                  <span className={`w-4 h-4 rounded-full bg-white shadow-md block transition-transform ${
-                    autoPurge ? "translate-x-4" : "translate-x-0"
-                  }`} />
-                </button>
-              </label>
+              <div className="space-y-3">
+                <label className="flex items-start justify-between cursor-pointer group">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="text-xs font-bold text-[var(--foreground)] group-hover:text-cyber-cyan transition-colors font-sans">Auto-Delete Audio Files</span>
+                    <p className="text-[9px] text-[var(--foreground)]/50 font-sans leading-relaxed">Remove raw audio recordings once the transcript is processed.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAutoPurge(!autoPurge)}
+                    className={`w-9 h-5 rounded-full transition-colors relative shrink-0 focus:outline-none p-0.5 cursor-pointer ${
+                      autoPurge ? "bg-cyber-cyan" : "bg-[var(--foreground)]/[0.10]"
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded-full bg-white shadow-md block transition-transform ${
+                      autoPurge ? "translate-x-4" : "translate-x-0"
+                    }`} />
+                  </button>
+                </label>
+
+                {autoPurge && (
+                  <div className="pl-2 space-y-1.5 animate-fadeIn">
+                    <label className="block text-[10px] text-[var(--foreground)]/70 font-medium font-sans">Delete after</label>
+                    <select
+                      value={purgeAfterDays}
+                      onChange={(e) => setPurgeAfterDays(e.target.value)}
+                      className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-2 text-xs text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all cursor-pointer font-sans"
+                    >
+                      <option value="1">1 day</option>
+                      <option value="7">7 days</option>
+                      <option value="30">30 days</option>
+                      <option value="Never">Never</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -362,6 +654,34 @@ export default function SettingsHub() {
               <span>Save Settings</span>
             </button>
 
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={handleRestoreDefaults}
+                className="py-2 bg-black/30 border border-[var(--color-obsidian-border)] hover:border-cyber-rose/35 text-[9px] font-bold font-mono text-[var(--foreground)]/70 hover:text-cyber-rose rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={handleExport}
+                className="py-2 bg-black/30 border border-[var(--color-obsidian-border)] hover:border-cyber-cyan/35 text-[9px] font-bold font-mono text-[var(--foreground)]/70 hover:text-cyber-cyan rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
+              >
+                Export
+              </button>
+              <label
+                className="py-2 bg-black/30 border border-[var(--color-obsidian-border)] hover:border-cyber-purple/35 text-[9px] font-bold font-mono text-[var(--foreground)]/70 hover:text-cyber-purple rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider"
+              >
+                Import
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
             <AnimatePresence>
               {saveSuccess && (
                 <motion.div
@@ -379,6 +699,37 @@ export default function SettingsHub() {
         </div>
 
       </form>
+
+      {/* Settings History Audit Log */}
+      <div className="p-6 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-4">
+        <h3 className="text-sm font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
+          <Clock className="h-4.5 w-4.5 text-cyber-cyan animate-pulse" /> Settings Activity & Audit Log
+        </h3>
+        
+        <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+          {historyLogs.length > 0 ? (
+            historyLogs.map((log) => (
+              <div key={log.id} className="p-3 bg-black/25 border border-[var(--color-obsidian-border)] rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
+                <div>
+                  <span className="font-bold text-[var(--foreground)] font-mono uppercase text-[9px] px-1.5 py-0.5 bg-cyber-purple/15 text-cyber-purple border border-cyber-purple/20 rounded mr-2">
+                    {log.setting_name}
+                  </span>
+                  <span className="text-[var(--foreground)]/80">
+                    Changed: <span className="font-mono text-cyber-rose line-through">{log.old_value || "None"}</span> → <span className="font-mono text-cyber-emerald">{log.new_value || "None"}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-[var(--foreground)]/50 font-mono self-end md:self-auto">
+                  <span>Modified by: {log.changed_by}</span>
+                  <span>•</span>
+                  <span>{new Date(log.timestamp).toLocaleString()}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-xs text-[var(--foreground)]/50 font-mono text-center py-4">No settings modifications recorded yet.</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

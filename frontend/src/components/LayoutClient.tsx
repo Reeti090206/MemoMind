@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import Sidebar from "./Sidebar";
 import GlassLoginWall from "./GlassLoginWall";
-import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert, HelpCircle, ShieldCheck, CheckCircle2, ChevronRight, Activity, BookOpen, Layers } from "lucide-react";
+import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert, HelpCircle, ShieldCheck, CheckCircle2, ChevronRight, Activity, BookOpen, Layers, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
@@ -15,6 +15,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelpDrawer, setShowHelpDrawer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const welcomeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastUserEmailRef = useRef<string | null>(null);
 
@@ -38,6 +39,113 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       if (welcomeTimerRef.current) {
         clearTimeout(welcomeTimerRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const originalFetch = window.fetch;
+    window.fetch = function (input, init) {
+      const stored = localStorage.getItem("MemoMind_settings");
+      let enforceSecure = false; // default to secure connection
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.tlsSecure !== undefined) {
+            enforceSecure = parsed.tlsSecure;
+          }
+        } catch (e) {}
+      }
+
+      // If the frontend itself is running on HTTP (e.g. localhost), do not upgrade local API calls to HTTPS
+      if (typeof window !== "undefined" && window.location.protocol === "http:") {
+        enforceSecure = false;
+      }
+
+      console.warn("[LayoutClient fetch]", {
+        url: input,
+        method: init?.method || "GET",
+        enforceSecure
+      });
+
+      let modifiedInput = input;
+      let urlStr = "";
+      if (typeof input === "string") {
+        urlStr = input;
+      } else if (input instanceof URL) {
+        urlStr = input.toString();
+      } else if (input && typeof (input as any).url === "string") {
+        urlStr = (input as any).url;
+      }
+
+      if (urlStr) {
+        const isLocalHost = urlStr.includes("127.0.0.1:8000") || urlStr.includes("localhost:8000");
+        
+        let newUrlStr = urlStr;
+        if (enforceSecure && isLocalHost) {
+          if (urlStr.startsWith("http://")) {
+            newUrlStr = urlStr.replace("http://", "https://");
+          }
+        } else if (!enforceSecure && isLocalHost) {
+          if (urlStr.startsWith("https://")) {
+            newUrlStr = urlStr.replace("https://", "http://");
+          }
+        }
+
+        if (newUrlStr !== urlStr) {
+          if (typeof input === "string") {
+            modifiedInput = newUrlStr;
+          } else if (input instanceof URL) {
+            modifiedInput = new URL(newUrlStr);
+          } else {
+            modifiedInput = new Request(newUrlStr, input as any);
+          }
+        }
+      }
+
+      return originalFetch(modifiedInput, init);
+    };
+
+    const OriginalWebSocket = window.WebSocket;
+    const CustomWebSocket = function (url: string, protocols?: string | string[]) {
+      const stored = localStorage.getItem("MemoMind_settings");
+      let enforceSecure = false;
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.tlsSecure !== undefined) {
+            enforceSecure = parsed.tlsSecure;
+          }
+        } catch (e) {}
+      }
+
+      if (typeof window !== "undefined" && window.location.protocol === "http:") {
+        enforceSecure = false;
+      }
+
+      if (enforceSecure) {
+        if (url.startsWith("ws://127.0.0.1:8000")) {
+          url = url.replace("ws://127.0.0.1:8000", "wss://127.0.0.1:8000");
+        } else if (url.startsWith("ws://localhost:8000")) {
+          url = url.replace("ws://localhost:8000", "wss://127.0.0.1:8000");
+        }
+      } else {
+        if (url.startsWith("wss://127.0.0.1:8000")) {
+          url = url.replace("wss://127.0.0.1:8000", "ws://127.0.0.1:8000");
+        } else if (url.startsWith("wss://localhost:8000")) {
+          url = url.replace("wss://localhost:8000", "ws://127.0.0.1:8000");
+        }
+      }
+      return new OriginalWebSocket(url, protocols);
+    };
+    CustomWebSocket.prototype = OriginalWebSocket.prototype;
+    Object.assign(CustomWebSocket, OriginalWebSocket);
+    (window as any).WebSocket = CustomWebSocket as any;
+
+    return () => {
+      window.fetch = originalFetch;
+      (window as any).WebSocket = OriginalWebSocket;
     };
   }, []);
   const [notifications, setNotifications] = useState([
@@ -177,6 +285,33 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     <div className="flex w-full h-full overflow-hidden text-[var(--foreground)] bg-transparent">
       {/* Sidebar Navigation */}
       <Sidebar />
+
+      {/* Mobile Sidebar Drawer Overlay */}
+      <AnimatePresence>
+        {showMobileSidebar && (
+          <div className="fixed inset-0 z-50 overflow-hidden flex lg:hidden">
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobileSidebar(false)}
+              className="absolute inset-0 bg-black backdrop-blur-sm"
+            />
+            
+            {/* Sidebar Container */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="w-64 bg-[var(--background)] border-r border-obsidian-border h-full relative z-10 shadow-2xl flex flex-col"
+            >
+              <Sidebar mobile onClose={() => setShowMobileSidebar(false)} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       
       {/* Main Page Content Workspace */}
       <main className="flex-1 overflow-y-auto flex flex-col relative h-full bg-transparent">
@@ -208,15 +343,23 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         />
         
         {/* Top Global Header Bar as a floating glass capsule */}
-        <header className="sticky top-4 mx-4 md:mx-6 mt-4 z-30 flex items-center justify-between px-6 py-3.5 rounded-2xl glass-panel border border-[var(--color-obsidian-border)] shadow-2xl shrink-0">
+        <header className="sticky top-4 mx-4 md:mx-6 mt-4 z-30 flex items-center justify-between px-4 md:px-6 py-3.5 rounded-2xl glass-panel border border-[var(--color-obsidian-border)] shadow-2xl shrink-0">
           <div className="flex items-center gap-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan animate-pulse" />
-            <h2 className="text-xs font-bold font-mono text-[var(--foreground)]/80 uppercase tracking-widest text-glow-cyber">
+            {/* Hamburger Menu (Mobile Only) */}
+            <button
+              onClick={() => setShowMobileSidebar(true)}
+              className="lg:hidden p-2 rounded-xl bg-obsidian-light/15 hover:bg-obsidian-light/30 active:bg-obsidian-light/45 border border-obsidian-border text-[var(--foreground)]/70 hover:text-cyber-cyan transition-colors cursor-pointer"
+              title="Open Navigation Menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan animate-pulse hidden sm:inline" />
+            <h2 className="text-xs font-bold font-mono text-[var(--foreground)]/80 uppercase tracking-widest text-glow-cyber truncate max-w-[150px] sm:max-w-none">
               {getPageTitle(pathname)}
             </h2>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4">
             <ThemeToggle />
             {/* Help & Info Center Trigger */}
             <button

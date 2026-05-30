@@ -15,13 +15,19 @@ import {
   Flame,
   LogOut,
   Users,
-  Settings
+  Settings,
+  X
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import { motion } from "framer-motion";
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobile?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ mobile, onClose }: SidebarProps = {}) {
   const pathname = usePathname();
   const [contradictionCount, setContradictionCount] = useState(0);
   const { user, logout } = useAuth();
@@ -63,21 +69,35 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 my-4 ml-4 rounded-2xl glass-panel shadow-2xl h-[calc(100vh-2rem)] sticky top-4 flex flex-col justify-between p-4 z-40 bg-transparent shrink-0">
+    <aside className={
+      mobile
+        ? "w-full h-full flex flex-col justify-between p-4 bg-transparent"
+        : "hidden lg:flex w-64 my-4 ml-4 rounded-2xl glass-panel shadow-2xl h-[calc(100vh-2rem)] sticky top-4 flex-col justify-between p-4 z-40 bg-transparent shrink-0"
+    }>
       <div>
         {/* Logo / Branding */}
-        <div className="flex items-center gap-3 px-2 py-4 mb-6">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border-glow-purple">
-            <Network className="h-5 w-5 text-[var(--foreground)]" />
+        <div className="flex items-center justify-between px-2 py-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border-glow-purple">
+              <Network className="h-5 w-5 text-[var(--foreground)]" />
+            </div>
+            <div>
+              <h1 className="font-semibold text-lg text-[var(--foreground)] tracking-wider flex items-center gap-1.5">
+                MemoMind
+              </h1>
+              <p className="text-[10px] text-[var(--foreground)]/50 uppercase tracking-widest font-mono">
+                Memory Intelligence
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-semibold text-lg text-[var(--foreground)] tracking-wider flex items-center gap-1.5">
-              MemoMind
-            </h1>
-            <p className="text-[10px] text-[var(--foreground)]/50 uppercase tracking-widest font-mono">
-              Memory Intelligence
-            </p>
-          </div>
+          {mobile && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg border border-[var(--color-obsidian-border)] bg-black/45 text-[var(--foreground)]/70 hover:text-cyber-rose hover:border-cyber-rose/30 transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Links */}
