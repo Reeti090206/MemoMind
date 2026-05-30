@@ -40,7 +40,14 @@ $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
 - **Firebase Authentication** — Email/password login with Google Sign-In.
 - **Phone OTP Verification** — SMS-based two-factor authentication via Firebase.
 - **Team Management** — Invite members, assign roles, and manage organizational access.
-- **Settings Panel** — User profile management and app configuration.
+- **Settings Panel** — User profile management, app configuration settings, and credentials verification.
+
+### 🛡️ Credentials Encryption & Connection Routing
+
+- **AES-256 Encryption** — High-security AES symmetric encryption (using `cryptography.fernet`) dynamically encrypts sensitive credentials (like the OpenAI API key and PostgreSQL URL) stored in the SQLite settings DB. Secret keys are masked in API responses to prevent client-side leakage.
+- **Dynamic Protocol Interceptor** — Overrides native `window.fetch` and `window.WebSocket` on the client to automatically bypass SSL preflight redirect loops in local development, ensuring seamless HTTP/WS communication to `localhost:8000`.
+- **Setting Change Audit Logs** — Preserves history (`SettingsHistory`) of all configuration changes made in the dashboard, tracking old values, new values, and the updating user.
+
 
 ### 🎨 Design & UX
 
