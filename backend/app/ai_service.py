@@ -154,12 +154,23 @@ class AIService:
         print(f"[AIService] Whisper transcription complete. Length: {len(transcript_text)} chars.")
         return transcript_text
 
-    def _parse_transcript_with_gpt(self, raw_transcript: str, file_name: str = "") -> Dict[str, Any]:
+    def _parse_transcript_with_gpt(self, raw_transcript: str, file_name: str = "", parent_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Use GPT-4o-mini to parse a raw transcript into structured meeting data."""
         if not self.openai_client:
             raise RuntimeError("OpenAI client not available for GPT parsing.")
         
-        prompt = f"""You are an AI meeting assistant. Analyze this meeting transcript and return a structured JSON response.
+        context_prompt = ""
+        if parent_context:
+            context_prompt = f"""
+[AI MEETING CONTINUATION CONTEXT]
+This meeting is a follow-up/continuation of the previous meeting: '{parent_context.get("title")}'.
+- Previous Summary: {parent_context.get("summary")}
+- Previous Decisions: {", ".join(parent_context.get("decisions", []))}
+- Previous Pending Tasks: {", ".join(parent_context.get("tasks", []))}
+Use this history to connect current discussions to past context.
+"""
+
+        prompt = f"""{context_prompt}You are an AI meeting assistant. Analyze this meeting transcript and return a structured JSON response.
 
 TRANSCRIPT:
 \"\"\"
@@ -321,7 +332,7 @@ Rules:
             }
         }
 
-    def transcribe_audio(self, file_path: str, realtime_segments: Optional[str] = None, realtime_apps: Optional[str] = None) -> Dict[str, Any]:
+    def transcribe_audio(self, file_path: str, realtime_segments: Optional[str] = None, realtime_apps: Optional[str] = None, parent_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Transcribe uploaded audio/video files, supporting real-time segment ingestion.
         """
@@ -344,7 +355,7 @@ Rules:
                         try:
                             raw_transcript = "\n".join([f"{s.get('speaker', 'Speaker')}: {s.get('text', '')}" for s in segments_list])
                             print("[AIService] Parsing real-time transcript with GPT-4o-mini...")
-                            parsed = self._parse_transcript_with_gpt(raw_transcript, title)
+                            parsed = self._parse_transcript_with_gpt(raw_transcript, title, parent_context=parent_context)
                             
                             speaker_stats = parsed.get("speaker_stats", {})
                             if not speaker_stats:
@@ -428,7 +439,7 @@ Rules:
 
                 # Step 3: Parse transcript with GPT for structured meeting data
                 print("[AIService] Parsing transcript with GPT-4o-mini...")
-                parsed = self._parse_transcript_with_gpt(raw_transcript, os.path.basename(file_path))
+                parsed = self._parse_transcript_with_gpt(raw_transcript, os.path.basename(file_path), parent_context=parent_context)
                 
                 # Build the standard return structure
                 segments = parsed.get("transcript_segments", [])

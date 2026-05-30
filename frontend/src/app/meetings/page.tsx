@@ -180,6 +180,26 @@ function MeetingContent() {
     loadSelectedMeeting();
   }, [selectedId]);
 
+  const handleRespondInvitation = async (status: string) => {
+    if (!user?.email || !meetingData) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingData.id}/invitations/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, status })
+      });
+      if (res.ok) {
+        const updatedRes = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingData.id}`);
+        if (updatedRes.ok) {
+          const data = await updatedRes.json();
+          setMeetingData(data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to respond to invitation", err);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60).toString().padStart(2, "0");
@@ -395,6 +415,78 @@ function MeetingContent() {
                   exit={{ opacity: 0, y: -15, transition: { duration: 0.2 } }}
                   className="space-y-6"
                 >
+                  {/* Timeline Navigation */}
+                  {meetingData.timeline && meetingData.timeline.length > 1 && (
+                    <div className="flex flex-wrap items-center gap-2 p-4 rounded-xl border border-[var(--color-obsidian-border)] bg-black/30 backdrop-blur-md text-xs font-sans">
+                      <span className="text-[var(--foreground)]/50 uppercase tracking-widest text-[9px] mr-2 font-mono font-bold">Session Timeline:</span>
+                      {meetingData.timeline.map((step: any, idx: number) => {
+                        const isCurrent = step.id === meetingData.id;
+                        return (
+                          <div key={step.id} className="flex items-center gap-2">
+                            {idx > 0 && <span className="text-[var(--foreground)]/40">➜</span>}
+                            <button
+                              onClick={() => setSelectedId(step.id)}
+                              disabled={isCurrent}
+                              className={`px-3 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-mono ${
+                                isCurrent
+                                  ? "bg-cyber-purple/20 border-cyber-purple/40 text-cyber-purple font-bold shadow-md shadow-cyber-purple/10"
+                                  : "bg-transparent border-[var(--color-obsidian-border)] hover:border-cyber-cyan/50 text-[var(--foreground)]/70 hover:text-cyber-cyan"
+                              }`}
+                            >
+                              {isCurrent && <span className="h-1.5 w-1.5 rounded-full bg-cyber-purple animate-ping shrink-0" />}
+                              {step.title}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Invitation Respond Banner */}
+                  {(() => {
+                    const myInvitation = meetingData.invitations?.find(
+                      (inv: any) => inv.email.toLowerCase() === user?.email?.toLowerCase()
+                    );
+                    if (!myInvitation) return null;
+                    return (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-cyber-cyan/30 bg-cyber-cyan/5 text-xs font-sans">
+                        <div className="flex items-center gap-2.5">
+                          <Zap className="h-4 w-4 text-cyber-cyan animate-pulse shrink-0" />
+                          <div>
+                            <span className="text-[var(--foreground)] font-semibold">You are invited to this meeting.</span>
+                            <span className="ml-2 font-mono text-[9px] uppercase font-bold text-cyber-cyan bg-cyber-cyan/15 px-2 py-0.5 rounded border border-cyber-cyan/25">
+                              Status: {myInvitation.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleRespondInvitation("accepted")}
+                            className={`px-3 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${
+                              myInvitation.status === "accepted"
+                                ? "bg-cyber-emerald/25 border-cyber-emerald/45 text-cyber-emerald cursor-default"
+                                : "bg-black/40 border-[var(--color-obsidian-border)] hover:border-cyber-emerald/50 hover:text-cyber-emerald text-[var(--foreground)]/80"
+                            }`}
+                            disabled={myInvitation.status === "accepted"}
+                          >
+                            ACCEPT
+                          </button>
+                          <button
+                            onClick={() => handleRespondInvitation("declined")}
+                            className={`px-3 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${
+                              myInvitation.status === "declined"
+                                ? "bg-cyber-rose/25 border-cyber-rose/45 text-cyber-rose cursor-default"
+                                : "bg-black/40 border-[var(--color-obsidian-border)] hover:border-cyber-rose/50 hover:text-cyber-rose text-[var(--foreground)]/80"
+                            }`}
+                            disabled={myInvitation.status === "declined"}
+                          >
+                            DECLINE
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Header Panel */}
                   <motion.div 
                     variants={cardItemVariants}
@@ -623,6 +715,44 @@ function MeetingContent() {
 
                     {/* Right 1 Col: Speaker Breakdown, Decisions & Actions */}
                     <div className="space-y-6">
+
+                      {/* Invited Members Widget */}
+                      <motion.div 
+                        variants={cardItemVariants}
+                        className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
+                      >
+                        <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
+                          <Users className="h-4 w-4 text-cyber-cyan animate-pulse" /> Invited Members
+                        </h3>
+                        <div className="space-y-3">
+                          {meetingData.invitations && meetingData.invitations.length > 0 ? (
+                            meetingData.invitations.map((inv: any) => {
+                              let statusStyle = "bg-gray-800 text-[var(--foreground)]/65 border border-transparent";
+                              if (inv.status === "accepted") {
+                                statusStyle = "bg-cyber-emerald/10 border-cyber-emerald/20 text-cyber-emerald";
+                              } else if (inv.status === "declined") {
+                                statusStyle = "bg-cyber-rose/10 border-cyber-rose/20 text-cyber-rose";
+                              } else if (inv.status === "pending") {
+                                statusStyle = "bg-cyber-purple/10 border-cyber-purple/20 text-cyber-purple animate-pulse";
+                              }
+                              
+                              return (
+                                <div key={inv.id} className="flex items-center justify-between p-2.5 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl text-xs font-sans">
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-[var(--foreground)]">{inv.name || inv.email}</span>
+                                    <span className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">{inv.email}</span>
+                                  </div>
+                                  <span className={`text-[8px] font-mono uppercase px-2 py-0.5 rounded font-bold shrink-0 ${statusStyle}`}>
+                                    {inv.status}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-xs text-[var(--foreground)]/50 font-light italic">No invitations for this meeting.</p>
+                          )}
+                        </div>
+                      </motion.div>
                       
                       {/* Speaker Breakdown Ring/Widget */}
                       <motion.div 

@@ -1,5 +1,5 @@
 from sqlmodel import Session
-from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic
+from app.models import Meeting, TranscriptSegment, Decision, Task, Contradiction, UnresolvedTopic, User, MeetingInvitation
 from app.database import engine
 import json
 
@@ -11,6 +11,14 @@ def seed_data():
             return
 
         print("Seeding rich mockup organizational memory...")
+
+        # Seed Workspace Users
+        u1 = User(phone="+15550100001", name="Sarah (Product)", email="sarah@company.com", avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Sarah", role="Workspace Contributor", color="from-cyber-purple to-cyber-cyan")
+        u2 = User(phone="+15550100002", name="Aman (Backend)", email="aman@company.com", avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Aman", role="Workspace Contributor", color="from-cyber-purple to-cyber-rose")
+        u3 = User(phone="+15550100003", name="Reeti (Frontend)", email="reeti@company.com", avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Reeti", role="Workspace Contributor", color="from-cyber-cyan to-cyber-emerald")
+        u4 = User(phone="+15550100004", name="Fletcher (QA)", email="fletcher@company.com", avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Fletcher", role="Workspace Contributor", color="from-cyber-emerald to-cyber-rose")
+        session.add_all([u1, u2, u3, u4])
+        session.commit()
 
         # 1. MEETINGS
         m1 = Meeting(
@@ -51,6 +59,31 @@ def seed_data():
         session.refresh(m1)
         session.refresh(m2)
         session.refresh(m3)
+
+        # Establish continuation links (Timeline)
+        m2.parent_meeting_id = m1.id
+        m3.parent_meeting_id = m2.id
+        session.add_all([m2, m3])
+        session.commit()
+
+        # Seed Meeting Invitations
+        # Meeting 1: all accepted
+        inv1_1 = MeetingInvitation(meeting_id=m1.id, email="sarah@company.com", name="Sarah (Product)", status="accepted")
+        inv1_2 = MeetingInvitation(meeting_id=m1.id, email="aman@company.com", name="Aman (Backend)", status="accepted")
+        inv1_3 = MeetingInvitation(meeting_id=m1.id, email="reeti@company.com", name="Reeti (Frontend)", status="accepted")
+        
+        # Meeting 2: Sarah/Aman accepted, Reeti pending
+        inv2_1 = MeetingInvitation(meeting_id=m2.id, email="sarah@company.com", name="Sarah (Product)", status="accepted")
+        inv2_2 = MeetingInvitation(meeting_id=m2.id, email="aman@company.com", name="Aman (Backend)", status="accepted")
+        inv2_3 = MeetingInvitation(meeting_id=m2.id, email="reeti@company.com", name="Reeti (Frontend)", status="pending")
+        
+        # Meeting 3: Sarah/Aman accepted, Reeti declined
+        inv3_1 = MeetingInvitation(meeting_id=m3.id, email="sarah@company.com", name="Sarah (Product)", status="accepted")
+        inv3_2 = MeetingInvitation(meeting_id=m3.id, email="aman@company.com", name="Aman (Backend)", status="accepted")
+        inv3_3 = MeetingInvitation(meeting_id=m3.id, email="reeti@company.com", name="Reeti (Frontend)", status="declined")
+        
+        session.add_all([inv1_1, inv1_2, inv1_3, inv2_1, inv2_2, inv2_3, inv3_1, inv3_2, inv3_3])
+        session.commit()
 
         # 2. TRANSCRIPT SEGMENTS
         # Meeting 1

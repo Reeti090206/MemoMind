@@ -7,7 +7,15 @@ import {
   Sparkles, 
   Hash, 
   ArrowRight,
-  Code
+  Code,
+  X,
+  Clock,
+  CheckCircle,
+  Calendar,
+  TrendingUp,
+  Edit2,
+  Save,
+  Shield
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../components/AuthProvider";
@@ -19,6 +27,7 @@ interface TeamMember {
   status: "online" | "offline" | "idle";
   activity: string;
   color: string;
+  email?: string;
 }
 
 const CHANNELS = [
@@ -36,6 +45,50 @@ export default function TeamWorkspace() {
   const [speakers, setSpeakers] = useState<string[]>([]);
   const [tasksList, setTasksList] = useState<any[]>([]);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // User progress dashboard states
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [memberProgress, setMemberProgress] = useState<any | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+  const [editingRole, setEditingRole] = useState(false);
+  const [newRoleValue, setNewRoleValue] = useState("");
+
+  const handleMemberClick = async (member: TeamMember) => {
+    setSelectedMember(member);
+    setLoadingProgress(true);
+    setEditingRole(false);
+    try {
+      const identifier = member.email || member.name;
+      const res = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(identifier)}/progress`);
+      if (res.ok) {
+        const data = await res.json();
+        setMemberProgress(data);
+        setNewRoleValue(data.role || member.role);
+      }
+    } catch (err) {
+      console.error("Failed to load user progress:", err);
+    } finally {
+      setLoadingProgress(false);
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!selectedMember || !memberProgress?.user_id) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/users/${memberProgress.user_id}/update-role`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRoleValue })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMemberProgress((prev: any) => ({ ...prev, role: data.user.role }));
+        setEditingRole(false);
+      }
+    } catch (err) {
+      console.error("Failed to update role", err);
+    }
+  };
 
   // Load speakers and active tasks from the backend
   useEffect(() => {
@@ -112,7 +165,8 @@ export default function TeamWorkspace() {
         avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.name)}`,
         status: "online",
         activity: "Collaborating Live",
-        color: "border-cyber-cyan text-cyber-cyan"
+        color: "border-cyber-cyan text-cyber-cyan",
+        email: user.email
       });
     } else {
       list.push({
@@ -121,7 +175,8 @@ export default function TeamWorkspace() {
         avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest",
         status: "online",
         activity: "Collaborating Live",
-        color: "border-cyber-cyan text-cyber-cyan"
+        color: "border-cyber-cyan text-cyber-cyan",
+        email: "developer@company.com"
       });
     }
 
@@ -130,13 +185,20 @@ export default function TeamWorkspace() {
       if (user && spk.toLowerCase() === user.name.toLowerCase()) return;
       if (spk.toLowerCase() === "developer guest") return;
 
+      let email = spk;
+      if (spk.toLowerCase().includes("sarah")) email = "sarah@company.com";
+      else if (spk.toLowerCase().includes("aman")) email = "aman@company.com";
+      else if (spk.toLowerCase().includes("reeti")) email = "reeti@company.com";
+      else if (spk.toLowerCase().includes("fletcher")) email = "fletcher@company.com";
+
       list.push({
         name: spk,
         role: "Sync Participant",
         avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(spk)}`,
         status: "online",
         activity: "Inactive",
-        color: "border-gray-500 text-gray-500"
+        color: "border-gray-500 text-gray-500",
+        email: email
       });
     });
 
@@ -259,7 +321,11 @@ export default function TeamWorkspace() {
 
             <div className="space-y-3.5 font-sans">
               {activeMembers.map(mb => (
-                <div key={mb.name} className="flex items-start gap-3 p-1.5 rounded-xl hover:bg-[var(--foreground)]/[0.02] transition-colors group">
+                <button
+                  key={mb.name}
+                  onClick={() => handleMemberClick(mb)}
+                  className="w-full flex items-start gap-3 p-1.5 rounded-xl hover:bg-[var(--foreground)]/[0.02] transition-colors group cursor-pointer text-left focus:outline-none"
+                >
                   <div className="relative shrink-0">
                     <img 
                       src={mb.avatar} 
@@ -284,7 +350,7 @@ export default function TeamWorkspace() {
                       Working on: {mb.activity}
                     </p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -424,6 +490,227 @@ export default function TeamWorkspace() {
         </div>
 
       </div>
+
+      {/* Dialog Modal: Member Progress Dashboard */}
+      <AnimatePresence>
+        {selectedMember && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--color-obsidian-border)] bg-black/85 p-6 md:p-8 text-[var(--foreground)] shadow-2xl backdrop-blur-xl max-h-[90vh] overflow-y-auto"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setSelectedMember(null);
+                  setMemberProgress(null);
+                }}
+                className="absolute top-6 right-6 p-1.5 rounded-xl border border-[var(--color-obsidian-border)] bg-black/45 text-[var(--foreground)]/70 hover:text-[var(--foreground)] transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {loadingProgress ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <span className="h-10 w-10 border-4 border-cyber-purple border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-[var(--foreground)]/60 font-mono">Compiling User Intelligence...</p>
+                </div>
+              ) : memberProgress ? (
+                <div className="space-y-6 text-left">
+                  {/* Overview Header */}
+                  <div className="flex flex-col sm:flex-row items-center gap-5 pb-5 border-b border-[var(--color-obsidian-border)]">
+                    <div className="relative">
+                      <img
+                        src={selectedMember.avatar}
+                        alt={selectedMember.name}
+                        className="h-16 w-16 rounded-2xl border border-cyber-purple bg-black p-1 shrink-0"
+                      />
+                      <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border border-black bg-cyber-emerald" />
+                    </div>
+
+                    <div className="text-center sm:text-left flex-1 space-y-1">
+                      <h3 className="text-xl font-bold text-[var(--foreground)] tracking-tight">
+                        {memberProgress.name}
+                      </h3>
+                      <p className="text-xs text-[var(--foreground)]/50 font-mono">
+                        {memberProgress.email}
+                      </p>
+
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1.5">
+                        {editingRole ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={newRoleValue}
+                              onChange={(e) => setNewRoleValue(e.target.value)}
+                              className="bg-black/60 border border-cyber-purple/50 rounded-lg px-2.5 py-1 text-xs text-[var(--foreground)] focus:outline-none"
+                            />
+                            <button
+                              onClick={handleUpdateRole}
+                              className="p-1 rounded bg-cyber-emerald/20 border border-cyber-emerald/40 text-cyber-emerald cursor-pointer hover:scale-105"
+                              title="Save Role"
+                            >
+                              <Save className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => setEditingRole(false)}
+                              className="p-1 rounded bg-cyber-rose/20 border border-cyber-rose/40 text-cyber-rose cursor-pointer hover:scale-105"
+                              title="Cancel"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 text-[10px] rounded-full bg-cyber-purple/10 border border-cyber-purple/35 text-cyber-purple font-mono font-bold tracking-wider">
+                              {memberProgress.role}
+                            </span>
+                            {/* Role edit option for admins */}
+                            {(user?.role?.toLowerCase().includes("admin") || user?.role?.toLowerCase().includes("owner") || user?.name === "Developer Guest") && (
+                              <button
+                                onClick={() => setEditingRole(true)}
+                                className="p-1 rounded-lg border border-[var(--color-obsidian-border)] bg-black/40 text-[var(--foreground)]/55 hover:text-cyber-cyan hover:border-cyber-cyan/40 transition-colors cursor-pointer"
+                                title="Edit Role"
+                              >
+                                <Edit2 className="h-2.5 w-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <span className="text-[10px] text-[var(--foreground)]/40 font-mono">
+                          Joined: {memberProgress.created_at}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Meeting Stats */}
+                    <div className="p-5 border border-[var(--color-obsidian-border)] bg-white/[0.01] rounded-2xl space-y-4">
+                      <h4 className="text-xs font-bold font-mono text-[var(--foreground)]/60 uppercase tracking-widest flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4 text-cyber-purple" /> Sync Attendance
+                      </h4>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="p-2 bg-black/35 rounded-xl border border-[var(--color-obsidian-border)]">
+                          <p className="text-[9px] text-[var(--foreground)]/50 font-mono font-bold">Attended</p>
+                          <p className="text-lg font-black text-cyber-cyan font-mono mt-0.5">{memberProgress.meetings_attended}</p>
+                        </div>
+                        <div className="p-2 bg-black/35 rounded-xl border border-[var(--color-obsidian-border)]">
+                          <p className="text-[9px] text-[var(--foreground)]/50 font-mono font-bold">Missed</p>
+                          <p className="text-lg font-black text-cyber-rose font-mono mt-0.5">{memberProgress.meetings_missed}</p>
+                        </div>
+                        <div className="p-2 bg-cyber-purple/10 rounded-xl border border-cyber-purple/20">
+                          <p className="text-[9px] text-cyber-purple font-mono font-bold">Rate</p>
+                          <p className="text-lg font-black text-cyber-purple font-mono mt-0.5">{memberProgress.attendance_rate}%</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Task Stats */}
+                    <div className="p-5 border border-[var(--color-obsidian-border)] bg-white/[0.01] rounded-2xl space-y-4">
+                      <h4 className="text-xs font-bold font-mono text-[var(--foreground)]/60 uppercase tracking-widest flex items-center gap-1.5">
+                        <CheckCircle className="h-4 w-4 text-cyber-emerald" /> Task Deliverables
+                      </h4>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="p-2 bg-black/35 rounded-xl border border-[var(--color-obsidian-border)]">
+                          <p className="text-[9px] text-[var(--foreground)]/50 font-mono font-bold">Done</p>
+                          <p className="text-lg font-black text-cyber-emerald font-mono mt-0.5">{memberProgress.completed_tasks}</p>
+                        </div>
+                        <div className="p-2 bg-black/35 rounded-xl border border-[var(--color-obsidian-border)]">
+                          <p className="text-[9px] text-[var(--foreground)]/50 font-mono font-bold">Pending</p>
+                          <p className="text-lg font-black text-amber-500 font-mono mt-0.5">{memberProgress.pending_tasks}</p>
+                        </div>
+                        <div className="p-2 bg-cyber-cyan/10 rounded-xl border border-cyber-cyan/20">
+                          <p className="text-[9px] text-cyber-cyan font-mono font-bold">Rate</p>
+                          <p className="text-lg font-black text-cyber-cyan font-mono mt-0.5">{memberProgress.task_completion_rate}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Insights & Decisions */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {/* Insights card */}
+                    <div className="md:col-span-2 p-5 border border-[var(--color-obsidian-border)] bg-white/[0.01] rounded-2xl space-y-3">
+                      <h4 className="text-xs font-bold font-mono text-[var(--foreground)]/60 uppercase tracking-widest flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-cyber-cyan animate-pulse" /> AI Behavioral Insights
+                      </h4>
+                      <div className="space-y-2">
+                        {memberProgress.ai_insights.map((ins: string, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2.5 p-2 bg-cyber-cyan/[0.02] border border-cyber-cyan/10 rounded-xl text-xs leading-relaxed text-[var(--foreground)]/80">
+                            <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan mt-1.5 shrink-0" />
+                            <p>{ins}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Decision Contributions */}
+                    <div className="p-5 border border-[var(--color-obsidian-border)] bg-gradient-to-tr from-cyber-purple/10 to-transparent rounded-2xl flex flex-col justify-between">
+                      <h4 className="text-xs font-bold font-mono text-[var(--foreground)]/60 uppercase tracking-widest flex items-center gap-1.5">
+                        <TrendingUp className="h-4 w-4 text-cyber-purple" /> Decisions
+                      </h4>
+                      <div className="py-4 text-center">
+                        <p className="text-3xl font-black text-cyber-purple font-mono">{memberProgress.decision_contributions}</p>
+                        <p className="text-[10px] text-[var(--foreground)]/50 font-sans mt-1">Negotiations participated in</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Activity Timeline */}
+                  <div className="p-5 border border-[var(--color-obsidian-border)] bg-white/[0.01] rounded-2xl space-y-4">
+                    <h4 className="text-xs font-bold font-mono text-[var(--foreground)]/60 uppercase tracking-widest flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-cyber-cyan" /> Recent Activity Timeline
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                      {/* Recent meetings */}
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-mono text-[var(--foreground)]/50 uppercase tracking-widest font-bold">Meetings Attended</p>
+                        {memberProgress.recent_activity?.meetings?.length > 0 ? (
+                          memberProgress.recent_activity.meetings.map((meet: any) => (
+                            <div key={meet.id} className="p-2.5 bg-black/40 border border-[var(--color-obsidian-border)] rounded-xl text-xs flex justify-between items-center font-sans">
+                              <span className="font-semibold text-[var(--foreground)]/90 truncate mr-2">{meet.title}</span>
+                              <span className="text-[9px] text-[var(--foreground)]/40 font-mono shrink-0">{meet.date.split(" ")[0]}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[11px] text-[var(--foreground)]/45 italic font-sans">No recent meeting records.</p>
+                        )}
+                      </div>
+                      
+                      {/* Recent tasks */}
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-mono text-[var(--foreground)]/50 uppercase tracking-widest font-bold">Assigned Tasks</p>
+                        {memberProgress.recent_activity?.tasks?.length > 0 ? (
+                          memberProgress.recent_activity.tasks.map((tsk: any, idx: number) => (
+                            <div key={idx} className="p-2.5 bg-black/40 border border-[var(--color-obsidian-border)] rounded-xl text-xs flex justify-between items-center font-sans">
+                              <span className="font-semibold text-[var(--foreground)]/90 truncate mr-2">{tsk.title}</span>
+                              <span className={`text-[9px] font-mono shrink-0 px-2 py-0.5 rounded font-bold ${
+                                tsk.status === "done" ? "bg-cyber-emerald/10 text-cyber-emerald" : "bg-cyber-purple/10 text-cyber-purple animate-pulse"
+                              }`}>{tsk.status}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[11px] text-[var(--foreground)]/45 italic font-sans">No recent tasks assigned.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-20 text-[var(--foreground)]/50 font-sans text-xs">
+                  Failed to fetch progress details.
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

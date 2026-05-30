@@ -21,7 +21,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  Settings,
   Share2,
   Pause,
   PlayCircle,
@@ -37,6 +36,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingSharePopup from "@/components/FloatingSharePopup";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 interface TaskItem {
   id: string;
@@ -59,6 +65,90 @@ export default function MeetingUpload() {
   const [activeTab, setActiveTab] = useState<"upload" | "mic" | "live_monitor">("upload");
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+
+  // Continuation and invitations states
+  const [meetingType, setMeetingType] = useState<"new" | "continue">("new");
+  const [parentMeetingId, setParentMeetingId] = useState<number | null>(null);
+  const [meetingDescription, setMeetingDescription] = useState("");
+  const [meetingDateTime, setMeetingDateTime] = useState(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  });
+  const [workspaceTeam, setWorkspaceTeam] = useState("Team Alpha");
+  const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([]);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [pastMeetings, setPastMeetings] = useState<any[]>([]);
+  const [previousCollaborators, setPreviousCollaborators] = useState<any[]>([]);
+  const [parentMeetingDetails, setParentMeetingDetails] = useState<any | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+
+  // Load collaborators and meetings
+  useEffect(() => {
+    async function loadFormContext() {
+      try {
+        const uRes = await fetch("http://127.0.0.1:8000/api/users");
+        if (uRes.ok) {
+          const uList = await uRes.json();
+          setAllUsers(uList);
+        }
+      } catch (e) {
+        console.warn("Failed to load users:", e);
+      }
+      
+      try {
+        const mRes = await fetch("http://127.0.0.1:8000/api/meetings");
+        if (mRes.ok) {
+          const mList = await mRes.json();
+          setPastMeetings(mList);
+          
+          // Deduplicate previous collaborators from invitations of existing meetings
+          const collaboratorsSet = new Set<string>();
+          for (const meet of mList) {
+            try {
+              const invRes = await fetch(`http://127.0.0.1:8000/api/meetings/${meet.id}`);
+              if (invRes.ok) {
+                const meetDetails = await invRes.json();
+                for (const inv of (meetDetails.invitations || [])) {
+                  if (inv.status === "accepted") {
+                    collaboratorsSet.add(inv.email);
+                  }
+                }
+              }
+            } catch (err) {}
+          }
+          const collabs = Array.from(collaboratorsSet);
+          setPreviousCollaborators(collabs);
+        }
+      } catch (e) {
+        console.warn("Failed to load meetings:", e);
+      }
+    }
+    loadFormContext();
+  }, []);
+
+  // Fetch parent meeting details if continuing
+  useEffect(() => {
+    if (!parentMeetingId) {
+      setParentMeetingDetails(null);
+      return;
+    }
+    async function loadParentDetails() {
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/meetings/${parentMeetingId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setParentMeetingDetails(data);
+        }
+      } catch (err) {}
+    }
+    loadParentDetails();
+  }, [parentMeetingId]);
 
   // Processing & compilation tracker states
   const [isProcessing, setIsProcessing] = useState(false);
@@ -224,6 +314,18 @@ export default function MeetingUpload() {
     formData.append("title", meetingTitle || file.name.split(".")[0]);
     if (user?.email) {
       formData.append("user_email", user.email);
+    }
+    if (meetingType === "continue" && parentMeetingId) {
+      formData.append("parent_meeting_id", parentMeetingId.toString());
+    }
+    if (meetingDescription) {
+      formData.append("description", meetingDescription);
+    }
+    if (workspaceTeam) {
+      formData.append("team_name", workspaceTeam);
+    }
+    if (selectedUserEmails.length > 0) {
+      formData.append("invited_emails", JSON.stringify(selectedUserEmails));
     }
 
     const xhr = new XMLHttpRequest();
@@ -526,6 +628,18 @@ export default function MeetingUpload() {
     }
     if (user?.email) {
       formData.append("user_email", user.email);
+    }
+    if (meetingType === "continue" && parentMeetingId) {
+      formData.append("parent_meeting_id", parentMeetingId.toString());
+    }
+    if (meetingDescription) {
+      formData.append("description", meetingDescription);
+    }
+    if (workspaceTeam) {
+      formData.append("team_name", workspaceTeam);
+    }
+    if (selectedUserEmails.length > 0) {
+      formData.append("invited_emails", JSON.stringify(selectedUserEmails));
     }
 
     const xhr = new XMLHttpRequest();
@@ -982,6 +1096,18 @@ export default function MeetingUpload() {
     if (user?.email) {
       formData.append("user_email", user.email);
     }
+    if (meetingType === "continue" && parentMeetingId) {
+      formData.append("parent_meeting_id", parentMeetingId.toString());
+    }
+    if (meetingDescription) {
+      formData.append("description", meetingDescription);
+    }
+    if (workspaceTeam) {
+      formData.append("team_name", workspaceTeam);
+    }
+    if (selectedUserEmails.length > 0) {
+      formData.append("invited_emails", JSON.stringify(selectedUserEmails));
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "http://127.0.0.1:8000/api/meetings/upload", true);
@@ -1372,20 +1498,281 @@ export default function MeetingUpload() {
 
               {/* Metadata Card - Shared Title Header */}
               {(!isMonitoring || monitorStage === "completed") && (
-                <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent">
-                  <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5">
-                    <Database className="h-4 w-4 text-cyber-purple" /> 1. Meeting Details
+                <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-6 bg-transparent">
+                  <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-1.5 border-b border-[var(--color-obsidian-border)] pb-2.5">
+                    <Database className="h-4 w-4 text-cyber-purple" /> 1. Meeting Details & Scheduling
                   </h3>
-                  <div>
-                    <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">What is this meeting about?</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Authentication Architecture Scaling Review, JWT vs Clerk OAuth"
-                      value={meetingTitle}
-                      onChange={(e) => setMeetingTitle(e.target.value)}
-                      className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all"
-                    />
+
+                  {/* Meeting Type Selection */}
+                  <div className="space-y-2">
+                    <label className="block text-xs text-[var(--foreground)]/70 font-mono uppercase tracking-wider">Meeting Type</label>
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => { setMeetingType("new"); setParentMeetingId(null); }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold font-mono transition-all border cursor-pointer ${
+                          meetingType === "new"
+                            ? "bg-cyber-purple/20 border-cyber-purple text-[var(--foreground)] shadow-lg shadow-cyber-purple/10"
+                            : "bg-[var(--foreground)]/[0.01] border-[var(--color-obsidian-border)] text-[var(--foreground)]/50 hover:text-[var(--foreground)]"
+                        }`}
+                      >
+                        New Meeting
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMeetingType("continue")}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold font-mono transition-all border cursor-pointer ${
+                          meetingType === "continue"
+                            ? "bg-cyber-purple/20 border-cyber-purple text-[var(--foreground)] shadow-lg shadow-cyber-purple/10"
+                            : "bg-[var(--foreground)]/[0.01] border-[var(--color-obsidian-border)] text-[var(--foreground)]/50 hover:text-[var(--foreground)]"
+                        }`}
+                      >
+                        Continue Existing Meeting
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Continue Existing Meeting dropdown and Continuation Summary */}
+                  {meetingType === "continue" && (
+                    <div className="space-y-4 p-4 rounded-2xl bg-black/35 border border-[var(--color-obsidian-border)] animate-fadeIn">
+                      <div className="space-y-2">
+                        <label className="block text-xs text-[var(--foreground)]/70 font-mono uppercase tracking-wider">Select Previous Meeting</label>
+                        <Select
+                          onValueChange={(val) => setParentMeetingId(parseInt(val))}
+                          value={parentMeetingId?.toString() || ""}
+                        >
+                          <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)]">
+                            <SelectValue placeholder="Select a past meeting to continue..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pastMeetings.map((m) => (
+                              <SelectItem key={m.id} value={m.id.toString()}>
+                                {m.title} ({m.date.split(" ")[0]})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {parentMeetingDetails && (
+                        <div className="p-4 rounded-xl bg-cyber-purple/5 border border-cyber-purple/25 space-y-3">
+                          <h4 className="text-[10px] font-bold text-cyber-cyan uppercase tracking-widest font-mono">Continuation Summary</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-sans text-[var(--foreground)]/80">
+                            <div>
+                              <p className="text-[10px] text-gray-500 font-mono">LAST MEETING</p>
+                              <p className="font-semibold text-white truncate">{parentMeetingDetails.title}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-500 font-mono">PENDING TASKS</p>
+                              <p className="font-bold text-cyber-rose font-mono text-base">{parentMeetingDetails.tasks.filter((t: any) => t.status !== "done").length}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-500 font-mono">OPEN DECISIONS</p>
+                              <p className="font-bold text-cyber-purple font-mono text-base">{parentMeetingDetails.decisions.length}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-500 font-mono">UNRESOLVED ISSUES</p>
+                              <p className="font-bold text-cyber-cyan font-mono text-base">{parentMeetingDetails.unresolved_topics.filter((u: any) => u.status === "open").length}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Meeting name and metadata inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs text-[var(--foreground)]/70 font-semibold">Meeting Title</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Authentication Scaling Review"
+                        value={meetingTitle}
+                        onChange={(e) => setMeetingTitle(e.target.value)}
+                        className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs text-[var(--foreground)]/70 font-semibold">Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        value={meetingDateTime}
+                        onChange={(e) => setMeetingDateTime(e.target.value)}
+                        className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs text-[var(--foreground)]/70 font-semibold">Description</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Provide details about the meeting agenda and scope..."
+                        value={meetingDescription}
+                        onChange={(e) => setMeetingDescription(e.target.value)}
+                        className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all resize-none"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs text-[var(--foreground)]/70 font-semibold">Team/Workspace</label>
+                      <Select
+                        onValueChange={(val) => setWorkspaceTeam(val)}
+                        value={workspaceTeam}
+                      >
+                        <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)] py-6">
+                          <SelectValue placeholder="Select Team/Workspace" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Team Alpha">Team Alpha</SelectItem>
+                          <SelectItem value="Backend Team">Backend Team</SelectItem>
+                          <SelectItem value="Cloud Team">Cloud Team</SelectItem>
+                          <SelectItem value="Acme Corp">Acme Corp</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Invite Members Subsection */}
+                  <div className="border-t border-[var(--color-obsidian-border)] pt-4 space-y-4">
+                    <label className="block text-xs text-[var(--foreground)]/70 font-mono uppercase tracking-wider">Invite Members</label>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      {/* Search & Checklist of users */}
+                      <div className="space-y-3">
+                        <span className="text-[10px] text-gray-500 font-mono">SEARCH WORKSPACE USERS</span>
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-2 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple/50"
+                        />
+                        <div className="max-h-36 overflow-y-auto space-y-2 p-2 bg-black/20 border border-[var(--color-obsidian-border)] rounded-xl">
+                          {allUsers
+                            .filter(u => !userSearchQuery || u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                            .map((u) => {
+                              const isChecked = selectedUserEmails.includes(u.email);
+                              return (
+                                <label key={u.email} className="flex items-center gap-2 text-xs text-[var(--foreground)]/80 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedUserEmails(prev => [...prev, u.email]);
+                                      } else {
+                                        setSelectedUserEmails(prev => prev.filter(email => email !== u.email));
+                                      }
+                                    }}
+                                    className="h-3.5 w-3.5 rounded border-gray-300 text-cyber-purple focus:ring-cyber-purple bg-transparent"
+                                  />
+                                  <span>{u.name} <span className="text-[10px] text-gray-500">({u.email})</span></span>
+                                </label>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Add by email & Previous Collaborators */}
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <span className="text-[10px] text-gray-500 font-mono block">INVITE BY EMAIL</span>
+                          <div className="flex gap-2">
+                            <input
+                              type="email"
+                              placeholder="e.g. colleague@company.com"
+                              value={newEmailInput}
+                              onChange={(e) => setNewEmailInput(e.target.value)}
+                              className="flex-1 bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-2 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple/50"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (newEmailInput.trim() && !selectedUserEmails.includes(newEmailInput.trim())) {
+                                  setSelectedUserEmails(prev => [...prev, newEmailInput.trim()]);
+                                  setNewEmailInput("");
+                                }
+                              }}
+                              className="px-3 py-2 bg-cyber-purple text-xs font-bold rounded-xl border border-[var(--color-obsidian-border)] text-white hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                            >
+                              + Invite
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Previous Collaborators */}
+                        {previousCollaborators.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-[10px] text-gray-500 font-mono block">PREVIOUS COLLABORATORS (ONE-CLICK ADD)</span>
+                            <div className="flex flex-wrap gap-2">
+                              {previousCollaborators.map(email => {
+                                const isSelected = selectedUserEmails.includes(email);
+                                const u = allUsers.find(user => user.email === email);
+                                const displayName = u ? u.name.split(" ")[0] : email.split("@")[0];
+                                return (
+                                  <button
+                                    key={email}
+                                    type="button"
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setSelectedUserEmails(prev => prev.filter(e => e !== email));
+                                      } else {
+                                        setSelectedUserEmails(prev => [...prev, email]);
+                                      }
+                                    }}
+                                    className={`px-2.5 py-1 text-[10px] font-semibold rounded-lg border transition-all cursor-pointer ${
+                                      isSelected
+                                        ? "bg-cyber-cyan/15 border-cyber-cyan text-cyber-cyan"
+                                        : "bg-[var(--foreground)]/[0.02] border-[var(--color-obsidian-border)] text-[var(--foreground)]/60 hover:text-[var(--foreground)]"
+                                    }`}
+                                  >
+                                    {isSelected ? "☑" : "☐"} {displayName}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+
+                    {/* Selected List Summary */}
+                    {selectedUserEmails.length > 0 && (
+                      <div className="p-3 bg-black/40 border border-[var(--color-obsidian-border)] rounded-xl space-y-2 col-span-1 md:col-span-2">
+                        <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block">Invited Participants List</span>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedUserEmails.map(email => {
+                            const u = allUsers.find(user => user.email === email);
+                            const displayName = u ? u.name : email;
+                            const isCollab = previousCollaborators.includes(email);
+                            return (
+                              <span
+                                key={email}
+                                className="px-2.5 py-1 text-[10px] bg-cyber-purple/10 border border-cyber-purple/20 text-white rounded-lg flex items-center gap-1.5"
+                              >
+                                {displayName}
+                                <span className={`text-[8px] px-1 rounded ${isCollab ? "bg-cyber-emerald/15 text-cyber-emerald" : "bg-cyber-rose/15 text-cyber-rose"}`}>
+                                  {isCollab ? "Collaborator (Auto)" : "Pending Invite"}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedUserEmails(prev => prev.filter(e => e !== email))}
+                                  className="text-cyber-rose hover:text-red-500 font-bold ml-1"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+
                 </div>
               )}
 
@@ -2061,45 +2448,6 @@ export default function MeetingUpload() {
                 </div>
               )}
 
-              {/* Ingestion status overview (Always visible on right) */}
-              <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent">
-                <h3 className="text-sm font-bold text-[var(--foreground)] font-mono uppercase tracking-wider flex items-center gap-1.5">
-                  <Settings className="h-4 w-4 text-cyber-purple" /> System Status
-                </h3>
-
-                <div className="space-y-3.5 text-xs">
-                  <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
-                    <span className="text-[var(--foreground)]/70 font-mono">AI Engine Status</span>
-                    <span className="text-cyber-emerald font-mono font-bold flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 bg-cyber-emerald rounded-full animate-ping" /> ONLINE
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
-                    <span className="text-[var(--foreground)]/70 font-mono">Transcription Model</span>
-                    <span className="text-cyber-cyan font-mono font-bold">Whisper v2.4</span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
-                    <span className="text-[var(--foreground)]/70 font-mono">Memory Database</span>
-                    <span className="text-cyber-purple font-mono font-bold">SQLModel pgvector</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[var(--foreground)]/70 font-mono">Data Encryption</span>
-                    <span className="text-[var(--foreground)] font-mono font-semibold flex items-center gap-1.5">
-                      <ShieldAlert className="h-3.5 w-3.5 text-cyber-cyan" /> AES-256 TLS 1.3
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Helpful platform notes */}
-              <div className="p-4 bg-cyber-purple/5 border border-cyber-purple/10 rounded-2xl text-[11px] text-[var(--foreground)]/70 leading-relaxed space-y-2 font-sans">
-                <p className="font-bold text-[var(--foreground)] flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-cyber-cyan" /> Tip: How to use with Zoom, Meet, and Teams
-                </p>
-                <p>
-                  When you start the assistant, you can choose to share any Chrome tab, window, or your whole screen. Sharing the screen along with its audio lets the assistant hear and transcribe everyone in your virtual meeting room.
-                </p>
-              </div>
 
             </div>
 

@@ -16,7 +16,9 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Settings,
+  ShieldAlert
 } from "lucide-react";
 
 interface FAQItem {
@@ -55,6 +57,46 @@ const FAQ_ITEMS: FAQItem[] = [
           <li>Head to the <strong>Add Meeting</strong> tab to start a Live Stream or upload an audio file.</li>
           <li>Review compiled intelligence reports on the <strong>Read Meetings</strong> or <strong>Decisions</strong> panels.</li>
         </ol>
+      </div>
+    )
+  },
+  {
+    id: "started-2",
+    category: "getting-started",
+    question: "What is the system status and tech stack of MemoMind?",
+    answer: (
+      <div className="space-y-4">
+        <p>
+          MemoMind operates locally. Below is the active system configuration and diagnostic status of the intelligence engine:
+        </p>
+        <div className="p-6 rounded-2xl glass-card border border-[var(--color-obsidian-border)] space-y-4 bg-transparent max-w-md">
+          <h3 className="text-sm font-bold text-[var(--foreground)] font-mono uppercase tracking-wider flex items-center gap-1.5">
+            <Settings className="h-4 w-4 text-cyber-purple" /> System Status
+          </h3>
+
+          <div className="space-y-3.5 text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+              <span className="text-[var(--foreground)]/70 font-mono">AI Engine Status</span>
+              <span className="text-cyber-emerald font-mono font-bold flex items-center gap-1">
+                <span className="h-1.5 w-1.5 bg-cyber-emerald rounded-full animate-ping" /> ONLINE
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+              <span className="text-[var(--foreground)]/70 font-mono">Transcription Model</span>
+              <span className="text-cyber-cyan font-mono font-bold">Whisper v2.4</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-[var(--color-obsidian-border)] pb-2">
+              <span className="text-[var(--foreground)]/70 font-mono">Memory Database</span>
+              <span className="text-cyber-purple font-mono font-bold">SQLModel pgvector</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--foreground)]/70 font-mono">Data Encryption</span>
+              <span className="text-[var(--foreground)] font-mono font-semibold flex items-center gap-1.5">
+                <ShieldAlert className="h-3.5 w-3.5 text-cyber-cyan" /> AES-256 TLS 1.3
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     )
   },
@@ -115,6 +157,26 @@ const FAQ_ITEMS: FAQItem[] = [
         <p>
           These chunks are encoded and piped through a secure WebSocket connection to our FastAPI backend. The server streams these packets to our real-time Whisper transcription model, ensuring minimal latency and extremely high transcription accuracy.
         </p>
+      </div>
+    )
+  },
+  {
+    id: "live-5",
+    category: "live-assistant",
+    question: "How do I use MemoMind with Zoom, Google Meet, or Microsoft Teams?",
+    answer: (
+      <div className="space-y-3">
+        <p>
+          MemoMind can capture audio and screen context from virtual meetings hosted on other platforms like Zoom, Google Meet, Teams, or Discord.
+        </p>
+        <div className="p-4 bg-cyber-purple/5 border border-cyber-purple/10 rounded-2xl text-[11px] text-[var(--foreground)]/70 leading-relaxed space-y-2 font-sans max-w-xl">
+          <p className="font-bold text-[var(--foreground)] flex items-center gap-1">
+            <Sparkles className="h-3.5 w-3.5 text-cyber-cyan" /> Tip: How to use with Zoom, Meet, and Teams
+          </p>
+          <p>
+            When you start the assistant, you can choose to share any Chrome tab, window, or your whole screen. Sharing the screen along with its audio lets the assistant hear and transcribe everyone in your virtual meeting room.
+          </p>
+        </div>
       </div>
     )
   },

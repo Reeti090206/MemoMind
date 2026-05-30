@@ -22,6 +22,14 @@ def init_db():
         with Session(engine) as session:
             session.execute(text("ALTER TABLE meeting ADD COLUMN team_name VARCHAR"))
             session.commit()
+    if "parent_meeting_id" not in columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE meeting ADD COLUMN parent_meeting_id INTEGER"))
+            session.commit()
+    if "description" not in columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE meeting ADD COLUMN description VARCHAR"))
+            session.commit()
             
             # Backfill existing meetings with team names based on their titles
             meetings = session.execute(text("SELECT id, title FROM meeting")).all()

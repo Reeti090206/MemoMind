@@ -19,6 +19,8 @@ class Meeting(SQLModel, table=True):
     speaker_stats: str = Field(default="{}")  # JSON string representing {"Speaker A": percentage, ...}
     user_email: Optional[str] = Field(default=None, index=True)
     team_name: Optional[str] = Field(default=None)
+    parent_meeting_id: Optional[int] = Field(default=None, foreign_key="meeting.id")
+    description: Optional[str] = Field(default=None)
 
     # Relationships
     segments: List["TranscriptSegment"] = Relationship(back_populates="meeting")
@@ -31,6 +33,15 @@ class Meeting(SQLModel, table=True):
     unresolved_topics: List["UnresolvedTopic"] = Relationship(
         back_populates="meeting",
         sa_relationship_kwargs={"foreign_keys": "UnresolvedTopic.meeting_id"}
+    )
+    parent: Optional["Meeting"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={"remote_side": "Meeting.id"}
+    )
+    children: List["Meeting"] = Relationship(back_populates="parent")
+    invitations: List["MeetingInvitation"] = Relationship(
+        back_populates="meeting",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
 
 class TranscriptSegment(SQLModel, table=True):
@@ -116,3 +127,13 @@ class User(SQLModel, table=True):
     role: str = Field(default="Workspace Contributor")
     color: str = Field(default="from-cyber-purple to-cyber-cyan")
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MeetingInvitation(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    meeting_id: int = Field(foreign_key="meeting.id")
+    email: str
+    name: Optional[str] = None
+    status: str = Field(default="pending")  # pending, accepted, declined
+
+    # Relationship
+    meeting: Optional[Meeting] = Relationship(back_populates="invitations")
