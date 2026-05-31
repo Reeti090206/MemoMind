@@ -1145,16 +1145,6 @@ def send_welcome_email(payload: Dict[str, Any]):
                 welcome_email_already_sent = True
     except Exception as e:
         print(f"[Welcome Email DB Check Error] {e}")
-            
-    if welcome_email_already_sent:
-        print(f"[Welcome Email Bypass] Welcome email already marked as sent in DB for {email}")
-        return {
-            "status": "success",
-            "file_path": "",
-            "sent_via_smtp": False,
-            "smtp_error": None,
-            "html_content": "Already sent."
-        }
         
     # Generate premium responsive HTML welcome email
     html_content = f"""<!DOCTYPE html>
@@ -1352,7 +1342,7 @@ def send_welcome_email(payload: Dict[str, Any]):
     sent_via_smtp = False
     error_msg = None
     
-    if not is_mock and smtp_host and smtp_port and smtp_user and smtp_password:
+    if not is_mock and not welcome_email_already_sent and smtp_host and smtp_port and smtp_user and smtp_password:
         try:
             import smtplib
             from email.mime.text import MIMEText
