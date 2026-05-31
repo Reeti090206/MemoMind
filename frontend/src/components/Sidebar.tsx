@@ -16,7 +16,8 @@ import {
   LogOut,
   Users,
   Settings,
-  X
+  X,
+  PieChart
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
@@ -63,7 +64,7 @@ export default function Sidebar({ mobile, onClose }: SidebarProps = {}) {
     { name: "Decisions", href: "/decisions", icon: History },
     { name: "Help & Guide", href: "/help", icon: HelpCircle },
     { name: "Success Stats", href: "/analytics", icon: BarChart3 },
-    { name: "Connection Map", href: "/graph", icon: Network },
+    { name: "Meeting Charts", href: "/graph", icon: PieChart },
     { name: "Team", href: "/team", icon: Users },
     { name: "Setup & API", href: "/settings", icon: Settings },
   ];

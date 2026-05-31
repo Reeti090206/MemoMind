@@ -191,7 +191,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       case "/decisions": return "Decision History";
       case "/help": return "Help & Guide Center";
       case "/analytics": return "Team Success Stats";
-      case "/graph": return "Visual Meeting Connections Map";
+      case "/graph": return "Meeting Charts & Insights";
       case "/team": return "Team Workspace";
       case "/settings": return "Setup & API";
       default: return "MemoMind Workspace";
