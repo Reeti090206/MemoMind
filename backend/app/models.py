@@ -127,6 +127,7 @@ class User(SQLModel, table=True):
     avatar: Optional[str] = None
     role: str = Field(default="Workspace Contributor")
     color: str = Field(default="from-cyber-purple to-cyber-cyan")
+    welcome_email_sent: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class MeetingInvitation(SQLModel, table=True):

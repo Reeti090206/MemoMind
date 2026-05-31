@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 import { 
   signInWithPhoneNumber, 
@@ -57,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "";
 
   // Firebase auth state listener + Mock session restoration
+  const isInitialCheck = useRef(true);
+
   useEffect(() => {
     if (hasFirebaseConfig && auth) {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -65,8 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const idToken = await firebaseUser.getIdToken(true);
             const phone = firebaseUser.phoneNumber || "";
-            const email = firebaseUser.email || "";
-            const name = firebaseUser.displayName || "";
+            const email = firebaseUser.email || firebaseUser.providerData?.[0]?.email || "";
+            const name = firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || "";
 
             const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
               method: "POST",
@@ -77,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (res.ok) {
               const data = await res.json();
               setUser(data.user);
-              if (data.is_new) {
+              if (!isInitialCheck.current) {
                 await triggerWelcomeEmail(data.user.email, data.user.name);
               }
             } else {
@@ -87,9 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (err) {
             console.error("Failed to sync Firebase session:", err);
             setUser(null);
+          } finally {
+            isInitialCheck.current = false;
           }
         } else {
           setUser(null);
+          isInitialCheck.current = false;
         }
         setIsLoading(false);
       });
@@ -183,9 +188,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          if (data.is_new) {
-            await triggerWelcomeEmail(data.user.email, data.user.name);
-          }
           return { success: true };
         } else {
           const errorData = await res.json().catch(() => ({}));
@@ -203,9 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const data = await res.json();
           setUser(data.user);
           localStorage.setItem("MemoMind_session", JSON.stringify(data.user));
-          if (data.is_new) {
-            await triggerWelcomeEmail(data.user.email, data.user.name);
-          }
+          await triggerWelcomeEmail(data.user.email, data.user.name);
           return { success: true };
         } else {
           const errorData = await res.json().catch(() => ({}));
@@ -240,10 +240,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let firebaseProvider;
         if (provider === "github") {
           firebaseProvider = new GithubAuthProvider();
+          firebaseProvider.addScope("user:email");
           // Force GitHub to prompt for consent/re-authorization, allowing account switching
           firebaseProvider.setCustomParameters({ prompt: "consent" });
         } else {
           firebaseProvider = new GoogleAuthProvider();
+          firebaseProvider.addScope("email");
+          firebaseProvider.addScope("profile");
           // Force Google to prompt the user to select an account
           firebaseProvider.setCustomParameters({ prompt: "select_account" });
         }
@@ -251,9 +254,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
         const result = await signInWithPopup(auth, firebaseProvider);
         const idToken = await result.user.getIdToken();
-        const email = result.user.email || "";
-        const name = result.user.displayName || "OAuth User";
-        const phone = result.user.phoneNumber || "";
+        const email = result.user.email 
+          || (result as any)._tokenResponse?.email 
+          || result.user.providerData?.[0]?.email 
+          || "";
+        const name = result.user.displayName 
+          || (result as any)._tokenResponse?.displayName 
+          || result.user.providerData?.[0]?.displayName 
+          || "OAuth User";
+        const phone = result.user.phoneNumber 
+          || result.user.providerData?.[0]?.phoneNumber 
+          || "";
 
         const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
           method: "POST",
@@ -264,9 +275,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          if (data.is_new) {
-            await triggerWelcomeEmail(data.user.email, data.user.name);
-          }
         } else {
           console.error("Backend OAuth verification failed");
         }
@@ -417,9 +425,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          if (data.is_new) {
-            await triggerWelcomeEmail(data.user.email, data.user.name);
-          }
           setIsLoading(false);
           return { success: true };
         } else {

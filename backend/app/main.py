@@ -965,6 +965,28 @@ def verify_otp(payload: Dict[str, str], session: Session = Depends(get_session))
         session.add(user)
         session.commit()
         session.refresh(user)
+
+    # Automatically send welcome email if not already sent and is not a mock email
+    if user.email:
+        email_lower = user.email.lower().strip()
+        is_mock_email = (
+            email_lower.endswith("@memomind.ai")
+            or email_lower.endswith("@meetgraph.ai")
+            or "speaker" in email_lower
+            or "david" in email_lower
+            or "@" not in email_lower
+        )
+        if not is_mock_email and not getattr(user, "welcome_email_sent", False):
+            try:
+                send_result = send_welcome_email({"email": user.email, "name": user.name})
+                if send_result.get("status") == "success":
+                    user.welcome_email_sent = True
+                    session.add(user)
+                    session.commit()
+                    session.refresh(user)
+                    print(f"[Backend Auto-Send Success] Welcome email automatically sent to {user.email}")
+            except Exception as e:
+                print(f"[Backend Auto-Send Error] Failed to send welcome email to {user.email}: {e}")
         
     return {
         "status": "success",
@@ -981,6 +1003,7 @@ def verify_otp(payload: Dict[str, str], session: Session = Depends(get_session))
 
 @app.post("/api/auth/firebase-session")
 def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_session)):
+    print(f"[Firebase Session Request Payload]: {payload}")
     id_token = payload.get("id_token")
     phone = payload.get("phone")
     email = payload.get("email")
@@ -1000,7 +1023,8 @@ def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_ses
         try:
             firebase_admin.get_app()
         except ValueError:
-            firebase_admin.initialize_app()
+            project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or "memomind-ai-251e7"
+            firebase_admin.initialize_app(options={"projectId": project_id})
         
         decoded_token = firebase_auth.verify_id_token(id_token)
         firebase_phone = decoded_token.get("phone_number")
@@ -1052,6 +1076,28 @@ def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_ses
         session.add(user)
         session.commit()
         session.refresh(user)
+
+    # Automatically send welcome email if not already sent and is not a mock email
+    if user.email:
+        email_lower = user.email.lower().strip()
+        is_mock_email = (
+            email_lower.endswith("@memomind.ai")
+            or email_lower.endswith("@meetgraph.ai")
+            or "speaker" in email_lower
+            or "david" in email_lower
+            or "@" not in email_lower
+        )
+        if not is_mock_email and not getattr(user, "welcome_email_sent", False):
+            try:
+                send_result = send_welcome_email({"email": user.email, "name": user.name})
+                if send_result.get("status") == "success":
+                    user.welcome_email_sent = True
+                    session.add(user)
+                    session.commit()
+                    session.refresh(user)
+                    print(f"[Backend Auto-Send Success] Welcome email automatically sent to {user.email}")
+            except Exception as e:
+                print(f"[Backend Auto-Send Error] Failed to send welcome email to {user.email}: {e}")
         
     return {
         "status": "success",
@@ -1076,6 +1122,39 @@ def send_welcome_email(payload: Dict[str, Any]):
     
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
+        
+    email_lower = email.lower().strip()
+    is_mock = (
+        email_lower.endswith("@memomind.ai")
+        or email_lower.endswith("@meetgraph.ai")
+        or "speaker" in email_lower
+        or "david" in email_lower
+        or "@" not in email_lower
+    )
+
+    # Check if welcome email is already marked as sent in DB
+    from app.database import engine
+    from app.models import User
+    from sqlmodel import Session, select
+    
+    welcome_email_already_sent = False
+    try:
+        with Session(engine) as db_session:
+            user_rec = db_session.exec(select(User).where(User.email == email_lower)).first()
+            if user_rec and getattr(user_rec, "welcome_email_sent", False):
+                welcome_email_already_sent = True
+    except Exception as e:
+        print(f"[Welcome Email DB Check Error] {e}")
+            
+    if welcome_email_already_sent:
+        print(f"[Welcome Email Bypass] Welcome email already marked as sent in DB for {email}")
+        return {
+            "status": "success",
+            "file_path": "",
+            "sent_via_smtp": False,
+            "smtp_error": None,
+            "html_content": "Already sent."
+        }
         
     # Generate premium responsive HTML welcome email
     html_content = f"""<!DOCTYPE html>
@@ -1264,10 +1343,16 @@ def send_welcome_email(payload: Dict[str, Any]):
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
     
+    # Strip quotes if present
+    if smtp_host: smtp_host = smtp_host.strip('"').strip("'")
+    if smtp_port: smtp_port = smtp_port.strip('"').strip("'")
+    if smtp_user: smtp_user = smtp_user.strip('"').strip("'")
+    if smtp_password: smtp_password = smtp_password.strip('"').strip("'")
+    
     sent_via_smtp = False
     error_msg = None
     
-    if smtp_host and smtp_port and smtp_user and smtp_password:
+    if not is_mock and smtp_host and smtp_port and smtp_user and smtp_password:
         try:
             import smtplib
             from email.mime.text import MIMEText
@@ -1294,8 +1379,22 @@ def send_welcome_email(payload: Dict[str, Any]):
             server.sendmail(sender_email, email, msg.as_string())
             server.quit()
             sent_via_smtp = True
+            print(f"[SMTP Success] Welcome email successfully sent to {email}")
         except Exception as e:
             error_msg = str(e)
+            print(f"[SMTP Error] Failed to send welcome email to {email}: {error_msg}")
+
+    if sent_via_smtp or is_mock:
+        try:
+            with Session(engine) as db_session:
+                user_rec = db_session.exec(select(User).where(User.email == email_lower)).first()
+                if user_rec and not getattr(user_rec, "welcome_email_sent", False):
+                    user_rec.welcome_email_sent = True
+                    db_session.add(user_rec)
+                    db_session.commit()
+                    print(f"[Welcome Email DB Update] Marked welcome email as sent for {email}")
+        except Exception as e:
+            print(f"[Welcome Email DB Update Error] Failed to update welcome_email_sent in DB: {e}")
             
     return {
         "status": "success",

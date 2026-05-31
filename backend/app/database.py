@@ -56,6 +56,13 @@ def init_db():
             session.execute(text("ALTER TABLE task ADD COLUMN reminder_sent BOOLEAN DEFAULT 0"))
             session.commit()
 
+    # Check if welcome_email_sent column exists in user table
+    user_columns = [col["name"] for col in inspector.get_columns("user")]
+    if "welcome_email_sent" not in user_columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE user ADD COLUMN welcome_email_sent BOOLEAN DEFAULT 0"))
+            session.commit()
+
 def get_session():
     with Session(engine) as session:
         yield session
