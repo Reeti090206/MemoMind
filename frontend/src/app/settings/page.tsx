@@ -46,7 +46,7 @@ export default function SettingsHub() {
   const [vectorDb, setVectorDb] = useState("Cloud Search Database");
 
   // Compliance toggles
-  const [tlsSecure, setTlsSecure] = useState(true);
+  const [tlsSecure, setTlsSecure] = useState(false);
   const [recordIndicator, setRecordIndicator] = useState(true);
   const [autoPurge, setAutoPurge] = useState(false);
   const [purgeAfterDays, setPurgeAfterDays] = useState("Never");

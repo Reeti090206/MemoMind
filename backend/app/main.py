@@ -327,6 +327,16 @@ def save_meeting_to_db(
             status=status
         )
         session.add(inv)
+        
+        if status == "pending":
+            try:
+                import threading
+                threading.Thread(
+                    target=send_invitation_email,
+                    args=(email, u_name, resolved_title, meeting.id)
+                ).start()
+            except Exception as e:
+                print(f"[Invitation Email Trigger Error] {e}")
 
     # Save Transcript Segments
     for seg in trans_res.get("transcript_segments", []):
@@ -1386,12 +1396,217 @@ def send_welcome_email(payload: Dict[str, Any]):
         except Exception as e:
             print(f"[Welcome Email DB Update Error] Failed to update welcome_email_sent in DB: {e}")
             
+            
     return {
         "status": "success",
         "file_path": os.path.abspath(filename),
         "sent_via_smtp": sent_via_smtp,
         "smtp_error": error_msg,
         "html_content": html_content
+    }
+
+def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id: int):
+    sender_email = os.getenv("SENDER_EMAIL", "reetikhandelwal09@gmail.com")
+    email_lower = email.lower().strip()
+    is_mock = (
+        email_lower.endswith("@memomind.ai")
+        or email_lower.endswith("@meetgraph.ai")
+        or "speaker" in email_lower
+        or "david" in email_lower
+        or "@" not in email_lower
+    )
+    
+    accept_link = f"http://localhost:3000/meetings?accept_invite=true&email={email_lower}&meeting_id={meeting_id}"
+    
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation to Join MemoMind Sync</title>
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b0b10;
+      color: #e4e4e7;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .wrapper {{
+      width: 100%;
+      background-color: #0b0b10;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }}
+    .container {{
+      max-width: 600px;
+      margin: 0 auto;
+      background: linear-gradient(145deg, #13131a, #0c0c12);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 40px;
+      box-sizing: border-box;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }}
+    .logo-container {{
+      margin-bottom: 30px;
+      text-align: left;
+    }}
+    .logo {{
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }}
+    .logo-span {{
+      background: linear-gradient(to right, #06b6d4, #a855f7, #f43f5e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }}
+    .header {{
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.5px;
+    }}
+    .message {{
+      font-size: 15px;
+      color: #a1a1aa;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }}
+    .details-box {{
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }}
+    .details-title {{
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 6px 0;
+    }}
+    .details-value {{
+      font-size: 13px;
+      color: #71717a;
+      margin: 0;
+    }}
+    .cta-container {{
+      text-align: center;
+      margin-bottom: 40px;
+    }}
+    .cta-button {{
+      display: inline-block;
+      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 14px 30px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
+    }}
+    .footer {{
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #52525b;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="logo-container">
+        <div class="logo">Memo<span class="logo-span">Mind</span> AI</div>
+      </div>
+      <div class="header">You are invited to join a MemoMind Meeting Sync!</div>
+      <div class="message">
+        Hello {name},<br><br>
+        You have been invited to participate in the meeting sync <strong>"{meeting_title}"</strong> on MemoMind AI. 
+        Once you accept the invitation, you will be added to our team workspace and can collaborate on syncs, view interactive mind maps, and trace action items.
+      </div>
+      
+      <div class="details-box">
+        <div class="details-title">Meeting Sync Details</div>
+        <p class="details-value">Meeting: {meeting_title}</p>
+      </div>
+
+      <div class="cta-container">
+        <a href="{accept_link}" class="cta-button">Accept Invitation</a>
+      </div>
+
+      <div class="footer">
+        &copy; 2026 MemoMind AI. Sent to {email}.<br>
+        TLS 1.3 Encryption Secured • v1.2.6-stable
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+    os.makedirs("sent_emails", exist_ok=True)
+    filename = f"sent_emails/invite_{email_lower.replace('@', '_at_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = os.getenv("SMTP_PORT")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    
+    if smtp_host: smtp_host = smtp_host.strip('"').strip("'")
+    if smtp_port: smtp_port = smtp_port.strip('"').strip("'")
+    if smtp_user: smtp_user = smtp_user.strip('"').strip("'")
+    if smtp_password: smtp_password = smtp_password.strip('"').strip("'")
+    
+    sent_via_smtp = False
+    error_msg = None
+    
+    if not is_mock and smtp_host and smtp_port and smtp_user and smtp_password:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"Invitation: Join {meeting_title} on MemoMind AI"
+            msg["From"] = f"MemoMind AI <{sender_email}>"
+            msg["To"] = email_lower
+            
+            text = f"You are invited to join the meeting sync '{meeting_title}' on MemoMind AI. Go to {accept_link} to accept."
+            msg.attach(MIMEText(text, "plain"))
+            msg.attach(MIMEText(html_content, "html"))
+            
+            if smtp_port == "465":
+                server = smtplib.SMTP_SSL(smtp_host, int(smtp_port))
+            else:
+                server = smtplib.SMTP(smtp_host, int(smtp_port))
+                server.starttls()
+                
+            server.login(smtp_user, smtp_password)
+            server.sendmail(sender_email, email_lower, msg.as_string())
+            server.quit()
+            sent_via_smtp = True
+            print(f"[SMTP Success] Invitation email successfully sent to {email_lower}")
+        except Exception as e:
+            error_msg = str(e)
+            print(f"[SMTP Error] Failed to send invitation email to {email_lower}: {error_msg}")
+            
+    return {
+        "status": "success",
+        "file_path": os.path.abspath(filename),
+        "sent_via_smtp": sent_via_smtp,
+        "smtp_error": error_msg
     }
 
 # WebSocket for live microphone updates or transcription streaming
@@ -1727,16 +1942,40 @@ def respond_meeting_invitation(meeting_id: int, payload: Dict[str, str], session
     if status not in ["accepted", "declined", "pending"]:
         raise HTTPException(status_code=400, detail="invalid status")
     
-    inv = session.exec(select(MeetingInvitation).where(MeetingInvitation.meeting_id == meeting_id, MeetingInvitation.email == email)).first()
+    email_lower = email.lower().strip()
+    inv = session.exec(select(MeetingInvitation).where(MeetingInvitation.meeting_id == meeting_id, MeetingInvitation.email == email_lower)).first()
     if not inv:
         # Resolve name if possible
-        u_record = session.exec(select(User).where(User.email == email)).first()
-        u_name = u_record.name if u_record else email.split("@")[0].capitalize()
-        inv = MeetingInvitation(meeting_id=meeting_id, email=email, name=u_name, status=status)
+        u_record = session.exec(select(User).where(User.email == email_lower)).first()
+        u_name = u_record.name if u_record else email_lower.split("@")[0].capitalize()
+        inv = MeetingInvitation(meeting_id=meeting_id, email=email_lower, name=u_name, status=status)
     else:
         inv.status = status
     session.add(inv)
     session.commit()
+
+    if status == "accepted":
+        try:
+            user_exists = session.exec(select(User).where(User.email == email_lower)).first()
+            if not user_exists:
+                import hashlib
+                email_hash = int(hashlib.md5(email_lower.encode('utf-8')).hexdigest(), 16) % 10000000
+                phone_num = f"+1555{email_hash:07d}"
+                new_user = User(
+                    phone=phone_num,
+                    name=inv.name or email_lower.split("@")[0].capitalize(),
+                    email=email_lower,
+                    role="Workspace Contributor",
+                    avatar=f"https://api.dicebear.com/7.x/bottts/svg?seed={email_lower.split('@')[0]}",
+                    color="from-cyber-purple to-cyber-cyan"
+                )
+                session.add(new_user)
+                session.commit()
+                print(f"[Auto-Registration] Registered new user {email_lower} upon invitation acceptance.")
+        except Exception as e:
+            print(f"[Auto-Registration Error] Failed to register user {email_lower}: {e}")
+            session.rollback()
+
     return {"status": "success", "invitation_status": inv.status}
 
 

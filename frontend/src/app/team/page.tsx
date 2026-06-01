@@ -44,6 +44,7 @@ export default function TeamWorkspace() {
   const [inputMessage, setInputMessage] = useState("");
   const [speakers, setSpeakers] = useState<string[]>([]);
   const [tasksList, setTasksList] = useState<any[]>([]);
+  const [dbUsers, setDbUsers] = useState<any[]>([]);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   // User progress dashboard states
@@ -93,6 +94,16 @@ export default function TeamWorkspace() {
   // Load speakers and active tasks from the backend
   useEffect(() => {
     async function loadWorkspaceData() {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/users");
+        if (res.ok) {
+          const data = await res.json();
+          setDbUsers(data);
+        }
+      } catch (err) {
+        console.warn("Failed to load users from DB:", err);
+      }
+
       try {
         const url = user?.email
           ? `http://127.0.0.1:8000/api/analytics?user_email=${encodeURIComponent(user.email)}`
@@ -180,10 +191,30 @@ export default function TeamWorkspace() {
       });
     }
 
+    // Add other users from the DB
+    dbUsers.forEach((dbUser: any) => {
+      // Avoid duplicating the current user
+      if (user && dbUser.email?.toLowerCase() === user.email?.toLowerCase()) return;
+      if (dbUser.email?.toLowerCase() === "developer@company.com") return;
+
+      list.push({
+        name: dbUser.name,
+        role: dbUser.role || "Workspace Contributor",
+        avatar: dbUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(dbUser.name)}`,
+        status: "online", // Mock online
+        activity: "Collaborating in Workspace",
+        color: "border-cyber-purple text-cyber-purple",
+        email: dbUser.email
+      });
+    });
+
     // Add detected speakers from meetings
     speakers.forEach(spk => {
       if (user && spk.toLowerCase() === user.name.toLowerCase()) return;
       if (spk.toLowerCase() === "developer guest") return;
+      
+      const exists = list.some(m => m.name.toLowerCase() === spk.toLowerCase());
+      if (exists) return;
 
       let email = spk;
       if (spk.toLowerCase().includes("sarah")) email = "sarah@company.com";
@@ -203,7 +234,7 @@ export default function TeamWorkspace() {
     });
 
     return list;
-  }, [user, speakers]);
+  }, [user, dbUsers, speakers]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });

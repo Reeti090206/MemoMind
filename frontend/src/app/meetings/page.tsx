@@ -17,7 +17,8 @@ import {
   CornerDownRight,
   ShieldAlert,
   ArrowLeftRight,
-  Zap
+  Zap,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -103,6 +104,39 @@ function MeetingContent() {
   const [highlightedText, setHighlightedText] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("all");
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [acceptNotification, setAcceptNotification] = useState<string | null>(null);
+
+  // Auto-accept invitation from email link
+  useEffect(() => {
+    const acceptInvite = searchParams.get("accept_invite");
+    const emailParam = searchParams.get("email");
+    const meetingIdParam = searchParams.get("meeting_id");
+
+    if (acceptInvite === "true" && emailParam && meetingIdParam) {
+      async function autoAccept() {
+        try {
+          const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingIdParam}/invitations/respond`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: emailParam, status: "accepted" })
+          });
+          if (res.ok) {
+            setAcceptNotification(`Success! You have accepted the invitation and joined the team workspace.`);
+            const parsed = parseInt(meetingIdParam);
+            if (!isNaN(parsed)) {
+              setSelectedId(parsed);
+            }
+            // Clear URL search params
+            const newUrl = window.location.pathname + (parsed ? `?id=${parsed}` : "");
+            window.history.pushState({ path: newUrl }, "", newUrl);
+          }
+        } catch (err) {
+          console.error("Failed to automatically accept invitation:", err);
+        }
+      }
+      autoAccept();
+    }
+  }, [searchParams]);
 
   // Synchronize list and URL params/localStorage
   useEffect(() => {
@@ -262,7 +296,28 @@ function MeetingContent() {
 
   return (
     <div className="space-y-6">
-      
+      {acceptNotification && (
+        <motion.div
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -15 }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-cyber-emerald/15 via-cyber-purple/5 to-transparent border border-cyber-emerald/25 flex items-center justify-between shadow-lg"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-cyber-emerald/10 border border-cyber-emerald/25 flex items-center justify-center text-cyber-emerald shrink-0">
+              <CheckCircle className="h-4.5 w-4.5" />
+            </div>
+            <p className="text-xs text-[var(--foreground)] font-semibold">{acceptNotification}</p>
+          </div>
+          <button
+            onClick={() => setAcceptNotification(null)}
+            className="p-1.5 rounded-lg bg-[var(--foreground)]/[0.03] hover:bg-cyber-rose/10 text-[var(--foreground)]/50 hover:text-cyber-rose border border-[var(--color-obsidian-border)] transition-colors cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </motion.div>
+      )}
+
       {/* Top Filter and Search Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between pb-6 border-b border-[var(--color-obsidian-border)]">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
