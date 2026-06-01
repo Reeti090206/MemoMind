@@ -9,7 +9,7 @@ connect_args = {"check_same_thread": False}
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 def init_db():
-    from app.models import UserSettings, SettingsHistory
+    from app.models import UserSettings, SettingsHistory, Workspace, WorkspaceMember, AuditLog
     SQLModel.metadata.create_all(engine)
     # Check if user_email column exists, if not, add it
     from sqlalchemy import inspect, text
@@ -62,6 +62,67 @@ def init_db():
         with Session(engine) as session:
             session.execute(text("ALTER TABLE user ADD COLUMN welcome_email_sent BOOLEAN DEFAULT 0"))
             session.commit()
+
+    # Check meetinginvitation columns for token and created_at
+    invitation_columns = [col["name"] for col in inspector.get_columns("meetinginvitation")]
+    if "token" not in invitation_columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE meetinginvitation ADD COLUMN token VARCHAR"))
+            session.commit()
+            
+            # Backfill existing invitations with tokens
+            import secrets
+            invs = session.execute(text("SELECT id FROM meetinginvitation WHERE token IS NULL")).all()
+            for inv_row in invs:
+                inv_id = inv_row[0]
+                session.execute(
+                    text("UPDATE meetinginvitation SET token = :token WHERE id = :id"),
+                    {"token": secrets.token_urlsafe(32), "id": inv_id}
+                )
+            session.commit()
+
+    if "created_at" not in invitation_columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE meetinginvitation ADD COLUMN created_at DATETIME"))
+            session.commit()
+            session.execute(text("UPDATE meetinginvitation SET created_at = datetime('now') WHERE created_at IS NULL"))
+            session.commit()
+
+    if "workspace_id" not in invitation_columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE meetinginvitation ADD COLUMN workspace_id INTEGER"))
+            session.commit()
+
+    # Ensure meeting_id column in meetinginvitation table is nullable (needed for workspace invitations)
+    meeting_id_col = next((c for c in inspector.get_columns("meetinginvitation") if c["name"] == "meeting_id"), None)
+    if meeting_id_col and not meeting_id_col.get("nullable", True):
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE meetinginvitation RENAME TO _meetinginvitation_old"))
+            session.commit()
+            
+            from app.models import MeetingInvitation
+            SQLModel.metadata.tables["meetinginvitation"].create(engine)
+            
+            session.execute(text("""
+                INSERT INTO meetinginvitation (id, meeting_id, email, name, status, token, created_at, workspace_id)
+                SELECT id, meeting_id, email, name, status, token, created_at, workspace_id
+                FROM _meetinginvitation_old
+            """))
+            session.commit()
+            
+            session.execute(text("DROP TABLE _meetinginvitation_old"))
+            session.commit()
+
+    # Create default workspace and standard team workspaces if they don't exist
+    with Session(engine) as session:
+        for ws_name in ['Default Workspace', 'Team Alpha', 'Backend Team', 'Cloud Team', 'Acme Corp']:
+            ws = session.execute(text("SELECT id FROM workspace WHERE name = :name"), {"name": ws_name}).first()
+            if not ws:
+                session.execute(
+                    text("INSERT INTO workspace (name, created_at) VALUES (:name, datetime('now'))"),
+                    {"name": ws_name}
+                )
+                session.commit()
 
 def get_session():
     with Session(engine) as session:
