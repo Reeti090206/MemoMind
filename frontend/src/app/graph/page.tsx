@@ -387,7 +387,7 @@ export default function MeetingCharts() {
               {speakersList.length > 0 ? (
                 <div className="flex flex-col items-center justify-center flex-1 py-2">
                   <div className="relative h-40 w-40 flex items-center justify-center">
-                    <svg className="w-full h-full">
+                    <svg className="w-full h-full" viewBox="0 0 200 200">
                       {/* Inner border track */}
                       <circle cx="100" cy="100" r="60" stroke="rgba(255,255,255,0.01)" strokeWidth="12" fill="transparent" />
                       {donutCircles}

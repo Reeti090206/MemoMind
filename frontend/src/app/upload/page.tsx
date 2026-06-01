@@ -154,7 +154,16 @@ export default function MeetingUpload() {
         const uRes = await fetch("http://127.0.0.1:8000/api/users");
         if (uRes.ok) {
           const uList = await uRes.json();
-          setAllUsers(uList);
+          const deduplicated: any[] = [];
+          const seenNames = new Set<string>();
+          for (const u of uList) {
+            const nameKey = u.name.toLowerCase().trim();
+            if (!seenNames.has(nameKey)) {
+              seenNames.add(nameKey);
+              deduplicated.push(u);
+            }
+          }
+          setAllUsers(deduplicated);
         }
       } catch (e) {
         console.warn("Failed to load users:", e);
@@ -1782,7 +1791,7 @@ export default function MeetingUpload() {
                             .map((u) => {
                               const isChecked = selectedUserEmails.includes(u.email);
                               return (
-                                <label key={u.email} className="flex items-center gap-2 text-xs text-[var(--foreground)]/80 cursor-pointer select-none">
+                                <label key={`${u.email}-${u.name}`} className="flex items-center gap-2 text-xs text-[var(--foreground)]/80 cursor-pointer select-none">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}

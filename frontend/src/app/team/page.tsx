@@ -197,6 +197,10 @@ export default function TeamWorkspace() {
       if (user && dbUser.email?.toLowerCase() === user.email?.toLowerCase()) return;
       if (dbUser.email?.toLowerCase() === "developer@company.com") return;
 
+      // Avoid duplicate names on the active list
+      const existsByName = list.some(m => m.name.toLowerCase() === dbUser.name.toLowerCase());
+      if (existsByName) return;
+
       list.push({
         name: dbUser.name,
         role: dbUser.role || "Workspace Contributor",
@@ -351,9 +355,9 @@ export default function TeamWorkspace() {
             </div>
 
             <div className="space-y-3.5 font-sans">
-              {activeMembers.map(mb => (
+              {activeMembers.map((mb, idx) => (
                 <button
-                  key={mb.name}
+                  key={`${mb.email || mb.name}-${idx}`}
                   onClick={() => handleMemberClick(mb)}
                   className="w-full flex items-start gap-3 p-1.5 rounded-xl hover:bg-[var(--foreground)]/[0.02] transition-colors group cursor-pointer text-left focus:outline-none"
                 >

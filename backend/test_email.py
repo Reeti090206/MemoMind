@@ -7,8 +7,8 @@ import sys
 sys.path.insert(0, ".")
 from app.main import send_welcome_email
 
-email = "reetikhandelwal09@gmail.com"
-name = "Reeti Khandelwal"
+email = "reeti9206@gmail.com"
+name = "Reeti"
 print(f"Testing welcome email trigger to {email}...")
 
 result = send_welcome_email({"email": email, "name": name})

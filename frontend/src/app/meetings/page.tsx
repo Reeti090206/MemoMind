@@ -122,7 +122,7 @@ function MeetingContent() {
           });
           if (res.ok) {
             setAcceptNotification(`Success! You have accepted the invitation and joined the team workspace.`);
-            const parsed = parseInt(meetingIdParam);
+            const parsed = parseInt(meetingIdParam!);
             if (!isNaN(parsed)) {
               setSelectedId(parsed);
             }
