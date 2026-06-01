@@ -18,7 +18,8 @@ load_dotenv()
 from app.database import init_db, get_session, engine
 from app.models import (
     Meeting, TranscriptSegment, Decision, Task, Contradiction, 
-    UnresolvedTopic, User, MeetingInvitation, UserSettings, SettingsHistory
+    UnresolvedTopic, User, MeetingInvitation, UserSettings, SettingsHistory,
+    Workspace, WorkspaceMember, AuditLog
 )
 from app.ai_service import AIService
 from app.sample_data import seed_data
@@ -148,13 +149,526 @@ async def on_startup():
 
 # ----------------- MEETING ENDPOINTS -----------------
 
+from pydantic import BaseModel
+
+class InviteRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+
+class TokenResponseRequest(BaseModel):
+    token: str
+
+class InvitationConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                print(f"[WS Broadcast Error] {e}")
+
+invitation_manager = InvitationConnectionManager()
+
+@app.websocket("/ws/invitations")
+async def ws_invitations_endpoint(websocket: WebSocket):
+    await invitation_manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        invitation_manager.disconnect(websocket)
+
+class WorkspaceInviteRequest(BaseModel):
+    sender_email: str
+    email: str
+    team_name: str
+
+@app.post("/api/workspace/invite")
+async def invite_user_to_workspace(request: WorkspaceInviteRequest, session: Session = Depends(get_session)):
+    sender_email = request.sender_email.strip().lower()
+    email = request.email.strip().lower()
+    team_name = request.team_name.strip()
+    
+    # 1. Find or create the target workspace
+    workspace = session.exec(select(Workspace).where(Workspace.name == team_name)).first()
+    if not workspace:
+        workspace = Workspace(name=team_name)
+        session.add(workspace)
+        session.commit()
+        session.refresh(workspace)
+        
+    # 2. Add sender as member of this workspace (if not already)
+    sender_membership = session.exec(
+        select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == workspace.id,
+            WorkspaceMember.email == sender_email
+        )
+    ).first()
+    if not sender_membership:
+        new_sender_mem = WorkspaceMember(
+            workspace_id=workspace.id,
+            email=sender_email,
+            role="admin"
+        )
+        session.add(new_sender_mem)
+        session.commit()
+        
+    # 3. Check if target is already a member
+    target_membership = session.exec(
+        select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == workspace.id,
+            WorkspaceMember.email == email
+        )
+    ).first()
+    
+    if target_membership:
+        return {
+            "status": "success",
+            "message": "User is already a member of this workspace"
+        }
+        
+    # 4. Check if there's already a pending invitation for this email and workspace
+    existing_inv = session.exec(
+        select(MeetingInvitation).where(
+            MeetingInvitation.workspace_id == workspace.id,
+            MeetingInvitation.email == email,
+            MeetingInvitation.status == "pending"
+        )
+    ).first()
+    
+    if existing_inv:
+        return {
+            "status": "success",
+            "message": "Invitation already sent and pending",
+            "invitation": {
+                "id": existing_inv.id,
+                "email": existing_inv.email,
+                "status": existing_inv.status
+            }
+        }
+        
+    # 5. Create new workspace invitation
+    import secrets
+    inv_token = secrets.token_urlsafe(32)
+    
+    inv = MeetingInvitation(
+        meeting_id=None,
+        workspace_id=workspace.id,
+        email=email,
+        name=email.split("@")[0].capitalize(),
+        status="pending",
+        token=inv_token,
+        created_at=datetime.utcnow()
+    )
+    session.add(inv)
+    session.commit()
+    session.refresh(inv)
+    
+    # 6. Log audit event
+    audit = AuditLog(
+        action="workspace_invite_sent",
+        details=f"User {sender_email} invited {email} to workspace '{team_name}'"
+    )
+    session.add(audit)
+    session.commit()
+    
+    # 7. Trigger the email in background thread
+    try:
+        import threading
+        threading.Thread(
+            target=send_workspace_invitation_email,
+            args=(email, sender_email, team_name, inv_token)
+        ).start()
+    except Exception as e:
+        print(f"[Workspace Invitation Email Trigger Error] {e}")
+        
+    return {
+        "status": "success",
+        "message": "Invitation sent successfully",
+        "invitation": {
+            "id": inv.id,
+            "email": inv.email,
+            "status": inv.status
+        }
+    }
+
+@app.post("/api/meetings/{meeting_id}/invite")
+async def invite_user_to_meeting(meeting_id: int, request: InviteRequest, session: Session = Depends(get_session)):
+    meeting = session.get(Meeting, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+        
+    email = request.email.strip().lower()
+    name = request.name or email.split("@")[0].capitalize()
+    
+    # Check if there's already an invitation
+    existing_inv = session.exec(
+        select(MeetingInvitation).where(
+            MeetingInvitation.meeting_id == meeting_id,
+            MeetingInvitation.email == email
+        )
+    ).first()
+    
+    if existing_inv:
+        return {
+            "status": "success", 
+            "message": "Invitation already exists", 
+            "invitation": {
+                "id": existing_inv.id,
+                "email": existing_inv.email,
+                "name": existing_inv.name,
+                "status": existing_inv.status,
+                "created_at": existing_inv.created_at.isoformat() if existing_inv.created_at else None
+            }
+        }
+
+    # Check if user is already a workspace member (default workspace)
+    default_ws = session.exec(select(Workspace).where(Workspace.name == 'Default Workspace')).first()
+    is_member = False
+    if default_ws:
+        member = session.exec(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == default_ws.id,
+                WorkspaceMember.email == email
+            )
+        ).first()
+        if member:
+            is_member = True
+
+    status = "accepted" if is_member else "pending"
+    
+    import secrets
+    inv_token = secrets.token_urlsafe(32)
+    
+    inv = MeetingInvitation(
+        meeting_id=meeting_id,
+        email=email,
+        name=name,
+        status=status,
+        token=inv_token,
+        created_at=datetime.utcnow()
+    )
+    session.add(inv)
+    session.commit()
+    session.refresh(inv)
+    
+    # Log audit event
+    audit = AuditLog(
+        action="invite_sent",
+        details=f"Invited {email} to meeting '{meeting.title}' (status={status})"
+    )
+    session.add(audit)
+    session.commit()
+    
+    if status == "pending":
+        try:
+            import threading
+            threading.Thread(
+                target=send_invitation_email,
+                args=(email, name, meeting.title, meeting_id, inv_token)
+            ).start()
+        except Exception as e:
+            print(f"[Invitation Email Trigger Error] {e}")
+            
+    # Broadcast change via WebSockets
+    await invitation_manager.broadcast({
+        "type": "invitation_update",
+        "meeting_id": meeting_id,
+        "invitation": {
+            "id": inv.id,
+            "email": inv.email,
+            "name": inv.name,
+            "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None
+        }
+    })
+    
+    return {
+        "status": "success",
+        "message": "Invitation sent successfully" if status == "pending" else "User auto-added as accepted (already in workspace)",
+        "invitation": {
+            "id": inv.id,
+            "email": inv.email,
+            "name": inv.name,
+            "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None
+        }
+    }
+
+@app.post("/api/invitations/accept")
+async def accept_invitation(request: TokenResponseRequest, session: Session = Depends(get_session)):
+    inv = session.exec(select(MeetingInvitation).where(MeetingInvitation.token == request.token)).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitation token not found")
+    
+    if inv.status != "pending":
+        if inv.status == "accepted":
+            return {
+                "status": "success",
+                "message": "Invitation already accepted",
+                "meeting_id": inv.meeting_id
+            }
+        raise HTTPException(status_code=400, detail=f"Invitation has already been {inv.status}")
+        
+    inv.status = "accepted"
+    session.add(inv)
+    
+    # 1. Check if User record exists, if not, create it
+    u_record = session.exec(select(User).where(User.email == inv.email)).first()
+    if not u_record:
+        clean_name = inv.name or inv.email.split("@")[0].capitalize()
+        # Generate clean phone if missing
+        import random
+        phone_num = f"+1555010{random.randint(1000, 9999)}"
+        u_record = User(
+            phone=phone_num,
+            name=clean_name,
+            email=inv.email,
+            avatar=f"https://api.dicebear.com/7.x/bottts/svg?seed={clean_name}",
+            role="Workspace Contributor",
+            color="from-cyber-cyan to-cyber-emerald"
+        )
+        session.add(u_record)
+        session.commit()
+        session.refresh(u_record)
+        
+    # 2. Add to WorkspaceMember (Target Workspaces)
+    workspaces_to_join = []
+    
+    # 2a. Add to specific workspace if specified in invitation
+    if inv.workspace_id:
+        target_ws = session.get(Workspace, inv.workspace_id)
+        if target_ws:
+            workspaces_to_join.append(target_ws)
+            
+    # 2b. Add to meeting's workspace if meeting invitation
+    if inv.meeting_id:
+        meeting = session.get(Meeting, inv.meeting_id)
+        if meeting and meeting.team_name:
+            team_ws = session.exec(select(Workspace).where(Workspace.name == meeting.team_name)).first()
+            if not team_ws:
+                team_ws = Workspace(name=meeting.team_name)
+                session.add(team_ws)
+                session.commit()
+                session.refresh(team_ws)
+            workspaces_to_join.append(team_ws)
+            
+    # 2c. Fallback / Default workspace
+    default_ws = session.exec(select(Workspace).where(Workspace.name == "Default Workspace")).first()
+    if default_ws:
+        workspaces_to_join.append(default_ws)
+        
+    # Deduplicate workspaces and create memberships
+    seen_ws_ids = set()
+    for ws in workspaces_to_join:
+        if ws.id in seen_ws_ids:
+            continue
+        seen_ws_ids.add(ws.id)
+        
+        member = session.exec(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == ws.id,
+                WorkspaceMember.email == inv.email
+            )
+        ).first()
+        if not member:
+            new_member = WorkspaceMember(
+                workspace_id=ws.id,
+                email=inv.email,
+                role="member"
+            )
+            session.add(new_member)
+            
+    # 3. Log audit event
+    audit = AuditLog(
+        action="invite_accepted",
+        details=f"User {inv.email} accepted invitation (meeting ID {inv.meeting_id}, workspace ID {inv.workspace_id})"
+    )
+    session.add(audit)
+    
+    session.commit()
+    session.refresh(inv)
+    
+    # 4. Broadcast WebSocket update
+    await invitation_manager.broadcast({
+        "type": "invitation_update",
+        "meeting_id": inv.meeting_id,
+        "invitation": {
+            "id": inv.id,
+            "email": inv.email,
+            "name": inv.name,
+            "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None
+        }
+    })
+    
+    return {
+        "status": "success",
+        "message": "Invitation accepted, user added to workspace",
+        "meeting_id": inv.meeting_id
+    }
+
+@app.post("/api/invitations/reject")
+async def reject_invitation(request: TokenResponseRequest, session: Session = Depends(get_session)):
+    inv = session.exec(select(MeetingInvitation).where(MeetingInvitation.token == request.token)).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitation token not found")
+    
+    if inv.status != "pending":
+        if inv.status == "declined":
+            return {
+                "status": "success",
+                "message": "Invitation already declined",
+                "meeting_id": inv.meeting_id
+            }
+        raise HTTPException(status_code=400, detail=f"Invitation has already been {inv.status}")
+        
+    inv.status = "declined"
+    session.add(inv)
+    
+    # Log audit event
+    audit = AuditLog(
+        action="invite_rejected",
+        details=f"User {inv.email} declined invitation for meeting ID {inv.meeting_id}"
+    )
+    session.add(audit)
+    
+    session.commit()
+    session.refresh(inv)
+    
+    # Broadcast WebSocket update
+    await invitation_manager.broadcast({
+        "type": "invitation_update",
+        "meeting_id": inv.meeting_id,
+        "invitation": {
+            "id": inv.id,
+            "email": inv.email,
+            "name": inv.name,
+            "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None
+        }
+    })
+    
+    return {
+        "status": "success",
+        "message": "Invitation declined",
+        "meeting_id": inv.meeting_id
+    }
+
+@app.post("/api/meetings/{meeting_id}/invitations/respond")
+async def legacy_respond_invitation(meeting_id: int, request: dict, session: Session = Depends(get_session)):
+    email = request.get("email")
+    status = request.get("status", "accepted")
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+        
+    inv = session.exec(
+        select(MeetingInvitation).where(
+            MeetingInvitation.meeting_id == meeting_id,
+            MeetingInvitation.email == email.strip().lower()
+        )
+    ).first()
+    
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+        
+    inv.status = status
+    session.add(inv)
+    
+    if status == "accepted":
+        u_record = session.exec(select(User).where(User.email == email)).first()
+        if not u_record:
+            import random
+            phone_num = f"+1555010{random.randint(1000, 9999)}"
+            u_record = User(
+                phone=phone_num,
+                name=inv.name or email.split("@")[0].capitalize(),
+                email=email,
+                role="Workspace Contributor"
+            )
+            session.add(u_record)
+            session.commit()
+            
+        default_ws = session.exec(select(Workspace).where(Workspace.name == "Default Workspace")).first()
+        if default_ws:
+            member = session.exec(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.workspace_id == default_ws.id,
+                    WorkspaceMember.email == email
+                )
+            ).first()
+            if not member:
+                new_member = WorkspaceMember(
+                    workspace_id=default_ws.id,
+                    email=email,
+                    role="member"
+                )
+                session.add(new_member)
+                
+    session.commit()
+    session.refresh(inv)
+    
+    await invitation_manager.broadcast({
+        "type": "invitation_update",
+        "meeting_id": meeting_id,
+        "invitation": {
+            "id": inv.id,
+            "email": inv.email,
+            "name": inv.name,
+            "status": inv.status,
+            "created_at": inv.created_at.isoformat() if inv.created_at else None
+        }
+    })
+    
+    return {"status": "success", "message": f"Invitation {status}"}
+
+def get_meetings_for_user(user_email: Optional[str], session: Session) -> List[Meeting]:
+    if not user_email:
+        return session.exec(select(Meeting)).all()
+        
+    user_email_clean = user_email.strip().lower()
+    
+    # 1. Workspace team memberships
+    ws_ids = session.exec(
+        select(WorkspaceMember.workspace_id).where(WorkspaceMember.email == user_email_clean)
+    ).all()
+    
+    workspace_names = []
+    if ws_ids:
+        workspace_names = session.exec(
+            select(Workspace.name).where(Workspace.id.in_(ws_ids))
+        ).all()
+        workspace_names = [w for w in workspace_names if w]
+        
+    # 2. Meeting invitations
+    invitations = session.exec(
+        select(MeetingInvitation).where(MeetingInvitation.email == user_email_clean)
+    ).all()
+    invited_meeting_ids = [inv.meeting_id for inv in invitations if inv.meeting_id]
+    
+    stmt = select(Meeting)
+    cond = (Meeting.user_email == user_email_clean) | (Meeting.user_email == None)
+    if invited_meeting_ids:
+        cond = cond | (Meeting.id.in_(invited_meeting_ids))
+    if workspace_names:
+        cond = cond | (Meeting.team_name.in_(workspace_names))
+        
+    return session.exec(stmt.where(cond)).all()
+
 @app.get("/api/meetings")
 def get_meetings(user_email: Optional[str] = None, session: Session = Depends(get_session)):
-    if user_email:
-        meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-    else:
-        meetings = session.exec(select(Meeting)).all()
-    # Sort by date descending
+    meetings = get_meetings_for_user(user_email, session)
     return sorted(meetings, key=lambda x: x.date, reverse=True)
 
 def get_meeting_timeline(meeting: Meeting, session: Session) -> List[Dict[str, Any]]:
@@ -320,11 +834,14 @@ def save_meeting_to_db(
         u_name = u_record.name if u_record else email.split("@")[0].capitalize()
         status = "accepted" if is_already_accepted else "pending"
         
+        import secrets
+        inv_token = secrets.token_urlsafe(32)
         inv = MeetingInvitation(
             meeting_id=meeting.id,
             email=email,
             name=u_name,
-            status=status
+            status=status,
+            token=inv_token
         )
         session.add(inv)
         
@@ -333,7 +850,7 @@ def save_meeting_to_db(
                 import threading
                 threading.Thread(
                     target=send_invitation_email,
-                    args=(email, u_name, resolved_title, meeting.id)
+                    args=(email, u_name, resolved_title, meeting.id, inv_token)
                 ).start()
             except Exception as e:
                 print(f"[Invitation Email Trigger Error] {e}")
@@ -582,7 +1099,11 @@ async def upload_meeting(
 @app.get("/api/tasks")
 def get_tasks(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        return session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        allowed_meetings = get_meetings_for_user(user_email, session)
+        meeting_ids = [m.id for m in allowed_meetings]
+        if not meeting_ids:
+            return []
+        return session.exec(select(Task).where(Task.meeting_id.in_(meeting_ids))).all()
     return session.exec(select(Task)).all()
 
 @app.put("/api/tasks/{task_id}")
@@ -610,7 +1131,12 @@ def update_task(task_id: int, payload: Dict[str, Any], session: Session = Depend
 @app.get("/api/decisions")
 def get_decisions(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        allowed_meetings = get_meetings_for_user(user_email, session)
+        meeting_ids = [m.id for m in allowed_meetings]
+        if not meeting_ids:
+            decisions = []
+        else:
+            decisions = session.exec(select(Decision).where(Decision.meeting_id.in_(meeting_ids))).all()
     else:
         decisions = session.exec(select(Decision)).all()
     results = []
@@ -640,9 +1166,14 @@ def search_memory(payload: Dict[str, str], user_email: Optional[str] = None, ses
     
     # Gather database content for embedding match
     if final_email:
-        meetings = session.exec(select(Meeting).where((Meeting.user_email == final_email) | (Meeting.user_email == None))).all()
-        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == final_email) | (Meeting.user_email == None))).all()
-        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == final_email) | (Meeting.user_email == None))).all()
+        meetings = get_meetings_for_user(final_email, session)
+        meeting_ids = [m.id for m in meetings]
+        if not meeting_ids:
+            decisions = []
+            tasks = []
+        else:
+            decisions = session.exec(select(Decision).where(Decision.meeting_id.in_(meeting_ids))).all()
+            tasks = session.exec(select(Task).where(Task.meeting_id.in_(meeting_ids))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
         decisions = session.exec(select(Decision)).all()
@@ -667,11 +1198,18 @@ def search_memory(payload: Dict[str, str], user_email: Optional[str] = None, ses
 @app.get("/api/analytics/widgets")
 def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-        tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-        decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        meetings = get_meetings_for_user(user_email, session)
+        meeting_ids = [m.id for m in meetings]
+        if not meeting_ids:
+            tasks = []
+            decisions = []
+            unresolved = []
+            contradictions = []
+        else:
+            tasks = session.exec(select(Task).where(Task.meeting_id.in_(meeting_ids))).all()
+            decisions = session.exec(select(Decision).where(Decision.meeting_id.in_(meeting_ids))).all()
+            unresolved = session.exec(select(UnresolvedTopic).where(UnresolvedTopic.meeting_id.in_(meeting_ids))).all()
+            contradictions = session.exec(select(Contradiction).where(Contradiction.meeting_id.in_(meeting_ids))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
         tasks = session.exec(select(Task)).all()
@@ -706,9 +1244,14 @@ def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get
 @app.get("/api/analytics")
 def get_analytics(user_email: Optional[str] = None, session: Session = Depends(get_session)):
     if user_email:
-        meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-        unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-        contradictions = session.exec(select(Contradiction).join(Meeting, Contradiction.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+        meetings = get_meetings_for_user(user_email, session)
+        meeting_ids = [m.id for m in meetings]
+        if not meeting_ids:
+            unresolved = []
+            contradictions = []
+        else:
+            unresolved = session.exec(select(UnresolvedTopic).where(UnresolvedTopic.meeting_id.in_(meeting_ids))).all()
+            contradictions = session.exec(select(Contradiction).where(Contradiction.meeting_id.in_(meeting_ids))).all()
     else:
         meetings = session.exec(select(Meeting)).all()
         unresolved = session.exec(select(UnresolvedTopic)).all()
@@ -803,10 +1346,16 @@ def get_memory_graph(meeting_id: Optional[int] = None, user_email: Optional[str]
     else:
         # Global connection map for all meetings belonging to user_email (if provided)
         if user_email:
-            meetings = session.exec(select(Meeting).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-            decisions = session.exec(select(Decision).join(Meeting, Decision.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-            tasks = session.exec(select(Task).join(Meeting, Task.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
-            unresolved = session.exec(select(UnresolvedTopic).join(Meeting, UnresolvedTopic.meeting_id == Meeting.id).where((Meeting.user_email == user_email) | (Meeting.user_email == None))).all()
+            meetings = get_meetings_for_user(user_email, session)
+            meeting_ids = [m.id for m in meetings]
+            if not meeting_ids:
+                decisions = []
+                tasks = []
+                unresolved = []
+            else:
+                decisions = session.exec(select(Decision).where(Decision.meeting_id.in_(meeting_ids))).all()
+                tasks = session.exec(select(Task).where(Task.meeting_id.in_(meeting_ids))).all()
+                unresolved = session.exec(select(UnresolvedTopic).where(UnresolvedTopic.meeting_id.in_(meeting_ids))).all()
         else:
             meetings = session.exec(select(Meeting)).all()
             decisions = session.exec(select(Decision)).all()
@@ -1405,7 +1954,7 @@ def send_welcome_email(payload: Dict[str, Any]):
         "html_content": html_content
     }
 
-def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id: int):
+def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id: int, token: str):
     sender_email = os.getenv("SENDER_EMAIL", "reetikhandelwal09@gmail.com")
     email_lower = email.lower().strip()
     is_mock = (
@@ -1416,7 +1965,8 @@ def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id:
         or "@" not in email_lower
     )
     
-    accept_link = f"http://localhost:3000/meetings?accept_invite=true&email={email_lower}&meeting_id={meeting_id}"
+    accept_link = f"http://localhost:3000/meetings?accept_invite=true&token={token}"
+    reject_link = f"http://localhost:3000/meetings?reject_invite=true&token={token}"
     
     html_content = f"""<!DOCTYPE html>
 <html>
@@ -1512,6 +2062,19 @@ def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id:
       transition: all 0.3s ease;
       box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
     }}
+    .cta-button-decline {{
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #a1a1aa !important;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 14px 30px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      margin-left: 10px;
+    }}
     .footer {{
       border-top: 1px solid rgba(255, 255, 255, 0.05);
       padding-top: 24px;
@@ -1542,6 +2105,7 @@ def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id:
 
       <div class="cta-container">
         <a href="{accept_link}" class="cta-button">Accept Invitation</a>
+        <a href="{reject_link}" class="cta-button-decline">Decline</a>
       </div>
 
       <div class="footer">
@@ -1559,49 +2123,280 @@ def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id:
     with open(filename, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = os.getenv("SMTP_PORT")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    
-    if smtp_host: smtp_host = smtp_host.strip('"').strip("'")
-    if smtp_port: smtp_port = smtp_port.strip('"').strip("'")
-    if smtp_user: smtp_user = smtp_user.strip('"').strip("'")
-    if smtp_password: smtp_password = smtp_password.strip('"').strip("'")
-    
+    smtp_host = os.getenv("SMTP_HOST", "").strip().strip('"').strip("'")
+    smtp_port = os.getenv("SMTP_PORT", "").strip().strip('"').strip("'")
+    smtp_user = os.getenv("SMTP_USER", "").strip().strip('"').strip("'")
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip().strip('"').strip("'")
+
     sent_via_smtp = False
     error_msg = None
-    
+
+    print(f"[SMTP Config] host={smtp_host} port={smtp_port} user={smtp_user} is_mock={is_mock}")
+
     if not is_mock and smtp_host and smtp_port and smtp_user and smtp_password:
         try:
             import smtplib
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
-            
+
             msg = MIMEMultipart("alternative")
             msg["Subject"] = f"Invitation: Join {meeting_title} on MemoMind AI"
-            msg["From"] = f"MemoMind AI <{sender_email}>"
+            msg["From"] = f"MemoMind AI <{smtp_user}>"
             msg["To"] = email_lower
-            
-            text = f"You are invited to join the meeting sync '{meeting_title}' on MemoMind AI. Go to {accept_link} to accept."
+            msg["Reply-To"] = sender_email
+
+            text = f"You are invited to join the meeting sync '{meeting_title}' on MemoMind AI.\nAccept: {accept_link}\nDecline: {reject_link}"
             msg.attach(MIMEText(text, "plain"))
             msg.attach(MIMEText(html_content, "html"))
-            
+
+            print(f"[SMTP] Connecting to {smtp_host}:{smtp_port} ...")
             if smtp_port == "465":
-                server = smtplib.SMTP_SSL(smtp_host, int(smtp_port))
+                server = smtplib.SMTP_SSL(smtp_host, int(smtp_port), timeout=15)
             else:
-                server = smtplib.SMTP(smtp_host, int(smtp_port))
+                server = smtplib.SMTP(smtp_host, int(smtp_port), timeout=15)
+                server.ehlo()
                 server.starttls()
-                
+                server.ehlo()
+
             server.login(smtp_user, smtp_password)
-            server.sendmail(sender_email, email_lower, msg.as_string())
+            server.sendmail(smtp_user, email_lower, msg.as_string())
             server.quit()
             sent_via_smtp = True
             print(f"[SMTP Success] Invitation email successfully sent to {email_lower}")
         except Exception as e:
+            import traceback
             error_msg = str(e)
             print(f"[SMTP Error] Failed to send invitation email to {email_lower}: {error_msg}")
-            
+            traceback.print_exc()
+    else:
+        print(f"[SMTP Skip] is_mock={is_mock}, smtp configured={bool(smtp_host and smtp_port and smtp_user and smtp_password)}")
+
+    return {
+        "status": "success",
+        "file_path": os.path.abspath(filename),
+        "sent_via_smtp": sent_via_smtp,
+        "smtp_error": error_msg
+    }
+
+def send_workspace_invitation_email(email: str, sender_email: str, team_name: str, token: str):
+    email_lower = email.lower().strip()
+    is_mock = (
+        email_lower.endswith("@memomind.ai")
+        or email_lower.endswith("@meetgraph.ai")
+        or "speaker" in email_lower
+        or "david" in email_lower
+        or "@" not in email_lower
+    )
+    
+    accept_link = f"http://localhost:3000/?accept_invite=true&token={token}"
+    reject_link = f"http://localhost:3000/?reject_invite=true&token={token}"
+    
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation to Join {team_name} Workspace</title>
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b0b10;
+      color: #e4e4e7;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .wrapper {{
+      width: 100%;
+      background-color: #0b0b10;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }}
+    .container {{
+      max-width: 600px;
+      margin: 0 auto;
+      background: linear-gradient(145deg, #13131a, #0c0c12);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 40px;
+      box-sizing: border-box;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }}
+    .logo-container {{
+      margin-bottom: 30px;
+      text-align: left;
+    }}
+    .logo {{
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }}
+    .logo-span {{
+      background: linear-gradient(to right, #06b6d4, #a855f7, #f43f5e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }}
+    .header {{
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.5px;
+    }}
+    .message {{
+      font-size: 15px;
+      color: #a1a1aa;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }}
+    .details-box {{
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }}
+    .details-title {{
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 6px 0;
+    }}
+    .details-value {{
+      font-size: 13px;
+      color: #71717a;
+      margin: 0;
+    }}
+    .cta-container {{
+      text-align: center;
+      margin-bottom: 40px;
+    }}
+    .cta-button {{
+      display: inline-block;
+      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 14px 30px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
+    }}
+    .cta-button-decline {{
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #a1a1aa !important;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 14px 30px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      margin-left: 10px;
+    }}
+    .footer {{
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #52525b;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="logo-container">
+        <div class="logo">Memo<span class="logo-span">Mind</span> AI</div>
+      </div>
+      <div class="header">You are invited to join the {team_name} Workspace!</div>
+      <div class="message">
+        Hello,<br><br>
+        <strong>{sender_email}</strong> has invited you to join the team workspace <strong>"{team_name}"</strong> on MemoMind AI. <br>
+        Once you accept the invitation, you will get access to the same workspace, view all meeting logs and mind maps, and collaborate in real-time.
+      </div>
+      
+      <div class="details-box">
+        <div class="details-title">Workspace details</div>
+        <p class="details-value">Workspace: {team_name}</p>
+        <p class="details-value">Invited By: {sender_email}</p>
+      </div>
+
+      <div class="cta-container">
+        <a href="{accept_link}" class="cta-button">Accept & Join Workspace</a>
+        <a href="{reject_link}" class="cta-button-decline">Decline</a>
+      </div>
+
+      <div class="footer">
+        &copy; 2026 MemoMind AI. Sent to {email}.<br>
+        TLS 1.3 Encryption Secured • v1.2.6-stable
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+    os.makedirs("sent_emails", exist_ok=True)
+    filename = f"sent_emails/workspace_invite_{email_lower.replace('@', '_at_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+
+    smtp_host = os.getenv("SMTP_HOST", "").strip().strip('"').strip("'")
+    smtp_port = os.getenv("SMTP_PORT", "").strip().strip('"').strip("'")
+    smtp_user = os.getenv("SMTP_USER", "").strip().strip('"').strip("'")
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip().strip('"').strip("'")
+
+    sent_via_smtp = False
+    error_msg = None
+
+    print(f"[SMTP Config] host={smtp_host} port={smtp_port} user={smtp_user} is_mock={is_mock}")
+
+    if not is_mock and smtp_host and smtp_port and smtp_user and smtp_password:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"Invitation: Join {team_name} Workspace on MemoMind AI"
+            # Use smtp_user (authenticated account) as From — Gmail rejects mismatched From headers
+            msg["From"] = f"MemoMind AI <{smtp_user}>"
+            msg["To"] = email_lower
+            msg["Reply-To"] = sender_email
+
+            text_body = f"You are invited to join the workspace '{team_name}' on MemoMind AI by {sender_email}.\nAccept: {accept_link}\nDecline: {reject_link}"
+            msg.attach(MIMEText(text_body, "plain"))
+            msg.attach(MIMEText(html_content, "html"))
+
+            print(f"[SMTP] Connecting to {smtp_host}:{smtp_port} ...")
+            if smtp_port == "465":
+                server = smtplib.SMTP_SSL(smtp_host, int(smtp_port), timeout=15)
+            else:
+                server = smtplib.SMTP(smtp_host, int(smtp_port), timeout=15)
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, email_lower, msg.as_string())
+            server.quit()
+            sent_via_smtp = True
+            print(f"[SMTP Success] Workspace invitation email successfully sent to {email_lower}")
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"[SMTP Error] Failed to send workspace invitation email to {email_lower}: {error_msg}")
+            traceback.print_exc()
+    else:
+        print(f"[SMTP Skip] is_mock={is_mock}, smtp configured={bool(smtp_host and smtp_port and smtp_user and smtp_password)}")
+
     return {
         "status": "success",
         "file_path": os.path.abspath(filename),

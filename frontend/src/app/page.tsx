@@ -16,7 +16,8 @@ import {
   ChevronRight,
   ShieldAlert,
   Award,
-  Info
+  Info,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 
@@ -53,6 +54,8 @@ export default function Dashboard() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [acceptNotification, setAcceptNotification] = useState<string | null>(null);
+  const [isProcessingInvite, setIsProcessingInvite] = useState(false);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -76,6 +79,55 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [user]);
 
+  // Handle invitation URL parameters
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const acceptInvite = params.get("accept_invite");
+    const token = params.get("token");
+
+    if (acceptInvite === "true" && token) {
+      async function handleAccept() {
+        setIsProcessingInvite(true);
+        try {
+          const res = await fetch(`http://127.0.0.1:8000/api/invitations/accept`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setAcceptNotification(`Success! You have accepted the invitation and joined the shared workspace team.`);
+            
+            // Clean up the URL search params elegantly without a full page refresh
+            const newUrl = window.location.pathname;
+            window.history.pushState({ path: newUrl }, "", newUrl);
+            
+            // Re-fetch dashboard data instantly using the accepted user credentials
+            if (user?.email) {
+              const emailParam = `?user_email=${encodeURIComponent(user.email)}`;
+              const [widgetsRes, meetingsRes, decisionsRes] = await Promise.all([
+                fetch(`http://127.0.0.1:8000/api/analytics/widgets${emailParam}`),
+                fetch(`http://127.0.0.1:8000/api/meetings${emailParam}`),
+                fetch(`http://127.0.0.1:8000/api/decisions${emailParam}`)
+              ]);
+              if (widgetsRes.ok) setWidgets(await widgetsRes.json());
+              if (meetingsRes.ok) setMeetings(await meetingsRes.json());
+              if (decisionsRes.ok) setDecisions(await decisionsRes.json());
+            }
+          }
+        } catch (err) {
+          console.error("Error accepting invitation:", err);
+        } finally {
+          setIsProcessingInvite(false);
+          // Dismiss banner after 7 seconds
+          setTimeout(() => setAcceptNotification(null), 7000);
+        }
+      }
+      handleAccept();
+    }
+  }, [user]);
+
   const formatDuration = (sec: number) => {
     const mins = Math.floor(sec / 60);
     return `${mins} min${mins !== 1 ? "s" : ""}`;
@@ -90,14 +142,63 @@ export default function Dashboard() {
   };
 
   return (
-    <motion.div 
-      initial="hidden"
-      animate="show"
-      variants={containerVariants}
-      className="space-y-8 pb-12"
-    >
-      
-      {/* 1. Header Hero Panel */}
+    <div className="relative">
+      {/* Processing invitation loader */}
+      <AnimatePresence>
+        {isProcessingInvite && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0b0b10]/90 backdrop-blur-md"
+          >
+            <div className="relative h-16 w-16 flex items-center justify-center mb-4">
+              <div className="h-12 w-12 rounded-full border-2 border-white/[0.05] border-t-cyber-purple animate-spin" />
+              <Sparkles className="absolute h-5 w-5 text-cyber-cyan animate-pulse" />
+            </div>
+            <h3 className="text-sm font-bold text-white tracking-wide">Syncing Collaboration Workspace</h3>
+            <p className="text-[10px] font-mono text-[var(--foreground)]/50 uppercase tracking-widest mt-1.5 animate-pulse">
+              Verifying and adding you to all shared projects...
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success banner toast */}
+      <AnimatePresence>
+        {acceptNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="mb-6 p-4 rounded-2xl border border-cyber-emerald/20 bg-cyber-emerald/[0.03] backdrop-blur-xl shadow-[0_12px_40px_rgba(16,185,129,0.12)] flex items-center gap-3 relative overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-cyber-emerald" />
+            <div className="h-8 w-8 rounded-lg bg-cyber-emerald/10 border border-cyber-emerald/20 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4.5 w-4.5 text-cyber-emerald" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-white tracking-wide">Invitation Accepted</h4>
+              <p className="text-[11px] text-[var(--foreground)]/70 leading-relaxed mt-0.5">{acceptNotification}</p>
+            </div>
+            <button
+              onClick={() => setAcceptNotification(null)}
+              className="p-1 rounded-lg hover:bg-white/5 text-[var(--foreground)]/40 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div 
+        initial="hidden"
+        animate="show"
+        variants={containerVariants}
+        className="space-y-8 pb-12"
+      >
+        
+        {/* 1. Header Hero Panel */}
       <motion.div 
         variants={itemVariants}
         className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-3xl backdrop-blur-2xl relative overflow-hidden shadow-2xl"
@@ -451,9 +552,9 @@ export default function Dashboard() {
           </motion.div>
 
         </div>
-
       </div>
 
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

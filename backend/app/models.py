@@ -132,10 +132,13 @@ class User(SQLModel, table=True):
 
 class MeetingInvitation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    meeting_id: int = Field(foreign_key="meeting.id")
+    meeting_id: Optional[int] = Field(default=None, foreign_key="meeting.id", nullable=True)
     email: str
     name: Optional[str] = None
     status: str = Field(default="pending")  # pending, accepted, declined
+    token: Optional[str] = Field(default=None, index=True)  # unique secure token for email CTA links
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    workspace_id: Optional[int] = Field(default=None, foreign_key="workspace.id", nullable=True)
 
     # Relationship
     meeting: Optional[Meeting] = Relationship(back_populates="invitations")
@@ -167,3 +170,22 @@ class SettingsHistory(SQLModel, table=True):
     new_value: Optional[str] = None
     changed_by: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class Workspace(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WorkspaceMember(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    workspace_id: int = Field(foreign_key="workspace.id")
+    email: str = Field(index=True)
+    role: str = Field(default="member")  # admin, member
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    action: str  # e.g., "invite_sent", "invite_accepted", "invite_rejected"
+    details: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+

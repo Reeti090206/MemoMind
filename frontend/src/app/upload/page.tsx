@@ -32,7 +32,11 @@ import {
   BarChart3,
   Users,
   MessageSquare,
-  TrendingUp
+  TrendingUp,
+  Mail,
+  Send,
+  UserPlus,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingSharePopup from "@/components/FloatingSharePopup";
@@ -146,6 +150,59 @@ export default function MeetingUpload() {
   const [previousCollaborators, setPreviousCollaborators] = useState<any[]>([]);
   const [parentMeetingDetails, setParentMeetingDetails] = useState<any | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
+  // Workspace invite confirmation modal
+  const [showInviteConfirm, setShowInviteConfirm] = useState(false);
+  const [pendingInviteEmail, setPendingInviteEmail] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  // Open confirmation modal before sending workspace invite
+  const triggerWorkspaceInvite = (email: string) => {
+    const clean = email.trim().toLowerCase();
+    if (!clean) return;
+    setPendingInviteEmail(clean);
+    setInviteError(null);
+    setInviteSuccess(null);
+    setShowInviteConfirm(true);
+  };
+
+  // Confirmed: call backend and send email
+  const handleConfirmWorkspaceInvite = async () => {
+    if (!pendingInviteEmail || !user?.email) return;
+    setIsSendingInvite(true);
+    setInviteError(null);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/workspace/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender_email: user.email,
+          email: pendingInviteEmail,
+          team_name: workspaceTeam || "Default Workspace"
+        })
+      });
+      if (res.ok) {
+        if (!selectedUserEmails.includes(pendingInviteEmail)) {
+          setSelectedUserEmails(prev => [...prev, pendingInviteEmail]);
+        }
+        setShowInviteConfirm(false);
+        setInviteSuccess(`Invitation sent to ${pendingInviteEmail}! They'll receive an email to join the ${workspaceTeam || "Default"} workspace.`);
+        setNewEmailInput("");
+        setTimeout(() => setInviteSuccess(null), 6000);
+      } else {
+        const errData = await res.json().catch(() => ({ detail: "Failed to send invitation" }));
+        setInviteError(errData.detail || "Failed to send invitation");
+        setShowInviteConfirm(false);
+      }
+    } catch (err) {
+      console.error("Error sending workspace invitation:", err);
+      setInviteError("Network error. Please try again.");
+      setShowInviteConfirm(false);
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
 
   // Load collaborators and meetings
   useEffect(() => {
@@ -1797,7 +1854,7 @@ export default function MeetingUpload() {
                                     checked={isChecked}
                                     onChange={(e) => {
                                       if (e.target.checked) {
-                                        setSelectedUserEmails(prev => [...prev, u.email]);
+                                        triggerWorkspaceInvite(u.email);
                                       } else {
                                         setSelectedUserEmails(prev => prev.filter(email => email !== u.email));
                                       }
@@ -1821,21 +1878,30 @@ export default function MeetingUpload() {
                               placeholder="e.g. colleague@company.com"
                               value={newEmailInput}
                               onChange={(e) => setNewEmailInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newEmailInput.trim()) triggerWorkspaceInvite(newEmailInput.trim());
+                                }
+                              }}
                               className="flex-1 bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-2 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple/50"
                             />
                             <button
                               type="button"
                               onClick={() => {
-                                if (newEmailInput.trim() && !selectedUserEmails.includes(newEmailInput.trim())) {
-                                  setSelectedUserEmails(prev => [...prev, newEmailInput.trim()]);
-                                  setNewEmailInput("");
-                                }
+                                if (newEmailInput.trim()) triggerWorkspaceInvite(newEmailInput.trim());
                               }}
-                              className="px-3 py-2 bg-cyber-purple text-xs font-bold rounded-xl border border-[var(--color-obsidian-border)] text-white hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                              className="px-3 py-2 bg-cyber-purple text-xs font-bold rounded-xl border border-[var(--color-obsidian-border)] text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                             >
-                              + Invite
+                              <Mail className="h-3 w-3" /> + Invite
                             </button>
                           </div>
+                          {inviteError && (
+                            <p className="text-[10px] text-cyber-rose font-mono flex items-center gap-1 mt-1"><AlertTriangle className="h-3 w-3" /> {inviteError}</p>
+                          )}
+                          {inviteSuccess && (
+                            <p className="text-[10px] text-cyber-emerald font-mono flex items-center gap-1 mt-1"><CheckCircle2 className="h-3 w-3" /> {inviteSuccess}</p>
+                          )}
                         </div>
 
                         {/* Previous Collaborators */}
@@ -2589,7 +2655,128 @@ export default function MeetingUpload() {
 
           </div>
         )}
-      </div>
+      {/* ===== WORKSPACE INVITE CONFIRMATION MODAL ===== */}
+      <AnimatePresence>
+        {showInviteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(10px)" }}
+            onClick={() => !isSendingInvite && setShowInviteConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 24 }}
+              transition={{ type: "spring", stiffness: 300, damping: 26 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-[var(--color-obsidian-border)] overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #13131a, #0c0c14)",
+                boxShadow: "0 30px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(168,85,247,0.08)"
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--color-obsidian-border)]">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-cyber-purple/10 border border-cyber-purple/25 flex items-center justify-center">
+                    <UserPlus className="h-4 w-4 text-cyber-purple" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Send Workspace Invitation</h3>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">An email will be sent immediately</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowInviteConfirm(false)}
+                  disabled={isSendingInvite}
+                  className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--foreground)]/40 hover:text-white transition-colors cursor-pointer disabled:opacity-30"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 space-y-4">
+                {/* Recipient card */}
+                <div className="p-4 rounded-xl bg-cyber-purple/5 border border-cyber-purple/15 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyber-purple/25 to-cyber-cyan/25 border border-cyber-purple/25 flex items-center justify-center text-sm font-bold text-cyber-purple shrink-0">
+                    {pendingInviteEmail.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{pendingInviteEmail}</p>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Will receive invitation email</p>
+                  </div>
+                  <Mail className="h-4 w-4 text-cyber-purple/60 shrink-0" />
+                </div>
+
+                {/* Workspace details */}
+                <div className="p-3.5 rounded-xl bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] space-y-1.5">
+                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono uppercase tracking-wider">Joining Workspace</p>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-3.5 w-3.5 text-cyber-cyan/70 shrink-0" />
+                    <span className="text-xs font-semibold text-white">{workspaceTeam || "Default Workspace"}</span>
+                  </div>
+                </div>
+
+                {/* What happens */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-[var(--foreground)]/40 font-mono uppercase tracking-wider">What happens next</p>
+                  {[
+                    { icon: "📧", text: `An email is sent to ${pendingInviteEmail} with Accept & Decline links` },
+                    { icon: "✅", text: `On accepting, they join the "${workspaceTeam || "Default"}" workspace` },
+                    { icon: "👥", text: "They can view all workspace meetings and collaborate in real-time" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--foreground)]/60">
+                      <span className="text-sm shrink-0 mt-0.5">{item.icon}</span>
+                      <span className="leading-relaxed font-light">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  onClick={() => setShowInviteConfirm(false)}
+                  disabled={isSendingInvite}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--color-obsidian-border)] text-xs font-semibold text-[var(--foreground)]/60 hover:text-white hover:border-white/20 transition-all cursor-pointer disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmWorkspaceInvite}
+                  disabled={isSendingInvite}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60"
+                  style={{
+                    background: isSendingInvite ? "rgba(168,85,247,0.3)" : "linear-gradient(135deg, #a855f7, #06b6d4)",
+                    boxShadow: isSendingInvite ? "none" : "0 8px 24px rgba(168,85,247,0.3)"
+                  }}
+                >
+                  {isSendingInvite ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                        className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white"
+                      />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5" />
+                      Send Invitation Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
     );
   }
 

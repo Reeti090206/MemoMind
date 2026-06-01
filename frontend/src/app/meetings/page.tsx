@@ -18,7 +18,10 @@ import {
   ShieldAlert,
   ArrowLeftRight,
   Zap,
-  X
+  X,
+  Mail,
+  Send,
+  UserPlus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -106,37 +109,208 @@ function MeetingContent() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [acceptNotification, setAcceptNotification] = useState<string | null>(null);
 
-  // Auto-accept invitation from email link
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  // Confirmation modal state
+  const [showInviteConfirm, setShowInviteConfirm] = useState(false);
+  const [pendingInviteEmail, setPendingInviteEmail] = useState("");
+
+  // Auto-respond to invitation from email link (accept/reject)
   useEffect(() => {
     const acceptInvite = searchParams.get("accept_invite");
-    const emailParam = searchParams.get("email");
-    const meetingIdParam = searchParams.get("meeting_id");
+    const rejectInvite = searchParams.get("reject_invite");
+    const token = searchParams.get("token");
 
-    if (acceptInvite === "true" && emailParam && meetingIdParam) {
-      async function autoAccept() {
-        try {
-          const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingIdParam}/invitations/respond`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: emailParam, status: "accepted" })
-          });
-          if (res.ok) {
-            setAcceptNotification(`Success! You have accepted the invitation and joined the team workspace.`);
-            const parsed = parseInt(meetingIdParam!);
-            if (!isNaN(parsed)) {
-              setSelectedId(parsed);
+    if (token) {
+      if (acceptInvite === "true") {
+        async function handleAccept() {
+          try {
+            const res = await fetch(`http://127.0.0.1:8000/api/invitations/accept`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setAcceptNotification(`Success! You have accepted the invitation and joined the team workspace.`);
+              if (data.meeting_id) {
+                setSelectedId(data.meeting_id);
+                const newUrl = window.location.pathname + `?id=${data.meeting_id}`;
+                window.history.pushState({ path: newUrl }, "", newUrl);
+              } else {
+                const newUrl = window.location.pathname;
+                window.history.pushState({ path: newUrl }, "", newUrl);
+              }
+            } else {
+              const errorText = await res.text();
+              console.error("Accept invite error details:", errorText);
             }
-            // Clear URL search params
-            const newUrl = window.location.pathname + (parsed ? `?id=${parsed}` : "");
-            window.history.pushState({ path: newUrl }, "", newUrl);
+          } catch (err) {
+            console.error("Failed to automatically accept invitation:", err);
           }
-        } catch (err) {
-          console.error("Failed to automatically accept invitation:", err);
         }
+        handleAccept();
+      } else if (rejectInvite === "true") {
+        async function handleReject() {
+          try {
+            const res = await fetch(`http://127.0.0.1:8000/api/invitations/reject`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setAcceptNotification(`You have declined the invitation.`);
+              if (data.meeting_id) {
+                setSelectedId(data.meeting_id);
+                const newUrl = window.location.pathname + `?id=${data.meeting_id}`;
+                window.history.pushState({ path: newUrl }, "", newUrl);
+              } else {
+                const newUrl = window.location.pathname;
+                window.history.pushState({ path: newUrl }, "", newUrl);
+              }
+            } else {
+              const errorText = await res.text();
+              console.error("Reject invite error details:", errorText);
+            }
+          } catch (err) {
+            console.error("Failed to decline invitation:", err);
+          }
+        }
+        handleReject();
       }
-      autoAccept();
+    } else {
+      // Legacy auto-accept as fallback
+      const emailParam = searchParams.get("email");
+      const meetingIdParam = searchParams.get("meeting_id");
+
+      if (acceptInvite === "true" && emailParam && meetingIdParam) {
+        async function autoAccept() {
+          try {
+            const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingIdParam}/invitations/respond`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: emailParam, status: "accepted" })
+            });
+            if (res.ok) {
+              setAcceptNotification(`Success! You have accepted the invitation and joined the team workspace.`);
+              const parsed = parseInt(meetingIdParam!);
+              if (!isNaN(parsed)) {
+                setSelectedId(parsed);
+              }
+              const newUrl = window.location.pathname + (parsed ? `?id=${parsed}` : "");
+              window.history.pushState({ path: newUrl }, "", newUrl);
+            }
+          } catch (err) {
+            console.error("Failed to automatically accept invitation:", err);
+          }
+        }
+        autoAccept();
+      }
     }
   }, [searchParams]);
+
+  // Real-time updates via WebSockets for invitations
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+
+    function connect() {
+      ws = new WebSocket("ws://127.0.0.1:8000/ws/invitations");
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "invitation_update") {
+            if (selectedId !== null && message.meeting_id === selectedId) {
+              // Fetch latest meeting details to refresh invitations
+              fetch(`http://127.0.0.1:8000/api/meetings/${selectedId}`)
+                .then(res => {
+                  if (res.ok) return res.json();
+                })
+                .then(data => {
+                  if (data) setMeetingData(data);
+                })
+                .catch(err => console.error("Error refreshing meeting data:", err));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to parse WebSocket message:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        if (ws) ws.close();
+      };
+    }
+
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, [selectedId]);
+
+  // Step 1: User clicks Invite → show confirmation modal
+  const handleSendInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim() || !meetingData) return;
+    setPendingInviteEmail(inviteEmail.trim());
+    setShowInviteConfirm(true);
+  };
+
+  // Step 2: User confirms → fire the API and send email
+  const handleConfirmInvite = async () => {
+    if (!pendingInviteEmail || !meetingData) return;
+    setIsSendingInvite(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingData.id}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingInviteEmail })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInviteEmail("");
+        setShowInviteConfirm(false);
+        setInviteSuccess(`Invitation sent to ${pendingInviteEmail}! They'll receive an email with Accept/Decline links.`);
+        setTimeout(() => setInviteSuccess(null), 6000);
+        if (data.invitation) {
+          setMeetingData((prev: any) => {
+            if (!prev) return prev;
+            const invitations = prev.invitations || [];
+            if (invitations.some((i: any) => i.id === data.invitation.id)) {
+              return prev;
+            }
+            return {
+              ...prev,
+              invitations: [...invitations, data.invitation]
+            };
+          });
+        }
+      } else {
+        const errData = await res.json().catch(() => ({ detail: "Failed to send invitation" }));
+        setInviteError(errData.detail || "Failed to send invitation");
+        setShowInviteConfirm(false);
+      }
+    } catch (err) {
+      console.error("Error sending invitation:", err);
+      setInviteError("Network error. Please try again.");
+      setShowInviteConfirm(false);
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
 
   // Synchronize list and URL params/localStorage
   useEffect(() => {
@@ -779,6 +953,39 @@ function MeetingContent() {
                         <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
                           <Users className="h-4 w-4 text-cyber-cyan animate-pulse" /> Invited Members
                         </h3>
+                        
+                        {/* Inline Invite Form */}
+                        <form onSubmit={handleSendInvite} className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="colleague@company.com"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            required
+                            disabled={isSendingInvite}
+                            className="bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-3 py-1.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-cyan transition-all flex-1"
+                          />
+                          <button
+                            type="submit"
+                            disabled={isSendingInvite || !inviteEmail}
+                            className="px-3 py-1.5 bg-cyber-cyan/15 hover:bg-cyber-cyan/25 border border-cyber-cyan/30 text-cyber-cyan text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {isSendingInvite ? "Sending..." : "Invite"}
+                          </button>
+                        </form>
+                        {inviteError && (
+                          <p className="text-[10px] text-cyber-rose font-mono flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {inviteError}</p>
+                        )}
+                        {inviteSuccess && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-[10px] text-cyber-emerald font-mono flex items-center gap-1"
+                          >
+                            <CheckCircle className="h-3 w-3" /> {inviteSuccess}
+                          </motion.p>
+                        )}
+
                         <div className="space-y-3">
                           {meetingData.invitations && meetingData.invitations.length > 0 ? (
                             meetingData.invitations.map((inv: any) => {
@@ -932,6 +1139,143 @@ function MeetingContent() {
         )}
       </div>
 
+
+    {/* === INVITE CONFIRMATION MODAL === */}
+    <AnimatePresence>
+      {showInviteConfirm && meetingData && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+          onClick={() => setShowInviteConfirm(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 20 }}
+            transition={{ type: "spring", stiffness: 280, damping: 24 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl border border-[var(--color-obsidian-border)] overflow-hidden"
+            style={{
+              background: "linear-gradient(145deg, #13131a, #0c0c14)",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.08)"
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--color-obsidian-border)]">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/20 flex items-center justify-center">
+                  <UserPlus className="h-4.5 w-4.5 text-cyber-cyan" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Send Workspace Invitation</h3>
+                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Confirm before sending email</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInviteConfirm(false)}
+                className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--foreground)]/40 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Recipient */}
+              <div className="p-4 rounded-xl bg-cyber-cyan/5 border border-cyber-cyan/15 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyber-cyan/20 to-cyber-purple/20 border border-cyber-cyan/20 flex items-center justify-center text-sm font-bold text-cyber-cyan shrink-0">
+                  {pendingInviteEmail.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{pendingInviteEmail}</p>
+                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Will receive an invitation email</p>
+                </div>
+                <Mail className="h-4 w-4 text-cyber-cyan/60 shrink-0" />
+              </div>
+
+              {/* Meeting details */}
+              <div className="p-3.5 rounded-xl bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] space-y-2.5">
+                <p className="text-[10px] text-[var(--foreground)]/50 font-mono uppercase tracking-wider">Meeting Details</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-3 w-3 text-cyber-purple shrink-0" />
+                    <span className="text-xs font-semibold text-white truncate">{meetingData.title}</span>
+                  </div>
+                  {meetingData.date && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3 text-cyber-cyan/60 shrink-0" />
+                      <span className="text-[10px] text-[var(--foreground)]/60 font-mono">{meetingData.date}</span>
+                    </div>
+                  )}
+                  {meetingData.team_name && (
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3 w-3 text-cyber-emerald/60 shrink-0" />
+                      <span className="text-[10px] text-[var(--foreground)]/60 font-mono">{meetingData.team_name} workspace</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* What happens next */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-[var(--foreground)]/40 font-mono uppercase tracking-wider">What happens next</p>
+                {[
+                  { icon: "📧", text: `An invitation email with Accept & Decline links will be sent to ${pendingInviteEmail}` },
+                  { icon: "✅", text: "When they accept, they'll be added to this workspace automatically" },
+                  { icon: "👥", text: "They'll gain access to all shared meetings and decisions" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--foreground)]/60">
+                    <span className="text-sm shrink-0 mt-0.5">{item.icon}</span>
+                    <span className="leading-relaxed font-light">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowInviteConfirm(false)}
+                disabled={isSendingInvite}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--color-obsidian-border)] text-xs font-semibold text-[var(--foreground)]/60 hover:text-white hover:border-white/20 transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmInvite}
+                disabled={isSendingInvite}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-70"
+                style={{
+                  background: isSendingInvite
+                    ? "rgba(168,85,247,0.3)"
+                    : "linear-gradient(135deg, #a855f7, #06b6d4)",
+                  boxShadow: isSendingInvite ? "none" : "0 8px 20px rgba(168,85,247,0.25)"
+                }}
+              >
+                {isSendingInvite ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                      className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white"
+                    />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5" />
+                    Send Invitation Email
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
     </div>
   );
 }
