@@ -19,6 +19,14 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../components/AuthProvider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+
 
 interface TeamMember {
   name: string;
@@ -53,6 +61,12 @@ export default function TeamWorkspace() {
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [editingRole, setEditingRole] = useState(false);
   const [newRoleValue, setNewRoleValue] = useState("");
+
+  // Meeting-based collaborators states
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string>("");
+  const [selectedMeetingDetails, setSelectedMeetingDetails] = useState<any | null>(null);
+  const [loadingMeetingDetails, setLoadingMeetingDetails] = useState<boolean>(false);
 
   const handleMemberClick = async (member: TeamMember) => {
     setSelectedMember(member);
@@ -131,6 +145,19 @@ export default function TeamWorkspace() {
       } catch (err) {
         console.warn("Failed to load tasks:", err);
       }
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/meetings");
+        if (res.ok) {
+          const data = await res.json();
+          setMeetings(data);
+          if (data && data.length > 0) {
+            setSelectedMeetingId(data[0].id.toString());
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load meetings:", err);
+      }
     }
     loadWorkspaceData();
   }, [user]);
@@ -164,81 +191,107 @@ export default function TeamWorkspace() {
     localStorage.setItem(chatKey, JSON.stringify(msgs));
   };
 
-  // Dynamically include active custom user and detected speakers in members list
-  const activeMembers = React.useMemo(() => {
-    const list: TeamMember[] = [];
+  // Load meeting details when selectedMeetingId changes
+  useEffect(() => {
+    if (!selectedMeetingId) {
+      setSelectedMeetingDetails(null);
+      return;
+    }
+    async function loadMeetingDetails() {
+      setLoadingMeetingDetails(true);
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/meetings/${selectedMeetingId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedMeetingDetails(data);
+        }
+      } catch (err) {
+        console.error("Failed to load meeting details:", err);
+      } finally {
+        setLoadingMeetingDetails(false);
+      }
+    }
+    loadMeetingDetails();
+  }, [selectedMeetingId]);
+
+  // Dynamically compile collaborators list from the selected meeting details
+  const collaboratorsList = React.useMemo(() => {
+    if (!selectedMeetingDetails) return [];
     
-    // Add current user
-    if (user) {
-      list.push({
-        name: user.name,
-        role: user.role || "Workspace Contributor",
-        avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.name)}`,
-        status: "online",
-        activity: "Collaborating Live",
-        color: "border-cyber-cyan text-cyber-cyan",
-        email: user.email
-      });
-    } else {
-      list.push({
-        name: "Developer Guest",
-        role: "Workspace Administrator",
-        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest",
-        status: "online",
-        activity: "Collaborating Live",
-        color: "border-cyber-cyan text-cyber-cyan",
-        email: "developer@company.com"
+    // Parse speaker stats from meeting details
+    const stats = selectedMeetingDetails.speaker_stats || {};
+    
+    // Fallback to distinct speaker labels in segments if speaker_stats is empty
+    const keys = Object.keys(stats);
+    if (keys.length === 0) {
+      const segments = selectedMeetingDetails.segments || [];
+      const segmentSpeakers = Array.from(new Set(segments.map((s: any) => s.speaker_label)));
+      segmentSpeakers.forEach((spk: any) => {
+        if (spk) stats[spk] = 0; // Default to 0 if not calculated
       });
     }
 
-    // Add other users from the DB
-    dbUsers.forEach((dbUser: any) => {
-      // Avoid duplicating the current user
-      if (user && dbUser.email?.toLowerCase() === user.email?.toLowerCase()) return;
-      if (dbUser.email?.toLowerCase() === "developer@company.com") return;
+    const list: any[] = [];
+    Object.entries(stats).forEach(([speakerKey, percentVal]: [string, any], idx) => {
+      let name = speakerKey;
+      let detectedRole = "";
 
-      // Avoid duplicate names on the active list
-      const existsByName = list.some(m => m.name.toLowerCase() === dbUser.name.toLowerCase());
-      if (existsByName) return;
+      // 1. Extract name and role from parentheses if present (e.g. "David (Lead Engineer)")
+      const roleMatch = speakerKey.match(/\(([^)]+)\)/);
+      if (roleMatch) {
+        detectedRole = roleMatch[1];
+        name = speakerKey.replace(/\s*\([^)]+\)/, "").trim();
+      }
+
+      // 2. Map generic speaker labels or unknown speakers to "Unknown Speaker X"
+      // Requirement 7: Never use hardcoded names such as: Aman, Sara, Alex, Ryan, Speaker 1, Demo User, Test User.
+      // Requirement 8: If the selected meeting contains Unknown speakers -> display "Unknown Speaker 1", "Unknown Speaker 2", etc.
+      let isUnknown = false;
+      const lowerName = name.toLowerCase();
+      if (/^speaker\s*([a-zA-Z]|\d+)/i.test(name) || lowerName.includes("unknown")) {
+        isUnknown = true;
+        const numMatch = name.match(/\d+/);
+        const num = numMatch ? numMatch[0] : (idx + 1).toString();
+        name = `Unknown Speaker ${num}`;
+        detectedRole = ""; // Clear role for unknown speakers
+      }
+
+      // 3. Find matching database user for role and avatar
+      const dbUser = dbUsers.find(u => u.name.toLowerCase().trim() === name.toLowerCase().trim());
+      const role = detectedRole || dbUser?.role || "Sync Participant";
+      const avatar = dbUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
+
+      // 4. Calculate task count for this collaborator in this meeting
+      let taskCount = 0;
+      if (selectedMeetingDetails.tasks) {
+        const cleanNameLower = name.toLowerCase().trim();
+        const speakerKeyLower = speakerKey.toLowerCase().trim();
+        const emailLower = dbUser?.email?.toLowerCase().trim();
+        selectedMeetingDetails.tasks.forEach((t: any) => {
+          if (!t.owner) return;
+          const ownerLower = t.owner.toLowerCase().trim();
+          if (ownerLower === cleanNameLower || ownerLower === speakerKeyLower || (emailLower && ownerLower === emailLower)) {
+            taskCount++;
+          }
+        });
+      }
 
       list.push({
-        name: dbUser.name,
-        role: dbUser.role || "Workspace Contributor",
-        avatar: dbUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(dbUser.name)}`,
-        status: "online", // Mock online
-        activity: "Collaborating in Workspace",
-        color: "border-cyber-purple text-cyber-purple",
-        email: dbUser.email
-      });
-    });
-
-    // Add detected speakers from meetings
-    speakers.forEach(spk => {
-      if (user && spk.toLowerCase() === user.name.toLowerCase()) return;
-      if (spk.toLowerCase() === "developer guest") return;
-      
-      const exists = list.some(m => m.name.toLowerCase() === spk.toLowerCase());
-      if (exists) return;
-
-      let email = spk;
-      if (spk.toLowerCase().includes("sarah")) email = "sarah@company.com";
-      else if (spk.toLowerCase().includes("aman")) email = "aman@company.com";
-      else if (spk.toLowerCase().includes("reeti")) email = "reeti@company.com";
-      else if (spk.toLowerCase().includes("fletcher")) email = "fletcher@company.com";
-
-      list.push({
-        name: spk,
-        role: "Sync Participant",
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(spk)}`,
-        status: "online",
-        activity: "Inactive",
-        color: "border-gray-500 text-gray-500",
-        email: email
+        name,
+        role: isUnknown ? "Sync Participant" : role,
+        avatar,
+        status: "online" as const,
+        activity: "Collaborating Live",
+        color: "border-cyber-cyan text-cyber-cyan",
+        email: dbUser?.email,
+        speakingTime: typeof percentVal === 'number' ? percentVal : parseFloat(percentVal) || 0,
+        taskCount,
+        isUnknown
       });
     });
 
     return list;
-  }, [user, dbUsers, speakers]);
+  }, [selectedMeetingDetails, dbUsers]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -345,48 +398,76 @@ export default function TeamWorkspace() {
             </div>
           </div>
 
-          {/* Active Members list */}
-          <div className="p-5 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-4 flex-1 mt-6">
+          {/* Collaborators list */}
+          <div className="p-5 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-4 flex-1 mt-6 flex flex-col">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Who's Online</h3>
-              <span className="text-[9px] font-mono bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyber-emerald animate-ping" /> {activeMembers.length} Online
+              <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Collaborators</h3>
+              <span className="text-[9px] font-mono bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple px-2 py-0.5 rounded-full">
+                {collaboratorsList.length} Detected
               </span>
             </div>
 
-            <div className="space-y-3.5 font-sans">
-              {activeMembers.map((mb, idx) => (
-                <button
-                  key={`${mb.email || mb.name}-${idx}`}
-                  onClick={() => handleMemberClick(mb)}
-                  className="w-full flex items-start gap-3 p-1.5 rounded-xl hover:bg-[var(--foreground)]/[0.02] transition-colors group cursor-pointer text-left focus:outline-none"
-                >
-                  <div className="relative shrink-0">
-                    <img 
-                      src={mb.avatar} 
-                      alt={mb.name} 
-                      className={`h-9 w-9 rounded-xl border p-0.5 bg-black ${
-                        mb.status === "online" ? "border-cyber-emerald" : "border-[var(--color-obsidian-border)]"
-                      }`}
-                    />
-                    <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-black ${
-                      mb.status === "online" 
-                        ? "bg-cyber-emerald" 
-                        : mb.status === "idle" 
-                        ? "bg-amber-400 animate-pulse" 
-                        : "bg-gray-500"
-                    }`} />
-                  </div>
-                  
-                  <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-[var(--foreground)] truncate">{mb.name}</p>
-                    <p className="text-[10px] text-[var(--foreground)]/50 truncate leading-tight font-sans">{mb.role}</p>
-                    <p className="text-[9px] text-cyber-cyan truncate mt-1 animate-fadeIn leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity font-sans">
-                      Working on: {mb.activity}
-                    </p>
-                  </div>
-                </button>
-              ))}
+            {/* Dropdown Selector */}
+            <div className="space-y-1">
+              <label className="block text-[9px] text-[var(--foreground)]/40 font-mono uppercase tracking-wider">Select Meeting</label>
+              <Select value={selectedMeetingId} onValueChange={setSelectedMeetingId}>
+                <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)] py-5 focus:ring-0 focus:ring-offset-0">
+                  <SelectValue placeholder="Select Meeting" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0b0b10] border-[var(--color-obsidian-border)] text-[var(--foreground)]">
+                  {meetings.map((m) => (
+                    <SelectItem key={m.id} value={m.id.toString()} className="text-xs hover:bg-white/5 cursor-pointer text-white focus:bg-cyber-purple/15 focus:text-white">
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3.5 font-sans mt-2 flex-1 overflow-y-auto max-h-[400px]">
+              {loadingMeetingDetails ? (
+                <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                  <span className="h-6 w-6 border-2 border-cyber-purple border-t-transparent rounded-full animate-spin" />
+                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono">Loading participants...</p>
+                </div>
+              ) : collaboratorsList.length > 0 ? (
+                collaboratorsList.map((mb, idx) => (
+                  <button
+                    key={`${mb.email || mb.name}-${idx}`}
+                    onClick={() => handleMemberClick(mb)}
+                    className="w-full flex items-start gap-3 p-2 rounded-xl hover:bg-[var(--foreground)]/[0.02] transition-colors group cursor-pointer text-left focus:outline-none border border-transparent hover:border-[var(--color-obsidian-border)]"
+                  >
+                    <div className="relative shrink-0">
+                      <img 
+                        src={mb.avatar} 
+                        alt={mb.name} 
+                        className="h-9 w-9 rounded-xl border border-[var(--color-obsidian-border)] p-0.5 bg-black"
+                      />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-[var(--foreground)] truncate group-hover:text-cyber-cyan transition-colors">{mb.name}</p>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[9px] font-mono text-cyber-cyan bg-cyber-cyan/10 border border-cyber-cyan/20 px-1.5 py-0.5 rounded">
+                            {mb.speakingTime.toFixed(0)}%
+                          </span>
+                          {mb.taskCount > 0 && (
+                            <span className="text-[9px] font-mono text-cyber-purple bg-cyber-purple/10 border border-cyber-purple/20 px-1.5 py-0.5 rounded flex items-center gap-0.5" title={`${mb.taskCount} tasks assigned`}>
+                              <CheckCircle className="h-2 w-2" /> {mb.taskCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-[var(--foreground)]/50 truncate leading-tight font-sans mt-0.5">{mb.role}</p>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <p className="text-[11px] text-[var(--foreground)]/50 italic text-center py-8 font-sans">
+                  No collaborators detected for this meeting.
+                </p>
+              )}
             </div>
           </div>
           

@@ -39,7 +39,7 @@ $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
 
 - **Firebase Authentication** — Email/password login with Google Sign-In.
 - **Phone OTP Verification** — SMS-based two-factor authentication via Firebase.
-- **Team Management** — Invite members, assign roles, and manage organizational access.
+- **Team Management & Collaborators** — Invite members, assign roles, manage organizational access, and dynamically view meeting-specific collaborators, speaking distributions, and assigned task counts.
 - **Settings Panel** — User profile management, app configuration settings, and credentials verification.
 
 ### 🛡️ Credentials Encryption & Connection Routing
@@ -207,7 +207,7 @@ Browser (MediaRecorder)
 | Search | `/search` | Semantic natural-language memory query |
 | Analytics | `/analytics` | Charts for friction, turnaround, engagement |
 | Memory Graph | `/graph` | Interactive force-directed knowledge graph |
-| Team | `/team` | Member management & invitations |
+| Team | `/team` | Member management, invitations, and meeting-based collaborator analytics |
 | Settings | `/settings` | Profile & app configuration |
 
 ---
