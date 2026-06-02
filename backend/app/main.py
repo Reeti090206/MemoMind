@@ -1671,6 +1671,32 @@ def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_ses
         }
     }
 
+# ----------------- WORKSPACE ENDPOINTS -----------------
+
+class WorkspaceCreateRequest(BaseModel):
+    name: str
+
+@app.get("/api/workspaces")
+def get_workspaces(session: Session = Depends(get_session)):
+    workspaces = session.exec(select(Workspace)).all()
+    return sorted(workspaces, key=lambda x: x.name)
+
+@app.post("/api/workspaces")
+def create_workspace(request: WorkspaceCreateRequest, session: Session = Depends(get_session)):
+    name_clean = request.name.strip()
+    if not name_clean:
+        raise HTTPException(status_code=400, detail="Workspace name cannot be empty")
+        
+    existing = session.exec(select(Workspace).where(Workspace.name == name_clean)).first()
+    if existing:
+        return existing
+        
+    ws = Workspace(name=name_clean)
+    session.add(ws)
+    session.commit()
+    session.refresh(ws)
+    return ws
+
 # ----------------- AUTH & WELCOME EMAIL ENDPOINT -----------------
 
 @app.post("/api/auth/welcome-email")

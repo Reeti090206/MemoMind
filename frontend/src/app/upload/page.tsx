@@ -143,6 +143,12 @@ export default function MeetingUpload() {
     return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   });
   const [workspaceTeam, setWorkspaceTeam] = useState("Team Alpha");
+  const [workspaces, setWorkspaces] = useState<string[]>(["Team Alpha", "Backend Team", "Cloud Team", "Acme Corp"]);
+  const [showAddWorkspaceModal, setShowAddWorkspaceModal] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+  const [createWorkspaceError, setCreateWorkspaceError] = useState<string | null>(null);
+
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([]);
   const [newEmailInput, setNewEmailInput] = useState("");
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -204,9 +210,59 @@ export default function MeetingUpload() {
     }
   };
 
+  const handleCreateWorkspace = async () => {
+    const cleanName = newWorkspaceName.trim();
+    if (!cleanName) {
+      setCreateWorkspaceError("Workspace name cannot be empty");
+      return;
+    }
+    
+    setIsCreatingWorkspace(true);
+    setCreateWorkspaceError(null);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/workspaces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: cleanName })
+      });
+      if (res.ok) {
+        const newWs = await res.json();
+        setWorkspaces(prev => {
+          if (prev.includes(newWs.name)) return prev;
+          return [...prev, newWs.name].sort();
+        });
+        setWorkspaceTeam(newWs.name);
+        setNewWorkspaceName("");
+        setShowAddWorkspaceModal(false);
+      } else {
+        const errData = await res.json().catch(() => ({ detail: "Failed to create workspace" }));
+        setCreateWorkspaceError(errData.detail || "Failed to create workspace");
+      }
+    } catch (err) {
+      console.error("Error creating workspace:", err);
+      setCreateWorkspaceError("Network error. Please try again.");
+    } finally {
+      setIsCreatingWorkspace(false);
+    }
+  };
+
   // Load collaborators and meetings
   useEffect(() => {
     async function loadFormContext() {
+      try {
+        const wRes = await fetch("http://127.0.0.1:8000/api/workspaces");
+        if (wRes.ok) {
+          const wList = await wRes.json();
+          const names = Array.from(new Set([
+            "Team Alpha", "Backend Team", "Cloud Team", "Acme Corp",
+            ...wList.map((w: any) => w.name)
+          ]));
+          setWorkspaces(names);
+        }
+      } catch (e) {
+        console.warn("Failed to load workspaces:", e);
+      }
+
       try {
         const uRes = await fetch("http://127.0.0.1:8000/api/users");
         if (uRes.ok) {
@@ -1810,17 +1866,29 @@ export default function MeetingUpload() {
                     <div className="space-y-1.5">
                       <label className="block text-xs text-[var(--foreground)]/70 font-semibold">Team/Workspace</label>
                       <Select
-                        onValueChange={(val) => setWorkspaceTeam(val)}
+                        onValueChange={(val) => {
+                          if (val === "__add_new_workspace__") {
+                            setCreateWorkspaceError(null);
+                            setShowAddWorkspaceModal(true);
+                          } else {
+                            setWorkspaceTeam(val);
+                          }
+                        }}
                         value={workspaceTeam}
                       >
                         <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)] py-6">
                           <SelectValue placeholder="Select Team/Workspace" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Team Alpha">Team Alpha</SelectItem>
-                          <SelectItem value="Backend Team">Backend Team</SelectItem>
-                          <SelectItem value="Cloud Team">Cloud Team</SelectItem>
-                          <SelectItem value="Acme Corp">Acme Corp</SelectItem>
+                          {workspaces.map((ws) => (
+                            <SelectItem key={ws} value={ws}>
+                              {ws}
+                            </SelectItem>
+                          ))}
+                          <div className="border-t border-[var(--color-obsidian-border)] my-1"></div>
+                          <SelectItem value="__add_new_workspace__" className="text-cyber-cyan font-bold focus:text-cyber-cyan">
+                            + Add New Workspace...
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2768,6 +2836,128 @@ export default function MeetingUpload() {
                     <>
                       <Send className="h-3.5 w-3.5" />
                       Send Invitation Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== ADD NEW WORKSPACE MODAL ===== */}
+      <AnimatePresence>
+        {showAddWorkspaceModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(10px)" }}
+            onClick={() => !isCreatingWorkspace && setShowAddWorkspaceModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 24 }}
+              transition={{ type: "spring", stiffness: 300, damping: 26 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-[var(--color-obsidian-border)] overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #13131a, #0c0c14)",
+                boxShadow: "0 30px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(168,85,247,0.08)"
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--color-obsidian-border)]">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/25 flex items-center justify-center">
+                    <Database className="h-4 w-4 text-cyber-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Add Team/Workspace</h3>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Create a new organizational sync channel</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAddWorkspaceModal(false)}
+                  disabled={isCreatingWorkspace}
+                  className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--foreground)]/40 hover:text-white transition-colors cursor-pointer disabled:opacity-30"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] text-[var(--foreground)]/50 font-mono uppercase tracking-wider">Workspace/Team Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Frontend Architecture"
+                    value={newWorkspaceName}
+                    onChange={(e) => setNewWorkspaceName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isCreatingWorkspace) {
+                        e.preventDefault();
+                        handleCreateWorkspace();
+                      }
+                    }}
+                    className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-cyan transition-all"
+                    autoFocus
+                  />
+                  {createWorkspaceError && (
+                    <p className="text-[10px] text-cyber-rose font-mono flex items-center gap-1 mt-1">
+                      <AlertTriangle className="h-3 w-3" /> {createWorkspaceError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] space-y-1.5">
+                  <p className="text-[10px] text-[var(--foreground)]/40 font-mono uppercase tracking-wider">Workspace benefits</p>
+                  {[
+                    { icon: "⚡", text: "Isolate transcripts & mind maps for specific teams" },
+                    { icon: "🛡️", text: "Prevent cross-team decision override alerts" },
+                    { icon: "🤝", text: "Invite team members directly to private sync channels" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--foreground)]/60">
+                      <span className="text-sm shrink-0 mt-0.5">{item.icon}</span>
+                      <span className="leading-relaxed font-light font-sans">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  onClick={() => setShowAddWorkspaceModal(false)}
+                  disabled={isCreatingWorkspace}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--color-obsidian-border)] text-xs font-semibold text-[var(--foreground)]/60 hover:text-white hover:border-white/20 transition-all cursor-pointer disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateWorkspace}
+                  disabled={isCreatingWorkspace}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60"
+                  style={{
+                    background: isCreatingWorkspace ? "rgba(6,182,212,0.3)" : "linear-gradient(135deg, #06b6d4, #a855f7)",
+                    boxShadow: isCreatingWorkspace ? "none" : "0 8px 24px rgba(6,182,212,0.3)"
+                  }}
+                >
+                  {isCreatingWorkspace ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                        className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white"
+                      />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      Create Workspace
                     </>
                   )}
                 </button>
