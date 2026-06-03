@@ -40,7 +40,9 @@ $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
 - **Firebase Authentication** — Email/password login with Google Sign-In.
 - **Phone OTP Verification** — SMS-based two-factor authentication via Firebase.
 - **Team Management & Collaborators** — Invite members, assign roles, manage organizational access, and dynamically view meeting-specific collaborators, speaking distributions, and assigned task counts.
-- **Settings Panel** — User profile management, app configuration settings, and credentials verification.
+- **Editable User Profile Details** — Manage user metadata (Full Name, Workspace Role, Email Address) directly from the Settings Panel. Propagates dynamically to the layout sidebar and headers.
+- **Interactive Diffs & Email Migration** — Provides an animated confirmation panel showing exact changes before updating, warning that future invitation emails will originate from the new address. Automatically migrates associated `Meeting`, `MeetingInvitation`, `WorkspaceMember`, and user settings history if the email address is changed.
+- **Settings Panel** — Application configuration settings, security parameters, and credentials verification.
 
 ### 🛡️ Credentials Encryption & Connection Routing
 
