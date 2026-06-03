@@ -7,6 +7,7 @@ import GlassLoginWall from "./GlassLoginWall";
 import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert, HelpCircle, ShieldCheck, CheckCircle2, ChevronRight, Activity, BookOpen, Layers, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, welcomeEmail } = useAuth();
@@ -326,6 +327,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Help & Info Center Trigger */}
             <button
               onClick={() => setShowHelpDrawer(true)}

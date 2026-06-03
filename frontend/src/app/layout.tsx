@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import LayoutClient from "@/components/LayoutClient";
 import "./globals.css";
 
@@ -23,9 +24,11 @@ export default function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased h-full text-[var(--color-body)] bg-[var(--color-bg-main)] flex overflow-hidden`}>
         <AuthProvider>
-          <LayoutClient>
-            {children}
-          </LayoutClient>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <LayoutClient>
+              {children}
+            </LayoutClient>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

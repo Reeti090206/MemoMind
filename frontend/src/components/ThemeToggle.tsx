@@ -15,20 +15,20 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="w-[38px] h-[38px] rounded-xl bg-[var(--color-obsidian-light)]/30 border border-[var(--color-obsidian-border)]" />
+      <div className="w-[38px] h-[38px] rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm animate-pulse" />
     );
   }
 
   return (
     <button
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="p-2 rounded-xl bg-[var(--color-obsidian-light)]/30 hover:bg-[var(--color-obsidian-light)]/70 text-[var(--foreground)] transition-all border border-[var(--color-obsidian-border)]"
-      title="Toggle Theme"
+      className="relative p-2 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm text-[var(--color-muted)] hover:text-[var(--color-heading)] hover:border-[var(--color-muted)] transition-all cursor-pointer"
+      title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
     >
       {theme === "light" ? (
-        <Moon className="h-4.5 w-4.5 text-gray-700 hover:text-black" />
+        <Moon className="h-4.5 w-4.5" />
       ) : (
-        <Sun className="h-4.5 w-4.5 text-[var(--foreground)]/70 hover:text-[var(--foreground)]" />
+        <Sun className="h-4.5 w-4.5" />
       )}
       <span className="sr-only">Toggle theme</span>
     </button>

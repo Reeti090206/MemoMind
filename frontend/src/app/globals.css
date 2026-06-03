@@ -32,12 +32,32 @@
   color-scheme: light;
 }
 
+.dark {
+  --color-bg-main: #0B0F19;
+  --color-surface: #111827;
+  --color-border: #1F2937;
+  
+  --color-heading: #F8FAFC;
+  --color-body: #CBD5E1;
+  --color-muted: #94A3B8;
+
+  --color-obsidian-border: #1F2937;
+  --color-obsidian-dark: #0B0F19;
+  --color-obsidian-medium: #111827;
+  --color-obsidian-light: #1F2937;
+
+  --background: var(--color-bg-main);
+  --foreground: var(--color-body);
+  color-scheme: dark;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
   overflow-x: hidden;
   letter-spacing: -0.01em;
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
 }
 
 /* Typography Hierarchy Utilities */
