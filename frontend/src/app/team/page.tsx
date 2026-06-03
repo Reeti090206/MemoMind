@@ -414,7 +414,7 @@ export default function TeamWorkspace() {
                 <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)] py-5 focus:ring-0 focus:ring-offset-0">
                   <SelectValue placeholder="Select Meeting" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0b0b10] border-[var(--color-obsidian-border)] text-[var(--foreground)]">
+                <SelectContent className="bg-[var(--background)] border-[var(--color-obsidian-border)] text-[var(--foreground)]">
                   {meetings.map((m) => (
                     <SelectItem key={m.id} value={m.id.toString()} className="text-xs hover:bg-white/5 cursor-pointer text-white focus:bg-cyber-purple/15 focus:text-white">
                       {m.title}

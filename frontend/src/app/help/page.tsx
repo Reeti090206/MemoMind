@@ -2,16 +2,16 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, 
-  BookOpen, 
-  Radio, 
-  UploadCloud, 
-  Sparkles, 
-  Shield, 
-  Lock, 
-  LifeBuoy, 
-  ChevronDown, 
+import {
+  Search,
+  BookOpen,
+  Radio,
+  UploadCloud,
+  Sparkles,
+  Shield,
+  Lock,
+  LifeBuoy,
+  ChevronDown,
   HelpCircle,
   ArrowRight,
   ShieldCheck,
@@ -122,7 +122,7 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: (
       <div className="space-y-2">
         <p>
-          By clicking <strong>Share Screen</strong>, the app prompts you to select a Chrome tab, window, or entire screen. 
+          By clicking <strong>Share Screen</strong>, the app prompts you to select a Chrome tab, window, or entire screen.
         </p>
         <p>
           MemoMind takes periodic visual snapshots of the shared display to extract textual context (e.g. mockups, codes, slides) using visual AI. This context is integrated with the spoken dialogue to give the AI assistant a deep understanding of your work.
@@ -427,24 +427,24 @@ export default function HelpPage() {
 
   const filteredFAQs = FAQ_ITEMS.filter((faq) => {
     const matchesCategory = activeCategory === "all" || faq.category === activeCategory;
-    const matchesSearch = 
+    const matchesSearch =
       faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
       faq.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="space-y-8 pb-12 font-sans"
     >
-      
+
       {/* Hero Header */}
       <div className="p-6 md:p-8 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-3xl backdrop-blur-2xl relative overflow-hidden shadow-2xl">
         <div className="absolute -right-16 -top-16 w-48 h-48 bg-cyber-purple/5 rounded-full blur-[80px] pointer-events-none" />
-        
+
         <div className="relative z-10 space-y-2.5 max-w-2xl">
           <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple tracking-widest uppercase flex items-center gap-1.5 shadow-sm w-fit">
             <HelpCircle className="h-3.5 w-3.5" /> MemoMind Help Center
@@ -479,15 +479,13 @@ export default function HelpPage() {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`p-3 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-center gap-2.5 cursor-pointer text-center relative overflow-hidden group ${
-                isActive 
-                  ? "bg-gradient-to-tr from-cyber-purple/20 to-cyber-cyan/10 border-cyber-purple/50 text-[var(--foreground)] shadow-lg shadow-cyber-purple/5" 
+              className={`p-3 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-center gap-2.5 cursor-pointer text-center relative overflow-hidden group ${isActive
+                  ? "bg-gradient-to-tr from-cyber-purple/20 to-cyber-cyan/10 border-cyber-purple/50 text-[var(--foreground)] shadow-lg shadow-cyber-purple/5"
                   : "bg-[var(--foreground)]/[0.01] border-[var(--color-obsidian-border)] hover:border-cyber-purple/20 text-[var(--foreground)]/65 hover:text-[var(--foreground)]"
-              }`}
+                }`}
             >
-              <div className={`h-8 w-8 rounded-xl border flex items-center justify-center shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-105 ${
-                isActive ? "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/20" : cat.color
-              }`}>
+              <div className={`h-8 w-8 rounded-xl border flex items-center justify-center shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-105 ${isActive ? "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/20" : cat.color
+                }`}>
                 <CatIcon className="h-4 w-4" />
               </div>
               <span className="text-[10px] font-bold tracking-tight font-sans leading-none">{cat.label}</span>
@@ -501,7 +499,7 @@ export default function HelpPage() {
         <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono border-b border-[var(--color-obsidian-border)] pb-2 flex items-center justify-between">
           <span>FAQ Items ({filteredFAQs.length})</span>
           {activeCategory !== "all" && (
-            <button 
+            <button
               onClick={() => setActiveCategory("all")}
               className="text-[10px] text-cyber-cyan hover:underline cursor-pointer lowercase"
             >
@@ -516,7 +514,7 @@ export default function HelpPage() {
               filteredFAQs.map((faq) => {
                 const isOpen = openFAQId === faq.id;
                 const catInfo = FAQ_CATEGORIES.find(c => c.id === faq.category);
-                
+
                 return (
                   <motion.div
                     key={faq.id}
@@ -541,7 +539,7 @@ export default function HelpPage() {
                           {faq.question}
                         </h4>
                       </div>
-                      
+
                       <motion.div
                         animate={{ rotate: isOpen ? 180 : 0 }}
                         className="h-7 w-7 rounded-lg bg-[var(--foreground)]/[0.03] border border-[var(--color-obsidian-border)] flex items-center justify-center text-[var(--foreground)]/60"
@@ -567,7 +565,7 @@ export default function HelpPage() {
                 );
               })
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="p-12 text-center bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-2xl text-[var(--foreground)]/50 font-mono text-xs flex flex-col items-center gap-3"

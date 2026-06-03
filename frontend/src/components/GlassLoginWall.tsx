@@ -4,19 +4,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 import { RecaptchaVerifier } from "firebase/auth";
-import { 
-  Network, 
-  ArrowRight, 
-  ShieldCheck, 
-  Sparkles, 
-  AlertCircle, 
-  ArrowLeft, 
-  Mail, 
-  Lock, 
-  User, 
-  UserPlus, 
-  LogIn, 
-  Phone, 
+import {
+  Network,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  AlertCircle,
+  ArrowLeft,
+  Mail,
+  Lock,
+  User,
+  UserPlus,
+  LogIn,
+  Phone,
   RefreshCw,
   Eye,
   EyeOff,
@@ -25,17 +25,17 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function GlassLoginWall() {
-  const { 
-    loginWithOAuth, 
-    loginWithPhone, 
+  const {
+    loginWithOAuth,
+    loginWithPhone,
     sendOtp,
-    loginWithCredentials, 
+    loginWithCredentials,
     signUpWithCredentials,
     forgotPassword,
     welcomeEmail,
     clearWelcomeEmail
   } = useAuth();
-  
+
   // Navigation Flow: login | signup | phone | forgot_password
   const [flowStep, setFlowStep] = useState<"login" | "signup" | "phone" | "forgot_password">("login");
   const [showPassword, setShowPassword] = useState(false);
@@ -150,7 +150,7 @@ export default function GlassLoginWall() {
 
         (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
-          callback: () => {}
+          callback: () => { }
         });
       } catch (err: any) {
         console.error("Failed to initialize reCAPTCHA verifier:", err);
@@ -341,7 +341,7 @@ export default function GlassLoginWall() {
 
     setLoading(true);
     const fullPhone = `${selectedCountry.code}${cleaned}`;
-    
+
     let appVerifier = null;
     if (hasFirebaseConfig && auth) {
       setupRecaptcha();
@@ -430,28 +430,28 @@ export default function GlassLoginWall() {
   };
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-[#0b0b10] text-[var(--foreground)] flex items-center justify-center overflow-y-auto z-50 px-4 py-8 select-none font-sans">
-      
+    <div className="fixed inset-0 w-screen h-screen bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center overflow-y-auto z-50 px-4 py-8 select-none font-sans">
+
       {/* Hidden anchor for ReCAPTCHA - positioned globally inside wrapper to prevent unmount errors */}
       <div id="recaptcha-container" className="hidden"></div>
 
       {/* Background Radial Glow Blobs */}
-      <div className="absolute inset-0 bg-[#0b0b10]/95 z-0" />
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyber-purple/10 rounded-full blur-[150px] pointer-events-none z-0" />
-      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-cyber-cyan/10 rounded-full blur-[150px] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-[var(--background)]/90 z-0" />
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[var(--mm-accent)]/10 rounded-full blur-[150px] pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[var(--mm-highlight)]/10 rounded-full blur-[150px] pointer-events-none z-0" />
 
       <AnimatePresence mode="wait">
         {!welcomeEmail ? (
           <div className="max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10 items-center justify-center">
-            
+
             {/* Left Column: Platform Branding and Graphics */}
             <div className="hidden md:flex md:col-span-5 flex-col justify-center pr-6">
               <div className="relative mb-6">
-                <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan flex items-center justify-center border border-cyber-purple/35 shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-indigo-500 to-sky-500 flex items-center justify-center shadow-lg">
                   <Network className="h-6 w-6 text-white animate-pulse" />
                 </div>
               </div>
-              
+
               <h2 className="text-3xl font-black tracking-tight text-white leading-tight">
                 MemoMind
               </h2>
@@ -464,15 +464,15 @@ export default function GlassLoginWall() {
               </p>
 
               {/* Rotating Memory Graphic */}
-              <div className="relative h-60 w-full border border-white/[0.05] bg-white/[0.01] backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b10]/95 via-transparent to-transparent z-10" />
-                
-                <motion.div 
+              <div className="relative h-60 w-full border border-[var(--color-obsidian-border)] bg-[var(--glass-card-bg)] backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent z-10" />
+
+                <motion.div
                   animate={{ scale: [1, 1.05, 1], opacity: [0.15, 0.3, 0.15] }}
                   transition={{ repeat: Infinity, duration: 4 }}
-                  className="absolute h-40 w-40 bg-cyber-purple/10 rounded-full blur-2xl animate-pulse" 
+                  className="absolute h-40 w-40 bg-[var(--mm-accent)]/10 rounded-full blur-2xl animate-pulse"
                 />
-                
+
                 <svg width="240" height="200" viewBox="0 0 240 200" className="relative z-20">
                   <motion.g
                     animate={{ rotate: 360 }}
@@ -482,13 +482,13 @@ export default function GlassLoginWall() {
                     <line x1="120" y1="100" x2="60" y2="60" stroke="rgba(168,85,247,0.2)" strokeWidth="1.5" strokeDasharray="3 3" />
                     <line x1="120" y1="100" x2="180" y2="70" stroke="rgba(6,182,212,0.2)" strokeWidth="1.5" />
                     <line x1="120" y1="100" x2="130" y2="160" stroke="rgba(244,63,94,0.2)" strokeWidth="1.5" />
-                    
+
                     <circle cx="120" cy="100" r="10" fill="url(#graphicGrad)" className="filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
                     <circle cx="60" cy="60" r="6" fill="#a855f7" />
                     <circle cx="180" cy="70" r="7" fill="#06b6d4" />
                     <circle cx="130" cy="160" r="5" fill="#f43f5e" />
                   </motion.g>
-                  
+
                   <defs>
                     <linearGradient id="graphicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#a855f7" />
@@ -496,7 +496,7 @@ export default function GlassLoginWall() {
                     </linearGradient>
                   </defs>
                 </svg>
-                
+
                 <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-center text-[9px] font-mono text-[var(--foreground)]/50">
                   <span>SQLite Memory Engine Active</span>
                   <span className="flex items-center gap-1 font-semibold text-cyber-emerald">
@@ -509,14 +509,14 @@ export default function GlassLoginWall() {
 
             {/* Right Column: Interactive Premium Form */}
             <div className="col-span-1 md:col-span-7 flex justify-center w-full">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 25 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="w-full max-w-[440px] bg-[#12111a]/80 border border-white/[0.06] rounded-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl relative z-10 flex flex-col justify-between overflow-hidden"
+                className="w-full max-w-[440px] bg-[var(--glass-card-bg)] border border-[var(--color-obsidian-border)] rounded-3xl p-8 shadow-xl backdrop-blur-xl relative z-10 flex flex-col justify-between overflow-hidden"
               >
                 {/* Glowing Top Lip */}
-                <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyber-purple/40 to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--mm-accent)]/40 to-transparent" />
 
                 <div>
                   {/* Header Title */}
@@ -527,12 +527,12 @@ export default function GlassLoginWall() {
                       {flowStep === "phone" && "Mobile OTP Login"}
                       {flowStep === "forgot_password" && "Reset Password Link"}
                     </h2>
-                    
+
                     <p className="text-xs text-[var(--foreground)]/60">
                       {flowStep === "login" && (
                         <>
                           Need an account?{" "}
-                          <button 
+                          <button
                             onClick={() => setFlowStep("signup")}
                             className="text-cyber-purple hover:underline font-semibold"
                           >
@@ -543,7 +543,7 @@ export default function GlassLoginWall() {
                       {flowStep === "signup" && (
                         <>
                           Already registered?{" "}
-                          <button 
+                          <button
                             onClick={() => setFlowStep("login")}
                             className="text-cyber-purple hover:underline font-semibold"
                           >
@@ -552,7 +552,7 @@ export default function GlassLoginWall() {
                         </>
                       )}
                       {(flowStep === "phone" || flowStep === "forgot_password") && (
-                        <button 
+                        <button
                           onClick={() => setFlowStep("login")}
                           className="text-cyber-cyan hover:underline font-semibold flex items-center gap-1 mt-1"
                         >
@@ -564,7 +564,7 @@ export default function GlassLoginWall() {
 
                   {/* Feedback Notification Banners */}
                   {errorMsg && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400 flex items-start gap-2.5"
@@ -575,7 +575,7 @@ export default function GlassLoginWall() {
                   )}
 
                   {successMsg && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-start gap-2.5"
@@ -587,7 +587,7 @@ export default function GlassLoginWall() {
 
                   {/* Dynamic Form Content */}
                   <AnimatePresence mode="wait">
-                    
+
                     {/* CREDENTIALS LOGIN FORM */}
                     {flowStep === "login" && (
                       <motion.form
@@ -956,10 +956,10 @@ export default function GlassLoginWall() {
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 bg-white/[0.01] hover:bg-white/[0.03] text-white text-xs font-semibold transition-all cursor-pointer active:scale-95"
                     >
                       <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                       </svg>
                       <span>Google</span>
                     </button>
@@ -1019,7 +1019,7 @@ export default function GlassLoginWall() {
                   <p className="text-xs text-[var(--foreground)]/50">Your corporate secure profile has been synced with database nodes.</p>
                 </div>
               </div>
-              
+
               <button
                 onClick={clearWelcomeEmail}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-xs bg-gradient-to-r from-cyber-purple to-cyber-cyan hover:shadow-[0_0_15px_rgba(139,92,246,0.35)] transition-all rounded-xl text-white font-bold tracking-wider uppercase cursor-pointer"
@@ -1037,9 +1037,9 @@ export default function GlassLoginWall() {
               </div>
 
               <div className="p-6 overflow-y-auto max-h-[300px] bg-black/30 flex justify-center">
-                <div 
+                <div
                   className="w-full text-left"
-                  dangerouslySetInnerHTML={{ __html: welcomeEmail.html }} 
+                  dangerouslySetInnerHTML={{ __html: welcomeEmail.html }}
                 />
               </div>
             </div>

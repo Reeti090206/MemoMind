@@ -4,15 +4,15 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  HelpCircle, 
-  AlertTriangle, 
-  Search, 
+import {
+  Calendar,
+  Clock,
+  User,
+  HelpCircle,
+  AlertTriangle,
+  Search,
   CheckCircle,
-  TrendingUp, 
+  TrendingUp,
   Users,
   CornerDownRight,
   ShieldAlert,
@@ -34,8 +34,8 @@ import {
 
 const rightColumnVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { 
-    opacity: 1, 
+  show: {
+    opacity: 1,
     y: 0,
     transition: {
       duration: 0.4,
@@ -62,7 +62,7 @@ function MeetingDetailsSkeleton() {
           <div className="h-3 bg-gray-700/30 rounded-full w-16" />
         </div>
       </div>
-      
+
       {/* Grid Columns Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -584,7 +584,7 @@ function MeetingContent() {
                 </p>
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 layout
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
@@ -598,7 +598,7 @@ function MeetingContent() {
                   >
                     {/* Hover Glow Layer */}
                     <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/5 to-cyber-cyan/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                    
+
                     <div className="space-y-2 relative z-10">
                       <div className="flex items-center justify-between gap-2">
                         <span className="px-2 py-0.5 text-[8px] font-bold rounded-full bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-purple uppercase tracking-wider font-mono">
@@ -615,7 +615,7 @@ function MeetingContent() {
                         {m.summary || "No summary details available."}
                       </p>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-3 border-t border-[var(--color-obsidian-border)] relative z-10 text-[9px] font-mono text-[var(--foreground)]/50">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3 text-cyber-cyan" /> {Math.round(m.duration / 60)} mins
@@ -656,11 +656,10 @@ function MeetingContent() {
                             <button
                               onClick={() => setSelectedId(step.id)}
                               disabled={isCurrent}
-                              className={`px-3 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-mono ${
-                                isCurrent
+                              className={`px-3 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-mono ${isCurrent
                                   ? "bg-cyber-purple/20 border-cyber-purple/40 text-cyber-purple font-bold shadow-md shadow-cyber-purple/10"
                                   : "bg-transparent border-[var(--color-obsidian-border)] hover:border-cyber-cyan/50 text-[var(--foreground)]/70 hover:text-cyber-cyan"
-                              }`}
+                                }`}
                             >
                               {isCurrent && <span className="h-1.5 w-1.5 rounded-full bg-cyber-purple animate-ping shrink-0" />}
                               {step.title}
@@ -691,22 +690,20 @@ function MeetingContent() {
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => handleRespondInvitation("accepted")}
-                            className={`px-3 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${
-                              myInvitation.status === "accepted"
+                            className={`px-3 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${myInvitation.status === "accepted"
                                 ? "bg-cyber-emerald/25 border-cyber-emerald/45 text-cyber-emerald cursor-default"
                                 : "bg-black/40 border-[var(--color-obsidian-border)] hover:border-cyber-emerald/50 hover:text-cyber-emerald text-[var(--foreground)]/80"
-                            }`}
+                              }`}
                             disabled={myInvitation.status === "accepted"}
                           >
                             ACCEPT
                           </button>
                           <button
                             onClick={() => handleRespondInvitation("declined")}
-                            className={`px-3 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${
-                              myInvitation.status === "declined"
+                            className={`px-3 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${myInvitation.status === "declined"
                                 ? "bg-cyber-rose/25 border-cyber-rose/45 text-cyber-rose cursor-default"
                                 : "bg-black/40 border-[var(--color-obsidian-border)] hover:border-cyber-rose/50 hover:text-cyber-rose text-[var(--foreground)]/80"
-                            }`}
+                              }`}
                             disabled={myInvitation.status === "declined"}
                           >
                             DECLINE
@@ -717,13 +714,13 @@ function MeetingContent() {
                   })()}
 
                   {/* Header Panel */}
-                  <motion.div 
+                  <motion.div
                     variants={cardItemVariants}
                     className="p-6 rounded-2xl glass-card relative overflow-hidden group hover:border-cyber-purple/35 transition-all duration-300 bg-transparent"
                   >
                     {/* Visual Glow Layer */}
                     <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                    
+
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
                       <div>
                         <div className="flex items-center gap-2">
@@ -745,14 +742,14 @@ function MeetingContent() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <motion.div 
+                        <motion.div
                           whileHover={{ scale: 1.05 }}
                           className="p-3 bg-cyber-purple/10 border border-cyber-purple/20 rounded-xl text-center min-w-[80px]"
                         >
                           <p className="text-[9px] text-[var(--foreground)]/70 uppercase tracking-widest font-mono font-bold">Meeting Value</p>
                           <p className="text-sm font-black text-cyber-purple font-mono mt-0.5">{meetingData.efficiency_score}%</p>
                         </motion.div>
-                        <motion.div 
+                        <motion.div
                           whileHover={{ scale: 1.05 }}
                           className="p-3 bg-cyber-rose/10 border border-cyber-rose/20 rounded-xl text-center min-w-[80px]"
                         >
@@ -765,12 +762,12 @@ function MeetingContent() {
 
                   {/* Core Analytics Blocks */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
+
                     {/* Left 2 Cols: Executive Summary & Decisions */}
                     <div className="lg:col-span-2 space-y-6">
-                      
+
                       {/* Executive Summary */}
-                      <motion.div 
+                      <motion.div
                         variants={cardItemVariants}
                         className="p-6 rounded-2xl glass-card space-y-3 relative overflow-hidden group hover:border-cyber-cyan/35 transition-all duration-300 bg-transparent"
                       >
@@ -785,7 +782,7 @@ function MeetingContent() {
 
                       {/* Inconsistency/Contradiction Alert banner */}
                       {meetingData.contradictions && meetingData.contradictions.length > 0 && (
-                        <motion.div 
+                        <motion.div
                           variants={cardItemVariants}
                           initial={{ scale: 0.98, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -815,7 +812,7 @@ function MeetingContent() {
                       )}
 
                       {/* Clickable Transcripts Viewer */}
-                      <motion.div 
+                      <motion.div
                         variants={cardItemVariants}
                         className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                       >
@@ -839,34 +836,34 @@ function MeetingContent() {
                           <AnimatePresence mode="popLayout">
                             {getFilteredSegments().map((seg: any) => {
                               const isSelected = highlightedText === seg.text;
-                              
+
                               // Determine speaker initials and bubble styles
                               const speakerName = seg.speaker_label || "AI Assistant";
                               const initials = speakerName.split(" ")[0].slice(0, 2).toUpperCase();
-                              
+
                               // Determine styling colors based on speaker name dynamically using hashing
                               const getSpeakerColors = (name: string, isSel: boolean) => {
-                                  let hash = 0;
-                                  for (let i = 0; i < name.length; i++) {
-                                    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                                  }
-                                  const index = Math.abs(hash) % 3;
-                                  if (index === 0) {
-                                    return {
-                                      speaker: isSel ? "border-cyber-cyan bg-cyber-cyan/20" : "border-cyber-cyan/20 bg-cyber-cyan/5 hover:bg-cyber-cyan/10",
-                                      avatar: "bg-cyber-cyan/15 text-cyber-cyan border-cyber-cyan/30"
-                                    };
-                                  } else if (index === 1) {
-                                    return {
-                                      speaker: isSel ? "border-cyber-purple bg-cyber-purple/20" : "border-cyber-purple/20 bg-cyber-purple/5 hover:bg-cyber-purple/10",
-                                      avatar: "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/30"
-                                    };
-                                  } else {
-                                    return {
-                                      speaker: isSel ? "border-cyber-rose bg-cyber-rose/20" : "border-cyber-rose/20 bg-cyber-rose/5 hover:bg-cyber-rose/10",
-                                      avatar: "bg-cyber-rose/15 text-cyber-rose border-cyber-rose/30"
-                                    };
-                                  }
+                                let hash = 0;
+                                for (let i = 0; i < name.length; i++) {
+                                  hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                                }
+                                const index = Math.abs(hash) % 3;
+                                if (index === 0) {
+                                  return {
+                                    speaker: isSel ? "border-cyber-cyan bg-cyber-cyan/20" : "border-cyber-cyan/20 bg-cyber-cyan/5 hover:bg-cyber-cyan/10",
+                                    avatar: "bg-cyber-cyan/15 text-cyber-cyan border-cyber-cyan/30"
+                                  };
+                                } else if (index === 1) {
+                                  return {
+                                    speaker: isSel ? "border-cyber-purple bg-cyber-purple/20" : "border-cyber-purple/20 bg-cyber-purple/5 hover:bg-cyber-purple/10",
+                                    avatar: "bg-cyber-purple/15 text-cyber-purple border-cyber-purple/30"
+                                  };
+                                } else {
+                                  return {
+                                    speaker: isSel ? "border-cyber-rose bg-cyber-rose/20" : "border-cyber-rose/20 bg-cyber-rose/5 hover:bg-cyber-rose/10",
+                                    avatar: "bg-cyber-rose/15 text-cyber-rose border-cyber-rose/30"
+                                  };
+                                }
                               };
 
                               const colors = getSpeakerColors(speakerName, isSelected);
@@ -906,7 +903,7 @@ function MeetingContent() {
                                         <span className="text-[10px] text-[var(--foreground)]/50 font-mono">{formatTime(seg.start_time)}</span>
                                       </div>
                                       <p className="text-xs font-light leading-relaxed text-[var(--foreground)]/90">{seg.text}</p>
-                                      
+
                                       {isSelected && (
                                         <motion.div
                                           initial={{ opacity: 0, height: 0 }}
@@ -917,7 +914,7 @@ function MeetingContent() {
                                           <span className="text-[9px] text-cyber-cyan font-mono flex items-center gap-1.5">
                                             <Zap className="h-3 w-3 animate-pulse" /> Linked to Memory Node
                                           </span>
-                                          <button 
+                                          <button
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               navigator.clipboard.writeText(seg.text);
@@ -946,14 +943,14 @@ function MeetingContent() {
                     <div className="space-y-6">
 
                       {/* Invited Members Widget */}
-                      <motion.div 
+                      <motion.div
                         variants={cardItemVariants}
                         className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                       >
                         <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
                           <Users className="h-4 w-4 text-cyber-cyan animate-pulse" /> Invited Members
                         </h3>
-                        
+
                         {/* Inline Invite Form */}
                         <form onSubmit={handleSendInvite} className="flex gap-2">
                           <input
@@ -997,7 +994,7 @@ function MeetingContent() {
                               } else if (inv.status === "pending") {
                                 statusStyle = "bg-cyber-purple/10 border-cyber-purple/20 text-cyber-purple animate-pulse";
                               }
-                              
+
                               return (
                                 <div key={inv.id} className="flex items-center justify-between p-2.5 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl text-xs font-sans">
                                   <div className="flex flex-col">
@@ -1015,9 +1012,9 @@ function MeetingContent() {
                           )}
                         </div>
                       </motion.div>
-                      
+
                       {/* Speaker Breakdown Ring/Widget */}
-                      <motion.div 
+                      <motion.div
                         variants={cardItemVariants}
                         className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                       >
@@ -1043,15 +1040,15 @@ function MeetingContent() {
                       </motion.div>
 
                       {/* Decided Line items */}
-                      <motion.div 
+                      <motion.div
                         variants={cardItemVariants}
                         className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                       >
                         <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Decisions Made</h3>
                         <div className="space-y-3">
                           {meetingData.decisions && meetingData.decisions.map((d: any) => (
-                            <motion.div 
-                              key={d.id} 
+                            <motion.div
+                              key={d.id}
                               whileHover={{ scale: 1.02 }}
                               className="p-3 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl space-y-1.5 hover:border-cyber-cyan/30 transition-colors font-sans"
                             >
@@ -1067,15 +1064,15 @@ function MeetingContent() {
                       </motion.div>
 
                       {/* Tasks Assignee */}
-                      <motion.div 
+                      <motion.div
                         variants={cardItemVariants}
                         className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                       >
                         <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Tasks & Assignments</h3>
                         <div className="space-y-3">
                           {meetingData.tasks && meetingData.tasks.map((t: any) => (
-                            <motion.div 
-                              key={t.id} 
+                            <motion.div
+                              key={t.id}
                               whileHover={{ scale: 1.02 }}
                               className="p-3.5 bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl space-y-2 hover:border-cyber-purple/35 transition-colors font-sans"
                             >
@@ -1085,9 +1082,8 @@ function MeetingContent() {
                               </div>
                               <p className="text-xs text-[var(--foreground)] font-medium leading-relaxed">{t.title}</p>
                               <div className="flex items-center justify-between pt-1.5 border-t border-[var(--color-obsidian-border)]">
-                                <span className={`text-[8px] uppercase font-mono px-1.5 py-0.5 rounded font-bold ${
-                                  t.priority === "high" ? "bg-cyber-rose/15 text-cyber-rose border border-cyber-rose/20" : "bg-[var(--foreground)]/[0.05] text-[var(--foreground)]/70 border border-transparent"
-                                }`}>{t.priority} priority</span>
+                                <span className={`text-[8px] uppercase font-mono px-1.5 py-0.5 rounded font-bold ${t.priority === "high" ? "bg-cyber-rose/15 text-cyber-rose border border-cyber-rose/20" : "bg-[var(--foreground)]/[0.05] text-[var(--foreground)]/70 border border-transparent"
+                                  }`}>{t.priority} priority</span>
                                 <span className="text-[8px] font-mono text-[var(--foreground)]/50 font-semibold uppercase">{t.status}</span>
                               </div>
                             </motion.div>
@@ -1097,25 +1093,24 @@ function MeetingContent() {
 
                       {/* Unresolved topics originating */}
                       {meetingData.unresolved_topics && meetingData.unresolved_topics.length > 0 && (
-                        <motion.div 
+                        <motion.div
                           variants={cardItemVariants}
                           className="p-6 rounded-2xl glass-card space-y-4 bg-transparent"
                         >
                           <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider font-mono">Topics for Later</h3>
                           <div className="space-y-3">
                             {meetingData.unresolved_topics.map((ut: any) => (
-                              <motion.div 
-                                key={ut.id} 
+                              <motion.div
+                                key={ut.id}
                                 whileHover={{ scale: 1.02 }}
                                 className="p-3.5 bg-cyber-rose/5 border border-cyber-rose/15 rounded-xl space-y-1.5 font-sans"
                               >
                                 <p className="text-xs text-[var(--foreground)] font-bold">{ut.topic_name}</p>
                                 <p className="text-[10px] text-[var(--foreground)]/70 leading-relaxed font-light font-sans">"{ut.context}"</p>
-                                <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border inline-block mt-1 font-semibold ${
-                                  ut.status === "resolved"
+                                <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border inline-block mt-1 font-semibold ${ut.status === "resolved"
                                     ? "bg-cyber-emerald/15 border-cyber-emerald/20 text-cyber-emerald"
                                     : "bg-cyber-rose/15 border-cyber-rose/25 text-cyber-rose animate-pulse"
-                                }`}>
+                                  }`}>
                                   {ut.status}
                                 </span>
                               </motion.div>
@@ -1140,142 +1135,142 @@ function MeetingContent() {
       </div>
 
 
-    {/* === INVITE CONFIRMATION MODAL === */}
-    <AnimatePresence>
-      {showInviteConfirm && meetingData && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
-          onClick={() => setShowInviteConfirm(false)}
-        >
+      {/* === INVITE CONFIRMATION MODAL === */}
+      <AnimatePresence>
+        {showInviteConfirm && meetingData && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 20 }}
-            transition={{ type: "spring", stiffness: 280, damping: 24 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl border border-[var(--color-obsidian-border)] overflow-hidden"
-            style={{
-              background: "linear-gradient(145deg, #13131a, #0c0c14)",
-              boxShadow: "0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.08)"
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+            onClick={() => setShowInviteConfirm(false)}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--color-obsidian-border)]">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/20 flex items-center justify-center">
-                  <UserPlus className="h-4.5 w-4.5 text-cyber-cyan" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: "spring", stiffness: 280, damping: 24 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-[var(--color-obsidian-border)] overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #13131a, #0c0c14)",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.08)"
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--color-obsidian-border)]">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/20 flex items-center justify-center">
+                    <UserPlus className="h-4.5 w-4.5 text-cyber-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Send Workspace Invitation</h3>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Confirm before sending email</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Send Workspace Invitation</h3>
-                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Confirm before sending email</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowInviteConfirm(false)}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--foreground)]/40 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-5 space-y-4">
-              {/* Recipient */}
-              <div className="p-4 rounded-xl bg-cyber-cyan/5 border border-cyber-cyan/15 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyber-cyan/20 to-cyber-purple/20 border border-cyber-cyan/20 flex items-center justify-center text-sm font-bold text-cyber-cyan shrink-0">
-                  {pendingInviteEmail.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate">{pendingInviteEmail}</p>
-                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Will receive an invitation email</p>
-                </div>
-                <Mail className="h-4 w-4 text-cyber-cyan/60 shrink-0" />
+                <button
+                  onClick={() => setShowInviteConfirm(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--foreground)]/40 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
-              {/* Meeting details */}
-              <div className="p-3.5 rounded-xl bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] space-y-2.5">
-                <p className="text-[10px] text-[var(--foreground)]/50 font-mono uppercase tracking-wider">Meeting Details</p>
+              {/* Body */}
+              <div className="px-6 py-5 space-y-4">
+                {/* Recipient */}
+                <div className="p-4 rounded-xl bg-cyber-cyan/5 border border-cyber-cyan/15 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyber-cyan/20 to-cyber-purple/20 border border-cyber-cyan/20 flex items-center justify-center text-sm font-bold text-cyber-cyan shrink-0">
+                    {pendingInviteEmail.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{pendingInviteEmail}</p>
+                    <p className="text-[10px] text-[var(--foreground)]/50 font-mono mt-0.5">Will receive an invitation email</p>
+                  </div>
+                  <Mail className="h-4 w-4 text-cyber-cyan/60 shrink-0" />
+                </div>
+
+                {/* Meeting details */}
+                <div className="p-3.5 rounded-xl bg-[var(--foreground)]/[0.02] border border-[var(--color-obsidian-border)] space-y-2.5">
+                  <p className="text-[10px] text-[var(--foreground)]/50 font-mono uppercase tracking-wider">Meeting Details</p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-3 w-3 text-cyber-purple shrink-0" />
+                      <span className="text-xs font-semibold text-white truncate">{meetingData.title}</span>
+                    </div>
+                    {meetingData.date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3 text-cyber-cyan/60 shrink-0" />
+                        <span className="text-[10px] text-[var(--foreground)]/60 font-mono">{meetingData.date}</span>
+                      </div>
+                    )}
+                    {meetingData.team_name && (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-3 w-3 text-cyber-emerald/60 shrink-0" />
+                        <span className="text-[10px] text-[var(--foreground)]/60 font-mono">{meetingData.team_name} workspace</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* What happens next */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-3 w-3 text-cyber-purple shrink-0" />
-                    <span className="text-xs font-semibold text-white truncate">{meetingData.title}</span>
-                  </div>
-                  {meetingData.date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 text-cyber-cyan/60 shrink-0" />
-                      <span className="text-[10px] text-[var(--foreground)]/60 font-mono">{meetingData.date}</span>
+                  <p className="text-[10px] text-[var(--foreground)]/40 font-mono uppercase tracking-wider">What happens next</p>
+                  {[
+                    { icon: "📧", text: `An invitation email with Accept & Decline links will be sent to ${pendingInviteEmail}` },
+                    { icon: "✅", text: "When they accept, they'll be added to this workspace automatically" },
+                    { icon: "👥", text: "They'll gain access to all shared meetings and decisions" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--foreground)]/60">
+                      <span className="text-sm shrink-0 mt-0.5">{item.icon}</span>
+                      <span className="leading-relaxed font-light">{item.text}</span>
                     </div>
-                  )}
-                  {meetingData.team_name && (
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3 w-3 text-cyber-emerald/60 shrink-0" />
-                      <span className="text-[10px] text-[var(--foreground)]/60 font-mono">{meetingData.team_name} workspace</span>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
 
-              {/* What happens next */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-[var(--foreground)]/40 font-mono uppercase tracking-wider">What happens next</p>
-                {[
-                  { icon: "📧", text: `An invitation email with Accept & Decline links will be sent to ${pendingInviteEmail}` },
-                  { icon: "✅", text: "When they accept, they'll be added to this workspace automatically" },
-                  { icon: "👥", text: "They'll gain access to all shared meetings and decisions" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5 text-xs text-[var(--foreground)]/60">
-                    <span className="text-sm shrink-0 mt-0.5">{item.icon}</span>
-                    <span className="leading-relaxed font-light">{item.text}</span>
-                  </div>
-                ))}
+              {/* Actions */}
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  onClick={() => setShowInviteConfirm(false)}
+                  disabled={isSendingInvite}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--color-obsidian-border)] text-xs font-semibold text-[var(--foreground)]/60 hover:text-white hover:border-white/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmInvite}
+                  disabled={isSendingInvite}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-70"
+                  style={{
+                    background: isSendingInvite
+                      ? "rgba(168,85,247,0.3)"
+                      : "linear-gradient(135deg, #a855f7, #06b6d4)",
+                    boxShadow: isSendingInvite ? "none" : "0 8px 20px rgba(168,85,247,0.25)"
+                  }}
+                >
+                  {isSendingInvite ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                        className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white"
+                      />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5" />
+                      Send Invitation Email
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={() => setShowInviteConfirm(false)}
-                disabled={isSendingInvite}
-                className="flex-1 py-2.5 rounded-xl border border-[var(--color-obsidian-border)] text-xs font-semibold text-[var(--foreground)]/60 hover:text-white hover:border-white/20 transition-all cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmInvite}
-                disabled={isSendingInvite}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-70"
-                style={{
-                  background: isSendingInvite
-                    ? "rgba(168,85,247,0.3)"
-                    : "linear-gradient(135deg, #a855f7, #06b6d4)",
-                  boxShadow: isSendingInvite ? "none" : "0 8px 20px rgba(168,85,247,0.25)"
-                }}
-              >
-                {isSendingInvite ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
-                      className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white"
-                    />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-3.5 w-3.5" />
-                    Send Invitation Email
-                  </>
-                )}
-              </button>
-            </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
