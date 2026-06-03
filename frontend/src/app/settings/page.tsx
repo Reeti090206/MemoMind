@@ -15,7 +15,9 @@ import {
   Lock,
   Globe,
   Loader2,
-  Clock
+  Clock,
+  AlertTriangle,
+  User as UserIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../components/AuthProvider";
@@ -30,7 +32,24 @@ interface AuditLog {
 }
 
 export default function SettingsHub() {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
+
+  // Profile states
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileRole, setProfileRole] = useState("");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [profileUpdateStatus, setProfileUpdateStatus] = useState<{ status: "success" | "error"; message: string } | null>(null);
+  const [showProfileConfirm, setShowProfileConfirm] = useState(false);
+
+  // Sync profile state when user object loads/changes
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name || "");
+      setProfileEmail(user.email || "");
+      setProfileRole(user.role || "");
+    }
+  }, [user]);
 
   // Integration States
   const [integrations, setIntegrations] = useState({
@@ -294,6 +313,28 @@ export default function SettingsHub() {
     reader.readAsText(file);
   };
 
+  const handleProfileUpdate = async () => {
+    setShowProfileConfirm(false);
+    setIsUpdatingProfile(true);
+    setProfileUpdateStatus(null);
+    const emailChanged = profileEmail.toLowerCase() !== (user?.email || "").toLowerCase();
+    const result = await updateUserProfile({
+      name: profileName,
+      email: profileEmail,
+      role: profileRole
+    });
+    setIsUpdatingProfile(false);
+    if (result.success) {
+      const msg = emailChanged
+        ? `✓ Profile updated! Invitation emails will now be sent from ${profileEmail}.`
+        : "✓ Profile updated successfully!";
+      setProfileUpdateStatus({ status: "success", message: msg });
+      setTimeout(() => setProfileUpdateStatus(null), 6000);
+    } else {
+      setProfileUpdateStatus({ status: "error", message: result.error || "Failed to update profile." });
+    }
+  };
+
   const toggleIntegration = (key: keyof typeof integrations) => {
     setIntegrations(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -316,7 +357,154 @@ export default function SettingsHub() {
         
         {/* Left & Middle Column: Configuration Blocks */}
         <div className="lg:col-span-2 space-y-6">
-          
+
+          {/* User Profile Details Section */}
+          <div className="p-6 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-5">
+            <h3 className="text-sm font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
+              <UserIcon className="h-4.5 w-4.5 text-cyber-cyan animate-pulse" /> User Profile Details
+            </h3>
+            
+            <p className="text-xs text-[var(--foreground)]/70 font-sans">
+              Update your workspace user profile details. These changes will reflect across the entire platform.
+            </p>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">Full Name</label>
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">Email Address</label>
+                  <input
+                    type="email"
+                    value={profileEmail}
+                    onChange={(e) => setProfileEmail(e.target.value)}
+                    className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-[var(--foreground)]/70 mb-1.5 font-medium">Workspace Role</label>
+                <input
+                  type="text"
+                  value={profileRole}
+                  onChange={(e) => setProfileRole(e.target.value)}
+                  className="w-full bg-black/45 border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--foreground)] placeholder-gray-500 focus:outline-none focus:border-cyber-purple transition-all font-sans"
+                  required
+                />
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!profileName || !profileEmail || !profileRole) {
+                        setProfileUpdateStatus({ status: "error", message: "All fields are required." });
+                        return;
+                      }
+                      setProfileUpdateStatus(null);
+                      setShowProfileConfirm(true);
+                    }}
+                    disabled={isUpdatingProfile}
+                    className="px-5 py-2.5 bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:shadow-[0_0_15px_rgba(6,182,212,0.25)] rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isUpdatingProfile && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Update Profile
+                  </button>
+                </div>
+
+                {/* Animated status message */}
+                <AnimatePresence>
+                  {profileUpdateStatus && (
+                    <motion.p
+                      key="profile-status"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className={`text-xs font-semibold leading-relaxed ${
+                        profileUpdateStatus.status === "success" ? "text-cyber-emerald" : "text-cyber-rose"
+                      }`}
+                    >
+                      {profileUpdateStatus.message}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                {/* Confirmation Panel */}
+                <AnimatePresence>
+                  {showProfileConfirm && (
+                    <motion.div
+                      key="profile-confirm"
+                      initial={{ opacity: 0, scale: 0.97, y: -6 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.97, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      className="p-4 rounded-xl bg-amber-500/[0.07] border border-amber-500/25 space-y-3"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-amber-400">Confirm Profile Update</p>
+                          <p className="text-[10px] text-[var(--foreground)]/60 mt-0.5">
+                            These changes will be applied across the entire workspace:
+                          </p>
+                          <ul className="text-[10px] text-[var(--foreground)]/75 mt-2 space-y-1.5">
+                            {profileName !== user?.name && (
+                              <li>• Name → <span className="text-cyber-cyan font-mono">{profileName}</span></li>
+                            )}
+                            {profileEmail.toLowerCase() !== (user?.email || "").toLowerCase() && (
+                              <li className="space-y-0.5">
+                                <div>• Email → <span className="text-cyber-cyan font-mono">{profileEmail}</span></div>
+                                <p className="pl-3 text-[9px] text-amber-400">✉ Invitation emails will be sent from this new address</p>
+                              </li>
+                            )}
+                            {profileRole !== user?.role && (
+                              <li>• Role → <span className="text-cyber-cyan font-mono">{profileRole}</span></li>
+                            )}
+                            {profileName === user?.name &&
+                              profileEmail.toLowerCase() === (user?.email || "").toLowerCase() &&
+                              profileRole === user?.role && (
+                              <li className="text-[var(--foreground)]/40 italic">No changes detected.</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowProfileConfirm(false)}
+                          className="px-3.5 py-1.5 text-[10px] font-bold rounded-lg border border-[var(--color-obsidian-border)] text-[var(--foreground)]/60 hover:text-[var(--foreground)] transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleProfileUpdate}
+                          disabled={isUpdatingProfile}
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-[0_0_12px_rgba(245,158,11,0.3)] rounded-lg text-white font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {isUpdatingProfile && <Loader2 className="h-3 w-3 animate-spin" />}
+                          Yes, Update Profile
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+
           {/* Section 1: Integrations */}
           <div className="p-6 border border-[var(--color-obsidian-border)] bg-transparent glass-card rounded-2xl space-y-5">
             <h3 className="text-sm font-bold text-[var(--foreground)] uppercase tracking-wider font-mono flex items-center gap-2">
