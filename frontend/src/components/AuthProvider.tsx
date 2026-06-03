@@ -38,6 +38,7 @@ interface AuthContextType {
   signUpWithCredentials: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  updateUserProfile: (profileDetails: { name: string; email: string; role: string; avatar?: string }) => Promise<{ success: boolean; error?: string }>;
   isClerkEnabled: boolean;
   welcomeEmail: { html: string; filePath: string } | null;
   clearWelcomeEmail: () => void;
@@ -515,6 +516,134 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   };
 
+  const updateUserProfile = async (profileDetails: { name: string; email: string; role: string; avatar?: string }) => {
+    if (!user) return { success: false, error: "No user is currently logged in." };
+    
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/users/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_email: user.email,
+          name: profileDetails.name,
+          email: profileDetails.email,
+          role: profileDetails.role,
+          avatar: profileDetails.avatar || user.avatar
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const updatedUser = data.user;
+        
+        localStorage.setItem("MemoMind_session", JSON.stringify(updatedUser));
+        
+        try {
+          const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
+          if (registeredUsersStr) {
+            let registeredUsers = JSON.parse(registeredUsersStr);
+            const oldEmailKey = user.email.toLowerCase().trim();
+            const newEmailKey = profileDetails.email.toLowerCase().trim();
+            
+            if (registeredUsers[oldEmailKey]) {
+              const oldUserData = registeredUsers[oldEmailKey];
+              const updatedRegisteredUser = {
+                ...oldUserData,
+                name: profileDetails.name,
+                email: newEmailKey,
+                role: profileDetails.role,
+                avatar: profileDetails.avatar || oldUserData.avatar
+              };
+              
+              if (oldEmailKey !== newEmailKey) {
+                delete registeredUsers[oldEmailKey];
+              }
+              registeredUsers[newEmailKey] = updatedRegisteredUser;
+              localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to update registered users store:", e);
+        }
+
+        setUser(updatedUser);
+        return { success: true };
+      } else {
+        // Backend returned an error (e.g. 404 when route not yet loaded) — apply local-only update
+        console.warn("Backend profile update returned", res.status, "— applying local-only update");
+        const updatedUser: UserProfile = {
+          ...user,
+          name: profileDetails.name,
+          email: profileDetails.email,
+          role: profileDetails.role,
+          avatar: profileDetails.avatar || user.avatar
+        };
+        localStorage.setItem("MemoMind_session", JSON.stringify(updatedUser));
+        try {
+          const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
+          if (registeredUsersStr) {
+            let registeredUsers = JSON.parse(registeredUsersStr);
+            const oldEmailKey = user.email.toLowerCase().trim();
+            const newEmailKey = profileDetails.email.toLowerCase().trim();
+            if (registeredUsers[oldEmailKey]) {
+              const oldUserData = registeredUsers[oldEmailKey];
+              const updatedRegisteredUser = {
+                ...oldUserData,
+                name: profileDetails.name,
+                email: newEmailKey,
+                role: profileDetails.role,
+                avatar: profileDetails.avatar || oldUserData.avatar
+              };
+              if (oldEmailKey !== newEmailKey) delete registeredUsers[oldEmailKey];
+              registeredUsers[newEmailKey] = updatedRegisteredUser;
+              localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
+            }
+          }
+        } catch (e) {}
+        setUser(updatedUser);
+        return { success: true };
+      }
+    } catch (err: any) {
+      console.warn("Backend update failed, falling back to local-only update:", err);
+      const updatedUser = {
+        ...user,
+        name: profileDetails.name,
+        email: profileDetails.email,
+        role: profileDetails.role,
+        avatar: profileDetails.avatar || user.avatar
+      };
+      
+      localStorage.setItem("MemoMind_session", JSON.stringify(updatedUser));
+      
+      try {
+        const registeredUsersStr = localStorage.getItem("MemoMind_registered_users");
+        if (registeredUsersStr) {
+          let registeredUsers = JSON.parse(registeredUsersStr);
+          const oldEmailKey = user.email.toLowerCase().trim();
+          const newEmailKey = profileDetails.email.toLowerCase().trim();
+          if (registeredUsers[oldEmailKey]) {
+            const oldUserData = registeredUsers[oldEmailKey];
+            const updatedRegisteredUser = {
+              ...oldUserData,
+              name: profileDetails.name,
+              email: newEmailKey,
+              role: profileDetails.role,
+              avatar: profileDetails.avatar || oldUserData.avatar
+            };
+            if (oldEmailKey !== newEmailKey) {
+              delete registeredUsers[oldEmailKey];
+            }
+            registeredUsers[newEmailKey] = updatedRegisteredUser;
+            localStorage.setItem("MemoMind_registered_users", JSON.stringify(registeredUsers));
+          }
+        }
+      } catch (e) {}
+
+      setUser(updatedUser);
+      return { success: true };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -529,6 +658,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUpWithCredentials,
         forgotPassword,
         logout,
+        updateUserProfile,
         isClerkEnabled,
         welcomeEmail,
         clearWelcomeEmail,

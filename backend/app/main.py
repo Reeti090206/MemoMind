@@ -2750,6 +2750,118 @@ def update_user_role(user_id: int, payload: Dict[str, str], session: Session = D
     session.refresh(db_user)
     return {"status": "success", "user": {"id": db_user.id, "name": db_user.name, "role": db_user.role}}
 
+class ProfileUpdateRequest(BaseModel):
+    current_email: str
+    name: str
+    email: str
+    role: str
+    avatar: Optional[str] = None
+
+@app.post("/api/users/profile/update")
+def update_user_profile(request: ProfileUpdateRequest, session: Session = Depends(get_session)):
+    current_email = request.current_email.strip().lower()
+    new_email = request.email.strip().lower()
+    
+    # 1. Exact email match
+    db_user = session.exec(select(User).where(User.email == current_email)).first()
+    
+    if not db_user:
+        # 2. Case-insensitive scan (handles stored email casing differences)
+        all_with_email = session.exec(select(User).where(User.email.isnot(None))).all()
+        db_user = next(
+            (u for u in all_with_email if u.email and u.email.strip().lower() == current_email),
+            None
+        )
+    
+    if not db_user:
+        # 3. Name-based fallback
+        db_user = session.exec(select(User).where(User.name == request.name)).first()
+        
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    old_email = db_user.email.strip().lower() if db_user.email else ""
+    
+    db_user.name = request.name
+    db_user.email = new_email
+    db_user.role = request.role
+    if request.avatar:
+        db_user.avatar = request.avatar
+        
+    session.add(db_user)
+    
+    if old_email and old_email != new_email:
+        # Check if settings for the new email already exists.
+        new_settings = session.get(UserSettings, new_email)
+        old_settings = session.get(UserSettings, old_email)
+        
+        if old_settings:
+            if not new_settings:
+                # Migrate old settings
+                new_settings = UserSettings(
+                    user_email=new_email,
+                    gmeet=old_settings.gmeet,
+                    zoom=old_settings.zoom,
+                    teams=old_settings.teams,
+                    discord=old_settings.discord,
+                    tls_secure=old_settings.tls_secure,
+                    record_indicator=old_settings.record_indicator,
+                    auto_purge=old_settings.auto_purge,
+                    purge_after_days=old_settings.purge_after_days,
+                    notification_email=old_settings.notification_email,
+                    notification_push=old_settings.notification_push,
+                    notification_inapp=old_settings.notification_inapp,
+                    notification_contradictions=old_settings.notification_contradictions,
+                    openai_key=old_settings.openai_key,
+                    postgres_url=old_settings.postgres_url,
+                    vector_db=old_settings.vector_db,
+                    updated_at=datetime.utcnow()
+                )
+                session.add(new_settings)
+            
+            # Delete old settings to avoid orphan/stale keys
+            session.delete(old_settings)
+            session.commit() # Commit delete first
+            
+        # Update SettingsHistory
+        histories = session.exec(select(SettingsHistory).where(SettingsHistory.user_email == old_email)).all()
+        for h in histories:
+            h.user_email = new_email
+            session.add(h)
+            
+        # Update Meeting.user_email
+        meetings = session.exec(select(Meeting).where(Meeting.user_email == old_email)).all()
+        for m in meetings:
+            m.user_email = new_email
+            session.add(m)
+            
+        # Update MeetingInvitation.email
+        invitations = session.exec(select(MeetingInvitation).where(MeetingInvitation.email == old_email)).all()
+        for i in invitations:
+            i.email = new_email
+            session.add(i)
+            
+        # Update WorkspaceMember.email
+        members = session.exec(select(WorkspaceMember).where(WorkspaceMember.email == old_email)).all()
+        for mb in members:
+            mb.email = new_email
+            session.add(mb)
+
+    session.commit()
+    session.refresh(db_user)
+    
+    return {
+        "status": "success",
+        "user": {
+            "name": db_user.name,
+            "email": db_user.email,
+            "avatar": db_user.avatar,
+            "role": db_user.role,
+            "color": db_user.color,
+            "phone": db_user.phone
+        }
+    }
+
 @app.get("/api/meetings/{meeting_id}/invitations")
 def get_meeting_invitations(meeting_id: int, session: Session = Depends(get_session)):
     return session.exec(select(MeetingInvitation).where(MeetingInvitation.meeting_id == meeting_id)).all()
