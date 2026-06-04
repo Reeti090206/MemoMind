@@ -6,12 +6,19 @@ import Sidebar from "./Sidebar";
 import GlassLoginWall from "./GlassLoginWall";
 import { Network, Bell, BellRing, X, Sparkles, Clock, AlertTriangle, ArrowRight, ShieldAlert, HelpCircle, ShieldCheck, CheckCircle2, ChevronRight, Activity, BookOpen, Layers, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, welcomeEmail } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated && !welcomeEmail && pathname === "/login") {
+      router.push("/");
+    }
+  }, [isAuthenticated, welcomeEmail, pathname, router]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelpDrawer, setShowHelpDrawer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);

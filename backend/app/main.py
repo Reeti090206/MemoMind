@@ -1649,7 +1649,7 @@ def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_ses
         if not is_mock_email and not getattr(user, "welcome_email_sent", False):
             try:
                 send_result = send_welcome_email({"email": user.email, "name": user.name})
-                if send_result.get("status") == "success":
+                if send_result.get("status") == "success" and send_result.get("sent_via_smtp"):
                     user.welcome_email_sent = True
                     session.add(user)
                     session.commit()
