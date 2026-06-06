@@ -90,13 +90,19 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         const isLocalHost = urlStr.includes("127.0.0.1:8000") || urlStr.includes("localhost:8000");
 
         let newUrlStr = urlStr;
-        if (enforceSecure && isLocalHost) {
-          if (urlStr.startsWith("http://")) {
-            newUrlStr = urlStr.replace("http://", "https://");
+        if (isLocalHost) {
+          let targetBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+          if (targetBase.includes("127.0.0.1:8000") || targetBase.includes("localhost:8000")) {
+            if (enforceSecure && targetBase.startsWith("http://")) {
+              targetBase = targetBase.replace("http://", "https://");
+            } else if (!enforceSecure && targetBase.startsWith("https://")) {
+              targetBase = targetBase.replace("https://", "http://");
+            }
           }
-        } else if (!enforceSecure && isLocalHost) {
-          if (urlStr.startsWith("https://")) {
-            newUrlStr = urlStr.replace("https://", "http://");
+          if (urlStr.includes("127.0.0.1:8000")) {
+            newUrlStr = urlStr.replace(/https?:\/\/127\.0\.0\.1:8000/, targetBase);
+          } else if (urlStr.includes("localhost:8000")) {
+            newUrlStr = urlStr.replace(/https?:\/\/localhost:8000/, targetBase);
           }
         }
 
@@ -131,17 +137,27 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         enforceSecure = false;
       }
 
-      if (enforceSecure) {
-        if (url.startsWith("ws://127.0.0.1:8000")) {
-          url = url.replace("ws://127.0.0.1:8000", "wss://127.0.0.1:8000");
-        } else if (url.startsWith("ws://localhost:8000")) {
-          url = url.replace("ws://localhost:8000", "wss://127.0.0.1:8000");
+      let wsBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      if (wsBase.startsWith("https://")) {
+        wsBase = wsBase.replace("https://", "wss://");
+      } else if (wsBase.startsWith("http://")) {
+        wsBase = wsBase.replace("http://", "ws://");
+      }
+
+      if (url.includes("127.0.0.1:8000") || url.includes("localhost:8000")) {
+        let wsTargetBase = wsBase;
+        if (wsTargetBase.includes("127.0.0.1:8000") || wsTargetBase.includes("localhost:8000")) {
+          if (enforceSecure && wsTargetBase.startsWith("ws://")) {
+            wsTargetBase = wsTargetBase.replace("ws://", "wss://");
+          } else if (!enforceSecure && wsTargetBase.startsWith("wss://")) {
+            wsTargetBase = wsTargetBase.replace("wss://", "ws://");
+          }
         }
-      } else {
-        if (url.startsWith("wss://127.0.0.1:8000")) {
-          url = url.replace("wss://127.0.0.1:8000", "ws://127.0.0.1:8000");
-        } else if (url.startsWith("wss://localhost:8000")) {
-          url = url.replace("wss://localhost:8000", "ws://127.0.0.1:8000");
+
+        if (url.includes("127.0.0.1:8000")) {
+          url = url.replace(/wss?:\/\/127\.0\.0\.1:8000/, wsTargetBase);
+        } else if (url.includes("localhost:8000")) {
+          url = url.replace(/wss?:\/\/localhost:8000/, wsTargetBase);
         }
       }
       return new OriginalWebSocket(url, protocols);
