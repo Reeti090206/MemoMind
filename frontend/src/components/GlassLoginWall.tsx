@@ -851,7 +851,7 @@ export default function GlassLoginWall() {
                                   ref={(el) => { if (el) otpInputRefs.current[idx] = el; }}
                                   onChange={(e) => handleOtpChange(idx, e.target.value)}
                                   onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                                  className="w-12 h-14 text-center bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl text-lg font-mono font-bold text-white focus:outline-none transition-all"
+                                  className="w-12 h-14 text-center bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl text-lg font-mono font-bold text-[var(--foreground)] focus:outline-none transition-all"
                                   autoFocus={idx === 0}
                                 />
                               ))}
@@ -881,8 +881,8 @@ export default function GlassLoginWall() {
 
                             {/* Simulated code display if running console OTP backend fallback */}
                             {sentMethod === "console" && sentCode && (
-                              <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-center font-mono text-[10px] text-cyan-400">
-                                Sandbox Bypass OTP Code: <strong className="text-white select-all text-xs font-bold">{sentCode}</strong>
+                              <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-center font-mono text-[10px] text-cyan-800 dark:text-cyan-200">
+                                Sandbox Bypass OTP Code: <strong className="text-cyan-950 dark:text-cyan-50 select-all text-xs font-bold">{sentCode}</strong>
                               </div>
                             )}
 
