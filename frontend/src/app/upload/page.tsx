@@ -189,11 +189,18 @@ export default function MeetingUpload() {
         })
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
         if (!selectedUserEmails.includes(pendingInviteEmail)) {
           setSelectedUserEmails(prev => [...prev, pendingInviteEmail]);
         }
         setShowInviteConfirm(false);
-        setInviteSuccess(`Invitation sent to ${pendingInviteEmail}! They'll receive an email to join the ${workspaceTeam || "Default"} workspace.`);
+        if (data.message === "User is already a member of this workspace") {
+          setInviteSuccess(`User ${pendingInviteEmail} is already a member of this workspace.`);
+        } else if (data.message === "Invitation resent successfully") {
+          setInviteSuccess(`Invitation resent to ${pendingInviteEmail}! They'll receive a new email.`);
+        } else {
+          setInviteSuccess(data.message || `Invitation sent to ${pendingInviteEmail}!`);
+        }
         setNewEmailInput("");
         setTimeout(() => setInviteSuccess(null), 6000);
       } else {
@@ -1790,7 +1797,7 @@ export default function MeetingUpload() {
                           onValueChange={(val) => setParentMeetingId(parseInt(val))}
                           value={parentMeetingId?.toString() || ""}
                         >
-                          <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)]">
+                          <SelectTrigger className="w-full font-sans text-xs bg-[var(--color-surface)] border-[var(--color-border)] rounded-xl text-[var(--color-body)]">
                             <SelectValue placeholder="Select a past meeting to continue..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -1847,7 +1854,7 @@ export default function MeetingUpload() {
                         type="datetime-local"
                         value={meetingDateTime}
                         onChange={(e) => setMeetingDateTime(e.target.value)}
-                        className="w-full bg-[var(--foreground)]/[0.01] border border-[var(--color-obsidian-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--foreground)] focus:outline-none focus:border-cyber-purple transition-all text-white"
+                        className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm text-[var(--color-body)] focus:outline-none focus:border-[var(--color-accent)] transition-all"
                       />
                     </div>
                   </div>
@@ -1876,7 +1883,7 @@ export default function MeetingUpload() {
                         }}
                         value={workspaceTeam}
                       >
-                        <SelectTrigger className="w-full font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl text-[var(--foreground)] py-6">
+                        <SelectTrigger className="w-full font-sans text-xs bg-[var(--color-surface)] border-[var(--color-border)] rounded-xl text-[var(--color-body)] py-6">
                           <SelectValue placeholder="Select Team/Workspace" />
                         </SelectTrigger>
                         <SelectContent>

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from typing import List, Dict, Any, Optional
@@ -195,7 +195,11 @@ class WorkspaceInviteRequest(BaseModel):
     team_name: str
 
 @app.post("/api/workspace/invite")
-async def invite_user_to_workspace(request: WorkspaceInviteRequest, session: Session = Depends(get_session)):
+async def invite_user_to_workspace(
+    request: WorkspaceInviteRequest,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session)
+):
     sender_email = request.sender_email.strip().lower()
     email = request.email.strip().lower()
     team_name = request.team_name.strip()
@@ -248,9 +252,26 @@ async def invite_user_to_workspace(request: WorkspaceInviteRequest, session: Ses
     ).first()
     
     if existing_inv:
+        import secrets
+        new_token = secrets.token_urlsafe(32)
+        existing_inv.token = new_token
+        existing_inv.created_at = datetime.utcnow()
+        session.add(existing_inv)
+        session.commit()
+        session.refresh(existing_inv)
+        
+        # Trigger the email again using background task
+        background_tasks.add_task(
+            send_workspace_invitation_email,
+            email,
+            sender_email,
+            team_name,
+            new_token
+        )
+        
         return {
             "status": "success",
-            "message": "Invitation already sent and pending",
+            "message": "Invitation resent successfully",
             "invitation": {
                 "id": existing_inv.id,
                 "email": existing_inv.email,
@@ -283,13 +304,15 @@ async def invite_user_to_workspace(request: WorkspaceInviteRequest, session: Ses
     session.add(audit)
     session.commit()
     
-    # 7. Trigger the email in background thread
+    # 7. Trigger the email in background task
     try:
-        import threading
-        threading.Thread(
-            target=send_workspace_invitation_email,
-            args=(email, sender_email, team_name, inv_token)
-        ).start()
+        background_tasks.add_task(
+            send_workspace_invitation_email,
+            email,
+            sender_email,
+            team_name,
+            inv_token
+        )
     except Exception as e:
         print(f"[Workspace Invitation Email Trigger Error] {e}")
         
@@ -304,7 +327,12 @@ async def invite_user_to_workspace(request: WorkspaceInviteRequest, session: Ses
     }
 
 @app.post("/api/meetings/{meeting_id}/invite")
-async def invite_user_to_meeting(meeting_id: int, request: InviteRequest, session: Session = Depends(get_session)):
+async def invite_user_to_meeting(
+    meeting_id: int,
+    request: InviteRequest,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session)
+):
     meeting = session.get(Meeting, meeting_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
@@ -321,6 +349,37 @@ async def invite_user_to_meeting(meeting_id: int, request: InviteRequest, sessio
     ).first()
     
     if existing_inv:
+        if existing_inv.status == "pending":
+            import secrets
+            new_token = secrets.token_urlsafe(32)
+            existing_inv.token = new_token
+            existing_inv.created_at = datetime.utcnow()
+            session.add(existing_inv)
+            session.commit()
+            session.refresh(existing_inv)
+            
+            # Resend invitation email
+            background_tasks.add_task(
+                send_invitation_email,
+                email,
+                existing_inv.name or name,
+                meeting.title,
+                meeting_id,
+                new_token
+            )
+            
+            return {
+                "status": "success",
+                "message": "Invitation resent successfully",
+                "invitation": {
+                    "id": existing_inv.id,
+                    "email": existing_inv.email,
+                    "name": existing_inv.name,
+                    "status": existing_inv.status,
+                    "created_at": existing_inv.created_at.isoformat() if existing_inv.created_at else None
+                }
+            }
+            
         return {
             "status": "success", 
             "message": "Invitation already exists", 
@@ -373,11 +432,14 @@ async def invite_user_to_meeting(meeting_id: int, request: InviteRequest, sessio
     
     if status == "pending":
         try:
-            import threading
-            threading.Thread(
-                target=send_invitation_email,
-                args=(email, name, meeting.title, meeting_id, inv_token)
-            ).start()
+            background_tasks.add_task(
+                send_invitation_email,
+                email,
+                name,
+                meeting.title,
+                meeting_id,
+                inv_token
+            )
         except Exception as e:
             print(f"[Invitation Email Trigger Error] {e}")
             

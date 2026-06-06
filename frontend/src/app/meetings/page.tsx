@@ -283,7 +283,15 @@ function MeetingContent() {
         const data = await res.json();
         setInviteEmail("");
         setShowInviteConfirm(false);
-        setInviteSuccess(`Invitation sent to ${pendingInviteEmail}! They'll receive an email with Accept/Decline links.`);
+        if (data.message === "Invitation resent successfully") {
+          setInviteSuccess(`Invitation resent to ${pendingInviteEmail}! They'll receive a new email.`);
+        } else if (data.invitation && data.invitation.status === "accepted") {
+          setInviteSuccess(`User ${pendingInviteEmail} is already a member of this workspace and has been added to the meeting.`);
+        } else if (data.message === "Invitation already exists") {
+          setInviteSuccess(`An invitation for ${pendingInviteEmail} already exists (status: ${data.invitation.status}).`);
+        } else {
+          setInviteSuccess(data.message || `Invitation sent to ${pendingInviteEmail}!`);
+        }
         setTimeout(() => setInviteSuccess(null), 6000);
         if (data.invitation) {
           setMeetingData((prev: any) => {
@@ -506,7 +514,7 @@ function MeetingContent() {
             }}
             value={selectedId?.toString() || ""}
           >
-            <SelectTrigger className="w-full sm:w-[280px] md:w-[360px] font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl">
+            <SelectTrigger className="w-full sm:w-[280px] md:w-[360px] font-sans text-xs bg-[var(--color-surface)] border-[var(--color-border)] rounded-xl text-[var(--color-body)] shadow-sm">
               <SelectValue placeholder="Select Meeting" />
             </SelectTrigger>
             <SelectContent>
@@ -526,7 +534,7 @@ function MeetingContent() {
             onValueChange={(val) => setSelectedTeam(val)}
             value={selectedTeam}
           >
-            <SelectTrigger className="w-full sm:w-[160px] font-sans text-xs bg-black/45 border-[var(--color-obsidian-border)] rounded-xl">
+            <SelectTrigger className="w-full sm:w-[160px] font-sans text-xs bg-[var(--color-surface)] border-[var(--color-border)] rounded-xl text-[var(--color-body)] shadow-sm">
               <SelectValue placeholder="All Teams" />
             </SelectTrigger>
             <SelectContent>

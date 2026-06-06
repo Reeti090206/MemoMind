@@ -9,12 +9,16 @@ from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 
 # Fallback semantic search / NLP tools
-try:
-    from sentence_transformers import SentenceTransformer
-    import numpy as np
-    HAS_TRANSFORMERS = True
-except ImportError:
-    HAS_TRANSFORMERS = False
+DISABLE_TRANSFORMERS = os.getenv("DISABLE_LOCAL_TRANSFORMERS", "false").lower() in ("true", "1") or os.getenv("RENDER") is not None
+
+HAS_TRANSFORMERS = False
+if not DISABLE_TRANSFORMERS:
+    try:
+        from sentence_transformers import SentenceTransformer
+        import numpy as np
+        HAS_TRANSFORMERS = True
+    except ImportError:
+        pass
 
 # OpenAI client
 try:
