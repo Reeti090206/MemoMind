@@ -71,9 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const email = firebaseUser.email || firebaseUser.providerData?.[0]?.email || "";
             const name = firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || "";
 
-            // 15 second timeout — prevents hanging on Render cold start
+            // 60 second timeout — Render free tier can take up to 60s to cold start
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
             let res: Response | null = null;
             try {
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (err: any) {
             if (err?.name === "AbortError") {
-              console.error("Backend session request timed out (15s). Server may be cold-starting.");
+              console.error("Backend session request timed out (60s). Server may be cold-starting.");
             } else {
               console.error("Failed to sync Firebase session:", err);
             }
@@ -247,7 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     throw new Error("Firebase is not configured. Please set up Firebase credentials to enable Google login.");
   };
 
-  // Generic OAuth Login (Google, Apple, GitHub, Hugging Face)
+  // Generic OAuth Login (Google, GitHub)
   const loginWithOAuth = async (provider: string, profileKey?: string, customUser?: UserProfile) => {
     try {
       if (hasFirebaseConfig && auth && (provider === "google" || provider === "github")) {
@@ -256,45 +256,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (provider === "github") {
           firebaseProvider = new GithubAuthProvider();
           firebaseProvider.addScope("user:email");
-          // Force GitHub to prompt for consent/re-authorization, allowing account switching
           firebaseProvider.setCustomParameters({ prompt: "consent" });
         } else {
           firebaseProvider = new GoogleAuthProvider();
           firebaseProvider.addScope("email");
           firebaseProvider.addScope("profile");
-          // Force Google to prompt the user to select an account
           firebaseProvider.setCustomParameters({ prompt: "select_account" });
         }
-        
-        setIsLoading(true);
-        const result = await signInWithPopup(auth, firebaseProvider);
-        const idToken = await result.user.getIdToken();
-        const email = result.user.email 
-          || (result as any)._tokenResponse?.email 
-          || result.user.providerData?.[0]?.email 
-          || "";
-        const name = result.user.displayName 
-          || (result as any)._tokenResponse?.displayName 
-          || result.user.providerData?.[0]?.displayName 
-          || "OAuth User";
-        const phone = result.user.phoneNumber 
-          || result.user.providerData?.[0]?.phoneNumber 
-          || "";
 
-        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_token: idToken, phone, email, name }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-          setIsLoading(false);
-        } else {
-          console.error("Backend OAuth verification failed");
-          setIsLoading(false);
-        }
+        // Just trigger the popup — onAuthStateChanged handles backend session sync
+        await signInWithPopup(auth, firebaseProvider);
+        // isLoading will be set by onAuthStateChanged listener automatically
+        return;
       }
     } catch (err: any) {
       setIsLoading(false);
@@ -307,6 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (hasFirebaseConfig) {
       return;
     }
+
 
     // Local Mock Mode simulation
     setIsLoading(true);
