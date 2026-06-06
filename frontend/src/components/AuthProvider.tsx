@@ -71,13 +71,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const email = firebaseUser.email || firebaseUser.providerData?.[0]?.email || "";
             const name = firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || "";
 
-            const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id_token: idToken, phone, email, name }),
-            });
+            // 15 second timeout — prevents hanging on Render cold start
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-            if (res.ok) {
+            let res: Response | null = null;
+            try {
+              res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id_token: idToken, phone, email, name }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
+
+            if (res && res.ok) {
               const data = await res.json();
               setUser(data.user);
               if (!isInitialCheck.current) {
@@ -87,8 +97,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.error("Backend failed to verify Firebase session");
               setUser(null);
             }
-          } catch (err) {
-            console.error("Failed to sync Firebase session:", err);
+          } catch (err: any) {
+            if (err?.name === "AbortError") {
+              console.error("Backend session request timed out (15s). Server may be cold-starting.");
+            } else {
+              console.error("Failed to sync Firebase session:", err);
+            }
             setUser(null);
           } finally {
             isInitialCheck.current = false;

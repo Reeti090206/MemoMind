@@ -227,16 +227,32 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     }
   };
 
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => setLoadingSeconds(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   if (isLoading) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-[var(--color-bg-main)] flex flex-col items-center justify-center text-[var(--color-heading)] z-50">
-        <div className="relative h-14 w-14 flex items-center justify-center mb-4">
+      <div className="fixed inset-0 w-screen h-screen bg-[var(--color-bg-main)] flex flex-col items-center justify-center text-[var(--color-heading)] z-50 gap-4">
+        <div className="relative h-14 w-14 flex items-center justify-center mb-1">
           <div className="h-10 w-10 rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-accent)] animate-spin" />
           <Network className="absolute h-5 w-5 text-[var(--color-primary-dark)] animate-pulse" />
         </div>
         <p className="text-small-regular animate-pulse">
           Retrieving Workspace...
         </p>
+        {loadingSeconds >= 5 && (
+          <p className="text-xs text-[var(--color-muted)] max-w-xs text-center px-4 animate-fade-in">
+            ☕ The server is warming up — this can take up to 30 seconds on first load. Please wait…
+          </p>
+        )}
       </div>
     );
   }
