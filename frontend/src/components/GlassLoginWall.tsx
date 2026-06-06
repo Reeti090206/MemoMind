@@ -464,7 +464,7 @@ export default function GlassLoginWall() {
               </p>
 
               {/* Rotating Memory Graphic */}
-              <div className="relative h-60 w-full border border-[var(--color-obsidian-border)] bg-[var(--glass-card-bg)] backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center shadow-lg">
+              <div className="relative h-60 w-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-md rounded-3xl overflow-hidden flex items-center justify-center shadow-lg">
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent z-10" />
 
                 <motion.div
@@ -513,7 +513,7 @@ export default function GlassLoginWall() {
                 initial={{ opacity: 0, y: 25 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="w-full max-w-[440px] bg-[var(--glass-card-bg)] border border-[var(--color-obsidian-border)] rounded-3xl p-8 shadow-xl backdrop-blur-xl relative z-10 flex flex-col justify-between overflow-hidden"
+                className="w-full max-w-[440px] bg-[var(--color-surface)]/80 border border-[var(--color-border)] rounded-3xl p-8 shadow-xl backdrop-blur-xl relative z-10 flex flex-col justify-between"
               >
                 {/* Glowing Top Lip */}
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--mm-accent)]/40 to-transparent" />
@@ -604,7 +604,7 @@ export default function GlassLoginWall() {
                             placeholder="Corporate Email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl pl-11 pr-4 py-3 text-sm placeholder-gray-500 focus:outline-none transition-all"
+                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl pl-11 pr-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-400 focus:outline-none transition-all"
                             required
                           />
                           <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[var(--foreground)]/40" />
@@ -616,7 +616,7 @@ export default function GlassLoginWall() {
                             placeholder="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl pl-11 pr-11 py-3 text-sm placeholder-gray-500 focus:outline-none transition-all"
+                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl pl-11 pr-11 py-3 text-sm text-[var(--foreground)] placeholder-gray-400 focus:outline-none transition-all"
                             required
                           />
                           <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[var(--foreground)]/40" />
@@ -682,7 +682,7 @@ export default function GlassLoginWall() {
                             placeholder="Full Name"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            className="w-full bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl pl-11 pr-4 py-3 text-sm placeholder-gray-500 focus:outline-none transition-all"
+                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl pl-11 pr-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-400 focus:outline-none transition-all"
                             required
                           />
                           <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[var(--foreground)]/40" />
@@ -694,7 +694,7 @@ export default function GlassLoginWall() {
                             placeholder="Work Email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl pl-11 pr-4 py-3 text-sm placeholder-gray-500 focus:outline-none transition-all"
+                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl pl-11 pr-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-400 focus:outline-none transition-all"
                             required
                           />
                           <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[var(--foreground)]/40" />
@@ -706,7 +706,7 @@ export default function GlassLoginWall() {
                             placeholder="Choose Secure Password (6+ chars)"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl pl-11 pr-11 py-3 text-sm placeholder-gray-500 focus:outline-none transition-all"
+                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl pl-11 pr-11 py-3 text-sm text-[var(--foreground)] placeholder-gray-400 focus:outline-none transition-all"
                             required
                           />
                           <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[var(--foreground)]/40" />
@@ -769,10 +769,10 @@ export default function GlassLoginWall() {
                                   <button
                                     type="button"
                                     onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                                    className="h-full bg-white/[0.02] border border-white/10 rounded-xl px-3 text-xs text-white focus:outline-none transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                    className="h-full bg-[var(--color-surface)] hover:bg-[var(--color-border)]/20 border border-[var(--color-border)] rounded-xl px-3 text-xs text-[var(--foreground)] focus:outline-none transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                                   >
-                                    <span>{selectedCountry.flag}</span>
-                                    <span className="font-mono">{selectedCountry.code}</span>
+                                    <span className="text-base leading-none">{selectedCountry.flag}</span>
+                                    <span className="font-mono font-medium">{selectedCountry.code}</span>
                                     <ChevronDown className="h-3 w-3 opacity-60" />
                                   </button>
 
@@ -782,7 +782,7 @@ export default function GlassLoginWall() {
                                         initial={{ opacity: 0, y: 5 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: 5 }}
-                                        className="absolute left-0 mt-1.5 w-48 max-h-48 overflow-y-auto bg-[#1b1a23] border border-white/10 rounded-xl z-50 p-1"
+                                        className="absolute left-0 mt-1.5 w-48 max-h-48 overflow-y-auto bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl z-50 p-1.5 shadow-xl"
                                       >
                                         {COUNTRIES.map((c) => (
                                           <button
@@ -792,10 +792,13 @@ export default function GlassLoginWall() {
                                               setSelectedCountry(c);
                                               setShowCountryDropdown(false);
                                             }}
-                                            className="w-full text-left px-2.5 py-1.5 hover:bg-white/5 rounded-lg text-[11px] flex items-center justify-between text-[var(--foreground)]/80 cursor-pointer"
+                                            className="w-full text-left px-2.5 py-1.5 hover:bg-[var(--color-border)]/45 rounded-lg text-[11px] flex items-center justify-between text-[var(--foreground)] cursor-pointer transition-colors"
                                           >
-                                            <span className="truncate">{c.flag} {c.name}</span>
-                                            <span className="font-mono text-cyan-400 shrink-0">{c.code}</span>
+                                            <span className="truncate flex items-center gap-1.5">
+                                              <span className="text-sm">{c.flag}</span>
+                                              <span>{c.name}</span>
+                                            </span>
+                                            <span className="font-mono text-[var(--color-cyber-purple)] font-semibold shrink-0">{c.code}</span>
                                           </button>
                                         ))}
                                       </motion.div>
@@ -808,7 +811,7 @@ export default function GlassLoginWall() {
                                   placeholder="555 0199"
                                   value={phoneRaw}
                                   onChange={(e) => setPhoneRaw(e.target.value)}
-                                  className="flex-1 bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl px-4 py-3 text-sm focus:outline-none transition-all font-mono"
+                                  className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl px-4 py-3 text-sm focus:outline-none transition-all font-mono text-[var(--foreground)] placeholder-gray-400"
                                   required
                                 />
                               </div>
@@ -918,7 +921,7 @@ export default function GlassLoginWall() {
                             placeholder="Registered Account Email"
                             value={forgotEmail}
                             onChange={(e) => setForgotEmail(e.target.value)}
-                            className="w-full bg-white/[0.02] border border-white/10 focus:border-cyber-purple/50 rounded-xl pl-11 pr-4 py-3 text-sm placeholder-gray-500 focus:outline-none transition-all"
+                            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] focus:border-[var(--color-cyber-purple)]/50 rounded-xl pl-11 pr-4 py-3 text-sm text-[var(--foreground)] placeholder-gray-400 focus:outline-none transition-all"
                             required
                           />
                           <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-[var(--foreground)]/40" />
