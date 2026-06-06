@@ -276,8 +276,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
+          setIsLoading(false);
         } else {
           console.error("Backend OAuth verification failed");
+          setIsLoading(false);
         }
       }
     } catch (err: any) {

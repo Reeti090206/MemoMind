@@ -121,12 +121,20 @@ class PrivateNetworkCORSMiddleware:
 app = FastAPI(title="MemoMind: Organizational Memory Intelligence API")
 
 # Configure CORS
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
+default_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://memo-mind-seven.vercel.app",
+]
+
+origins_list = list(set(default_origins + allowed_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

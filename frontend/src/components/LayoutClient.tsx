@@ -92,6 +92,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         let newUrlStr = urlStr;
         if (isLocalHost) {
           let targetBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+          if (targetBase.endsWith("/")) {
+            targetBase = targetBase.slice(0, -1);
+          }
           if (targetBase.includes("127.0.0.1:8000") || targetBase.includes("localhost:8000")) {
             if (enforceSecure && targetBase.startsWith("http://")) {
               targetBase = targetBase.replace("http://", "https://");
@@ -138,6 +141,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       }
 
       let wsBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      if (wsBase.endsWith("/")) {
+        wsBase = wsBase.slice(0, -1);
+      }
       if (wsBase.startsWith("https://")) {
         wsBase = wsBase.replace("https://", "wss://");
       } else if (wsBase.startsWith("http://")) {
