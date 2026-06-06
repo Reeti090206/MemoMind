@@ -9,7 +9,13 @@ from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 
 # Fallback semantic search / NLP tools
-DISABLE_TRANSFORMERS = os.getenv("DISABLE_LOCAL_TRANSFORMERS", "false").lower() in ("true", "1") or os.getenv("RENDER") is not None
+DISABLE_TRANSFORMERS = (
+    os.getenv("DISABLE_LOCAL_TRANSFORMERS", "false").lower() in ("true", "1")
+    or os.getenv("RENDER") is not None
+    or os.getenv("RAILWAY_STATIC_URL") is not None
+    or os.getenv("KOYEB_PROJECT_ID") is not None
+    or os.getenv("FLY_APP_NAME") is not None
+)
 
 HAS_TRANSFORMERS = False
 if not DISABLE_TRANSFORMERS:
