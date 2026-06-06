@@ -1,3 +1,4 @@
+// Vercel deployment trigger comment
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
