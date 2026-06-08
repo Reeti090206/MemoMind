@@ -2,6 +2,16 @@
 
 > **Turn every meeting into permanent, searchable, actionable organizational memory.**
 
+<p align="center">
+  <a href="https://memo-mind-seven.vercel.app" target="_blank">
+    <img src="https://img.shields.io/badge/🚀_Live_Demo-memo--mind--seven.vercel.app-6366f1?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/Reeti090206/MemoMind" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-Reeti090206%2FMemoMind-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
+  </a>
+</p>
+
 MemoMind is a premium full-stack SaaS platform that acts as a long-term intelligent memory layer for teams and organizations. It goes far beyond a meeting summarizer — MemoMind records real transcripts, detects accountability tasks, surfaces decision contradictions, identifies circular debates, and maps everything onto an interactive **Organizational Memory Graph**.
 
 ---
@@ -214,6 +224,16 @@ Browser (MediaRecorder)
 
 ---
 
+## 🔗 Links
+
+| | Link |
+|---|---|
+| 🚀 **Live App** | [memo-mind-seven.vercel.app](https://memo-mind-seven.vercel.app) |
+| 📦 **GitHub** | [github.com/Reeti090206/MemoMind](https://github.com/Reeti090206/MemoMind) |
+| 🔌 **Backend API** | [API Docs (Render)](https://memomind-backend.onrender.com/docs) |
+
+---
+
 ## 📄 License
 
 This project is for educational and demonstration purposes.
@@ -221,5 +241,9 @@ This project is for educational and demonstration purposes.
 ---
 
 <p align="center">
-  Built with 💜 by <a href="https://github.com/Reeti090206">Reeti</a> & <a href="https://github.com/Gargi0620">Gargi</a>
+  Built with 💜 by <a href="https://github.com/Reeti090206">Reeti</a> &amp; <a href="https://github.com/Gargi0620">Gargi</a>
+  &nbsp;|&nbsp;
+  <a href="https://memo-mind-seven.vercel.app">🌐 Live Demo</a>
+  &nbsp;|&nbsp;
+  <a href="https://github.com/Reeti090206/MemoMind">⭐ Star on GitHub</a>
 </p>
