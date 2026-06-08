@@ -16,6 +16,12 @@ def send_email_via_smtp(email: str, name: str, subject: str, html_content: str) 
     """
     Sends an email via SMTP. Returns (success, error_message).
     """
+    # Render's free tier blocks all outbound SMTP at the OS network level (errno 101).
+    # Attempting it causes a hard OSError that fills logs with noise. Skip gracefully.
+    if os.getenv("RENDER") is not None:
+        logger.info(f"[SMTP Skipped] Running on Render (outbound SMTP blocked). Email to {email} saved as local backup only.")
+        return True, None
+
     sender_email = os.getenv("SENDER_EMAIL", "reetikhandelwal09@gmail.com")
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = os.getenv("SMTP_PORT")
