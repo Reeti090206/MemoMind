@@ -2,10 +2,16 @@ from sqlmodel import SQLModel, create_engine, Session
 import os
 
 DATABASE_FILE = "meetgraph.db"
-DATABASE_URL = f"sqlite:///{DATABASE_FILE}"
+DATABASE_URL = os.getenv("DATABASE_URL") or f"sqlite:///{DATABASE_FILE}"
 
 # Connect args needed for SQLite thread compatibility
-connect_args = {"check_same_thread": False}
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+elif DATABASE_URL.startswith("postgres://"):
+    # SQLAlchemy requires postgresql:// instead of postgres://
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 def init_db():
