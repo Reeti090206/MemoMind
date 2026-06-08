@@ -900,8 +900,8 @@ export default function GlassLoginWall() {
 
                             {/* Simulated code display if running console OTP backend fallback */}
                             {sentMethod === "console" && sentCode && (
-                              <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-center font-mono text-[10px] text-cyan-800 dark:text-cyan-200">
-                                Sandbox Bypass OTP Code: <strong className="text-cyan-950 dark:text-cyan-50 select-all text-xs font-bold">{sentCode}</strong>
+                              <div className="p-3 bg-cyan-950 border border-cyan-800 rounded-xl text-center font-mono text-[11px] text-cyan-200 shadow-md">
+                                Sandbox Bypass OTP Code: <strong className="text-white select-all text-xs font-bold bg-cyan-900 px-2 py-0.5 rounded border border-cyan-600/50 ml-1">{sentCode}</strong>
                               </div>
                             )}
 
