@@ -7,11 +7,15 @@ import sys
 sys.path.insert(0, ".")
 from app.main import send_welcome_email
 
+from app.database import engine
+from sqlmodel import Session
+
 email = "reeti9206@gmail.com"
 name = "Reeti"
 print(f"Testing welcome email trigger to {email}...")
 
-result = send_welcome_email({"email": email, "name": name})
+with Session(engine) as session:
+    result = send_welcome_email({"email": email, "name": name}, session=session)
 print("Result:")
 print("Status:", result.get("status"))
 print("File Path:", result.get("file_path"))
