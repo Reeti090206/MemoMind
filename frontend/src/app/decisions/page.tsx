@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { getApiBase } from "@/lib/apiClient";
 import { 
   Calendar, 
   HelpCircle, 
@@ -49,8 +50,8 @@ export default function DecisionTimeline() {
     async function loadDecisions() {
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/decisions?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/decisions";
+          ? `${getApiBase()}/api/decisions?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/decisions`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();

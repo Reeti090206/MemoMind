@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { getApiBase, getWsUrl } from "@/lib/apiClient";
 import {
   Calendar,
   Clock,
@@ -127,7 +128,7 @@ function MeetingContent() {
       if (acceptInvite === "true") {
         async function handleAccept() {
           try {
-            const res = await fetch(`http://127.0.0.1:8000/api/invitations/accept`, {
+            const res = await fetch(`${getApiBase()}/api/invitations/accept`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ token })
@@ -155,7 +156,7 @@ function MeetingContent() {
       } else if (rejectInvite === "true") {
         async function handleReject() {
           try {
-            const res = await fetch(`http://127.0.0.1:8000/api/invitations/reject`, {
+            const res = await fetch(`${getApiBase()}/api/invitations/reject`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ token })
@@ -189,7 +190,7 @@ function MeetingContent() {
       if (acceptInvite === "true" && emailParam && meetingIdParam) {
         async function autoAccept() {
           try {
-            const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingIdParam}/invitations/respond`, {
+            const res = await fetch(`${getApiBase()}/api/meetings/${meetingIdParam}/invitations/respond`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ email: emailParam, status: "accepted" })
@@ -218,7 +219,7 @@ function MeetingContent() {
     let reconnectTimeout: any = null;
 
     function connect() {
-      ws = new WebSocket("ws://127.0.0.1:8000/ws/invitations");
+      ws = new WebSocket(getWsUrl("/ws/invitations"));
 
       ws.onmessage = (event) => {
         try {
@@ -226,7 +227,7 @@ function MeetingContent() {
           if (message.type === "invitation_update") {
             if (selectedId !== null && message.meeting_id === selectedId) {
               // Fetch latest meeting details to refresh invitations
-              fetch(`http://127.0.0.1:8000/api/meetings/${selectedId}`)
+              fetch(`${getApiBase()}/api/meetings/${selectedId}`)
                 .then(res => {
                   if (res.ok) return res.json();
                 })
@@ -274,7 +275,7 @@ function MeetingContent() {
     setInviteError(null);
     setInviteSuccess(null);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingData.id}/invite`, {
+      const res = await fetch(`${getApiBase()}/api/meetings/${meetingData.id}/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: pendingInviteEmail })
@@ -325,8 +326,8 @@ function MeetingContent() {
     async function loadMeetings() {
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/meetings?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/meetings";
+          ? `${getApiBase()}/api/meetings?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/meetings`;
         const res = await fetch(url);
         if (res.ok) {
           const list = await res.json();
@@ -382,7 +383,7 @@ function MeetingContent() {
     async function loadSelectedMeeting() {
       setIsLoadingDetails(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/meetings/${selectedId}`);
+        const res = await fetch(`${getApiBase()}/api/meetings/${selectedId}`);
         if (res.ok) {
           const data = await res.json();
           setMeetingData(data);
@@ -399,13 +400,13 @@ function MeetingContent() {
   const handleRespondInvitation = async (status: string) => {
     if (!user?.email || !meetingData) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingData.id}/invitations/respond`, {
+      const res = await fetch(`${getApiBase()}/api/meetings/${meetingData.id}/invitations/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email, status })
       });
       if (res.ok) {
-        const updatedRes = await fetch(`http://127.0.0.1:8000/api/meetings/${meetingData.id}`);
+        const updatedRes = await fetch(`${getApiBase()}/api/meetings/${meetingData.id}`);
         if (updatedRes.ok) {
           const data = await updatedRes.json();
           setMeetingData(data);

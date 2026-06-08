@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import { getApiBase } from "@/lib/apiClient";
 import { 
   signInWithPhoneNumber, 
   signOut, 
@@ -60,58 +61,108 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Firebase auth state listener + Mock session restoration
   const isInitialCheck = useRef(true);
 
+  // Helper: build a fallback UserProfile from Firebase user data when backend is unreachable
+  const buildFallbackProfile = (firebaseUser: any): UserProfile => {
+    const email = firebaseUser.email || firebaseUser.providerData?.[0]?.email || "";
+    const name = firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || email.split("@")[0] || "User";
+    const photo = firebaseUser.photoURL || firebaseUser.providerData?.[0]?.photoURL || "";
+    return {
+      name,
+      email,
+      avatar: photo || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
+      role: "Workspace Contributor",
+      color: "from-cyber-purple to-cyber-cyan",
+    };
+  };
+
   useEffect(() => {
     if (hasFirebaseConfig && auth) {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        setIsLoading(true);
+        console.log("[Auth] onAuthStateChanged fired:", firebaseUser ? "user present" : "no user");
         if (firebaseUser) {
-          try {
-            const idToken = await firebaseUser.getIdToken(true);
-            const phone = firebaseUser.phoneNumber || "";
-            const email = firebaseUser.email || firebaseUser.providerData?.[0]?.email || "";
-            const name = firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || "";
+          // FAST PATH: Set the Firebase profile immediately so the user enters the workspace instantly
+          const fallback = buildFallbackProfile(firebaseUser);
+          setUser(fallback);
+          localStorage.setItem("MemoMind_session", JSON.stringify(fallback));
+          console.log("[Auth] Firebase user detected — workspace unlocked immediately");
+          setIsLoading(false);
 
-            // 60 second timeout — Render free tier can take up to 60s to cold start
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-            let res: Response | null = null;
+          // BACKGROUND: Sync with backend for full profile (non-blocking)
+          (async () => {
             try {
-              res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id_token: idToken, phone, email, name }),
-                signal: controller.signal,
-              });
-            } finally {
-              clearTimeout(timeoutId);
-            }
+              console.log("[Auth] Background: syncing session with backend...");
+              const idToken = await firebaseUser.getIdToken(true);
+              const phone = firebaseUser.phoneNumber || "";
+              const email = firebaseUser.email || firebaseUser.providerData?.[0]?.email || "";
+              const name = firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || "";
 
-            if (res && res.ok) {
-              const data = await res.json();
-              setUser(data.user);
-              if (!isInitialCheck.current) {
-                await triggerWelcomeEmail(data.user.email, data.user.name);
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+              let res: Response | null = null;
+              try {
+                res = await fetch(`${getApiBase()}/api/auth/firebase-session`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id_token: idToken, phone, email, name }),
+                  signal: controller.signal,
+                });
+              } finally {
+                clearTimeout(timeoutId);
               }
-            } else {
-              console.error("Backend failed to verify Firebase session");
-              setUser(null);
+
+              if (res && res.ok) {
+                const data = await res.json();
+                console.log("[Auth] Background: backend sync success — profile upgraded");
+                setUser(data.user);
+                localStorage.setItem("MemoMind_session", JSON.stringify(data.user));
+                if (!isInitialCheck.current) {
+                  await triggerWelcomeEmail(data.user.email, data.user.name);
+                }
+              } else {
+                console.warn("[Auth] Background: backend sync failed (status:", res?.status, ") — keeping Firebase profile");
+              }
+            } catch (err: any) {
+              if (err?.name === "AbortError") {
+                console.warn("[Auth] Background: backend timed out (60s) — keeping Firebase profile");
+              } else {
+                console.warn("[Auth] Background: sync error — keeping Firebase profile:", err);
+              }
+              // Retry once after 5 seconds
+              setTimeout(async () => {
+                try {
+                  console.log("[Auth] Background retry: syncing with backend...");
+                  const retryToken = await firebaseUser.getIdToken(true);
+                  const retryRes = await fetch(`${getApiBase()}/api/auth/firebase-session`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      id_token: retryToken,
+                      phone: firebaseUser.phoneNumber || "",
+                      email: firebaseUser.email || firebaseUser.providerData?.[0]?.email || "",
+                      name: firebaseUser.displayName || firebaseUser.providerData?.[0]?.displayName || "",
+                    }),
+                  });
+                  if (retryRes.ok) {
+                    const retryData = await retryRes.json();
+                    console.log("[Auth] Background retry succeeded — profile updated");
+                    setUser(retryData.user);
+                    localStorage.setItem("MemoMind_session", JSON.stringify(retryData.user));
+                  }
+                } catch (retryErr) {
+                  console.warn("[Auth] Background retry failed:", retryErr);
+                }
+              }, 5000);
+            } finally {
+              isInitialCheck.current = false;
             }
-          } catch (err: any) {
-            if (err?.name === "AbortError") {
-              console.error("Backend session request timed out (60s). Server may be cold-starting.");
-            } else {
-              console.error("Failed to sync Firebase session:", err);
-            }
-            setUser(null);
-          } finally {
-            isInitialCheck.current = false;
-          }
+          })();
         } else {
+          console.log("[Auth] No Firebase user — clearing session");
           setUser(null);
           isInitialCheck.current = false;
+          setIsLoading(false);
         }
-        setIsLoading(false);
       });
       return () => unsubscribe();
     } else {
@@ -119,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const stored = localStorage.getItem("MemoMind_session");
         if (stored) {
+          console.log("[Auth] Restored local sandbox session");
           setUser(JSON.parse(stored));
         }
       } catch (err) {
@@ -130,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const triggerWelcomeEmail = async (email: string, name: string) => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/welcome-email", {
+      const res = await fetch(`${getApiBase()}/api/auth/welcome-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -154,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Helper: call mock backend OTP endpoint
     const sendMockOtp = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/auth/send-otp", {
+        const res = await fetch(`${getApiBase()}/api/auth/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: phoneNumber }),
@@ -191,10 +243,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (hasFirebaseConfig && auth && confirmationResult) {
         // Real Firebase Phone Auth OTP verification
+        console.log("[Auth] Verifying Firebase phone OTP...");
         const credential = await confirmationResult.confirm(verificationCode);
         const idToken = await credential.user.getIdToken();
 
-        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+        const res = await fetch(`${getApiBase()}/api/auth/firebase-session`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id_token: idToken, phone: phoneNumber }),
@@ -202,7 +255,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (res.ok) {
           const data = await res.json();
+          console.log("[Auth] Firebase phone auth session sync success");
           setUser(data.user);
+          await triggerWelcomeEmail(data.user.email, data.user.name);
           return { success: true };
         } else {
           const errorData = await res.json().catch(() => ({}));
@@ -210,7 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Mock Mode verification
-        const res = await fetch("http://127.0.0.1:8000/api/auth/verify-otp", {
+        const res = await fetch(`${getApiBase()}/api/auth/verify-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: phoneNumber, code: verificationCode }),
@@ -345,7 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
         const credential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await credential.user.getIdToken();
-        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+        const res = await fetch(`${getApiBase()}/api/auth/firebase-session`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id_token: idToken, email, name: credential.user.displayName || "Email User" }),
@@ -408,7 +463,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(credential.user, { displayName: name });
         const idToken = await credential.user.getIdToken(true);
-        const res = await fetch("http://127.0.0.1:8000/api/auth/firebase-session", {
+        const res = await fetch(`${getApiBase()}/api/auth/firebase-session`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id_token: idToken, email, name }),
@@ -510,7 +565,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return { success: false, error: "No user is currently logged in." };
     
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/users/profile/update", {
+      const res = await fetch(`${getApiBase()}/api/users/profile/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

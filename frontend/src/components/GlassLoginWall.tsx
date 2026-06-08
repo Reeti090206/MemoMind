@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 import { RecaptchaVerifier } from "firebase/auth";
@@ -25,7 +26,10 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function GlassLoginWall() {
+  const router = useRouter();
   const {
+    isAuthenticated,
+    isLoading,
     loginWithOAuth,
     loginWithPhone,
     sendOtp,
@@ -92,6 +96,15 @@ export default function GlassLoginWall() {
       console.warn("Failed to load remembered email", e);
     }
   }, []);
+
+  // Auto-redirect when user becomes authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && !welcomeEmail) {
+      console.log("[Auth] GlassLoginWall: user authenticated — redirecting to workspace");
+      setLoading(false);
+      router.push("/");
+    }
+  }, [isAuthenticated, isLoading, welcomeEmail, router]);
 
   // OTP Countdown timer
   useEffect(() => {
@@ -176,8 +189,10 @@ export default function GlassLoginWall() {
 
     setLoading(true);
     try {
+      console.log("[Auth] Credentials login attempt for:", email.toLowerCase().trim());
       const result = await loginWithCredentials(email.toLowerCase().trim(), password);
       if (result.success) {
+        console.log("[Auth] Credentials login success");
         // Handle Remember Me
         if (rememberMe) {
           localStorage.setItem("MemoMind_remembered_email", email.trim());
@@ -234,8 +249,10 @@ export default function GlassLoginWall() {
 
     setLoading(true);
     try {
+      console.log("[Auth] Signup attempt for:", email.toLowerCase().trim());
       const result = await signUpWithCredentials(fullName.trim(), email.toLowerCase().trim(), password);
       if (result.success) {
+        console.log("[Auth] Signup success");
         setSuccessMsg("Registration successful! Launching workspace setup...");
       } else {
         setErrorMsg(result.error || "Failed to create account.");
@@ -261,7 +278,9 @@ export default function GlassLoginWall() {
     setSuccessMsg("");
     setLoading(true);
     try {
+      console.log("[Auth] OAuth login started:", provider);
       await loginWithOAuth(provider);
+      console.log("[Auth] OAuth popup completed:", provider);
       setSuccessMsg(`Redirecting secure ${provider} SSO session...`);
     } catch (err: any) {
       // User simply closed the popup — not an error, just silently reset

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { getApiBase } from "@/lib/apiClient";
 import { 
   BarChart3, 
   Clock, 
@@ -81,8 +82,8 @@ export default function AnalyticsDashboard() {
     async function loadAnalytics() {
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/analytics?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/analytics";
+          ? `${getApiBase()}/api/analytics?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/analytics`;
         const res = await fetch(url);
         if (res.ok) {
           setData(await res.json());

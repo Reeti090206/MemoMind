@@ -21,18 +21,22 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../components/AuthProvider";
+import { getApiBase } from "@/lib/apiClient";
 
 interface AuditLog {
-  id: number;
-  setting_name: string;
-  old_value: string;
-  new_value: string;
-  changed_by: string;
+  id?: number;
+  user_email?: string;
+  action?: string;
+  details?: string;
+  setting_name?: string;
+  old_value?: string;
+  new_value?: string;
+  changed_by?: string;
   timestamp: string;
 }
 
 export default function SettingsHub() {
-  const { user, updateUserProfile } = useAuth();
+  const { user, logout, updateUserProfile } = useAuth();
 
   // Profile states
   const [profileName, setProfileName] = useState("");
@@ -41,6 +45,8 @@ export default function SettingsHub() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileUpdateStatus, setProfileUpdateStatus] = useState<{ status: "success" | "error"; message: string } | null>(null);
   const [showProfileConfirm, setShowProfileConfirm] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<"general" | "integrations" | "api" | "compliance" | "notifications" | "security">("general");
 
   // Sync profile state when user object loads/changes
   useEffect(() => {
@@ -92,7 +98,11 @@ export default function SettingsHub() {
 
   // Dynamic URL secure connection mapping
   const getApiUrl = (path: string) => {
-    const base = tlsSecure ? "https://127.0.0.1:8000" : "http://127.0.0.1:8000";
+    let base = getApiBase();
+    const isLocal = base.includes("127.0.0.1:8000") || base.includes("localhost:8000");
+    if (isLocal) {
+      base = tlsSecure ? base.replace("http://", "https://") : base.replace("https://", "http://");
+    }
     return `${base}${path}`;
   };
 

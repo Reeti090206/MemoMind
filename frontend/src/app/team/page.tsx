@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { getApiBase } from "@/lib/apiClient";
 
 
 interface TeamMember {
@@ -74,7 +75,7 @@ export default function TeamWorkspace() {
     setEditingRole(false);
     try {
       const identifier = member.email || member.name;
-      const res = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(identifier)}/progress`);
+      const res = await fetch(`${getApiBase()}/api/users/${encodeURIComponent(identifier)}/progress`);
       if (res.ok) {
         const data = await res.json();
         setMemberProgress(data);
@@ -90,7 +91,7 @@ export default function TeamWorkspace() {
   const handleUpdateRole = async () => {
     if (!selectedMember || !memberProgress?.user_id) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/users/${memberProgress.user_id}/update-role`, {
+      const res = await fetch(`${getApiBase()}/api/users/${memberProgress.user_id}/update-role`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRoleValue })
@@ -109,7 +110,7 @@ export default function TeamWorkspace() {
   useEffect(() => {
     async function loadWorkspaceData() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/users");
+        const res = await fetch(`${getApiBase()}/api/users`);
         if (res.ok) {
           const data = await res.json();
           setDbUsers(data);
@@ -120,8 +121,8 @@ export default function TeamWorkspace() {
 
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/analytics?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/analytics";
+          ? `${getApiBase()}/api/analytics?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/analytics`;
         const analyticsRes = await fetch(url);
         if (analyticsRes.ok) {
           const analytics = await analyticsRes.json();
@@ -134,8 +135,8 @@ export default function TeamWorkspace() {
 
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/tasks?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/tasks";
+          ? `${getApiBase()}/api/tasks?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/tasks`;
         const tasksRes = await fetch(url);
         if (tasksRes.ok) {
           const allTasks = await tasksRes.json();
@@ -147,7 +148,7 @@ export default function TeamWorkspace() {
       }
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/meetings");
+        const res = await fetch(`${getApiBase()}/api/meetings`);
         if (res.ok) {
           const data = await res.json();
           setMeetings(data);
@@ -200,7 +201,7 @@ export default function TeamWorkspace() {
     async function loadMeetingDetails() {
       setLoadingMeetingDetails(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/meetings/${selectedMeetingId}`);
+        const res = await fetch(`${getApiBase()}/api/meetings/${selectedMeetingId}`);
         if (res.ok) {
           const data = await res.json();
           setSelectedMeetingDetails(data);
@@ -320,7 +321,7 @@ export default function TeamWorkspace() {
     // Call dynamic AI responding if mentioned
     if (inputMessage.toLowerCase().includes("ai") || inputMessage.toLowerCase().includes("assistant")) {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/search", {
+        const res = await fetch(`${getApiBase()}/api/search`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: inputMessage })

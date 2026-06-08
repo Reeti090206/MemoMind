@@ -9,7 +9,7 @@ connect_args = {"check_same_thread": False}
 engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 def init_db():
-    from app.models import UserSettings, SettingsHistory, Workspace, WorkspaceMember, AuditLog
+    from app.models import UserSettings, SettingsHistory, Workspace, WorkspaceMember, AuditLog, EmailQueue
     SQLModel.metadata.create_all(engine)
     # Check if user_email column exists, if not, add it
     from sqlalchemy import inspect, text
@@ -61,6 +61,10 @@ def init_db():
     if "welcome_email_sent" not in user_columns:
         with Session(engine) as session:
             session.execute(text("ALTER TABLE user ADD COLUMN welcome_email_sent BOOLEAN DEFAULT 0"))
+            session.commit()
+    if "onboarding_email_sent" not in user_columns:
+        with Session(engine) as session:
+            session.execute(text("ALTER TABLE user ADD COLUMN onboarding_email_sent BOOLEAN DEFAULT 0"))
             session.commit()
 
     # Check meetinginvitation columns for token and created_at

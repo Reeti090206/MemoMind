@@ -20,6 +20,8 @@ import {
   X
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { useSWR } from "@/hooks/useSWR";
+import { getApiBase } from "@/lib/apiClient";
 
 // Default initial state
 const DEFAULT_WIDGETS = {
@@ -50,34 +52,22 @@ const itemVariants = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [widgets, setWidgets] = useState(DEFAULT_WIDGETS);
-  const [meetings, setMeetings] = useState<any[]>([]);
-  const [decisions, setDecisions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [acceptNotification, setAcceptNotification] = useState<string | null>(null);
   const [isProcessingInvite, setIsProcessingInvite] = useState(false);
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        const emailParam = user?.email ? `?user_email=${encodeURIComponent(user.email)}` : "";
-        const [widgetsRes, meetingsRes, decisionsRes] = await Promise.all([
-          fetch(`http://127.0.0.1:8000/api/analytics/widgets${emailParam}`),
-          fetch(`http://127.0.0.1:8000/api/meetings${emailParam}`),
-          fetch(`http://127.0.0.1:8000/api/decisions${emailParam}`)
-        ]);
+  const emailParam = user?.email ? `?user_email=${encodeURIComponent(user.email)}` : "";
+  const widgetsUrl = user?.email ? `${getApiBase()}/api/analytics/widgets${emailParam}` : null;
+  const meetingsUrl = user?.email ? `${getApiBase()}/api/meetings${emailParam}` : null;
+  const decisionsUrl = user?.email ? `${getApiBase()}/api/decisions${emailParam}` : null;
 
-        if (widgetsRes.ok) setWidgets(await widgetsRes.json());
-        if (meetingsRes.ok) setMeetings(await meetingsRes.json());
-        if (decisionsRes.ok) setDecisions(await decisionsRes.json());
-      } catch (err) {
-        console.log("Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchDashboardData();
-  }, [user]);
+  const { data: widgetsData, isColdStarting: widgetsCold, mutate: mutateWidgets } = useSWR<any>(widgetsUrl, { initialData: DEFAULT_WIDGETS });
+  const { data: meetingsData, isColdStarting: meetingsCold, mutate: mutateMeetings } = useSWR<any[]>(meetingsUrl, { initialData: [] });
+  const { data: decisionsData, isColdStarting: decisionsCold, mutate: mutateDecisions } = useSWR<any[]>(decisionsUrl, { initialData: [] });
+
+  const widgets = widgetsData || DEFAULT_WIDGETS;
+  const meetings = meetingsData || [];
+  const decisions = decisionsData || [];
+  const isColdStarting = widgetsCold || meetingsCold || decisionsCold;
 
   // Handle invitation URL parameters
   useEffect(() => {
@@ -90,31 +80,22 @@ export default function Dashboard() {
       async function handleAccept() {
         setIsProcessingInvite(true);
         try {
-          const res = await fetch(`http://127.0.0.1:8000/api/invitations/accept`, {
+          const res = await fetch(`${getApiBase()}/api/invitations/accept`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token })
           });
           if (res.ok) {
-            const data = await res.json();
             setAcceptNotification(`Success! You have accepted the invitation and joined the shared workspace team.`);
 
             // Clean up the URL search params elegantly without a full page refresh
             const newUrl = window.location.pathname;
             window.history.pushState({ path: newUrl }, "", newUrl);
 
-            // Re-fetch dashboard data instantly using the accepted user credentials
-            if (user?.email) {
-              const emailParam = `?user_email=${encodeURIComponent(user.email)}`;
-              const [widgetsRes, meetingsRes, decisionsRes] = await Promise.all([
-                fetch(`http://127.0.0.1:8000/api/analytics/widgets${emailParam}`),
-                fetch(`http://127.0.0.1:8000/api/meetings${emailParam}`),
-                fetch(`http://127.0.0.1:8000/api/decisions${emailParam}`)
-              ]);
-              if (widgetsRes.ok) setWidgets(await widgetsRes.json());
-              if (meetingsRes.ok) setMeetings(await meetingsRes.json());
-              if (decisionsRes.ok) setDecisions(await decisionsRes.json());
-            }
+            // Re-fetch dashboard data instantly using SWR mutation
+            mutateWidgets();
+            mutateMeetings();
+            mutateDecisions();
           }
         } catch (err) {
           console.error("Error accepting invitation:", err);
@@ -143,6 +124,12 @@ export default function Dashboard() {
 
   return (
     <div className="relative">
+      {/* Cold start toast banner */}
+      {isColdStarting && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-black/80 border border-cyber-cyan/30 text-xs text-cyber-cyan backdrop-blur-md font-mono animate-pulse shadow-lg">
+          ⚡ Backend warming up... (Render cold start)
+        </div>
+      )}
       {/* Processing invitation loader */}
       <AnimatePresence>
         {isProcessingInvite && (

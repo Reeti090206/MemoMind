@@ -14,11 +14,13 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
 
+  // Redirect authenticated users away from /login immediately
   useEffect(() => {
-    if (isAuthenticated && !welcomeEmail && pathname === "/login") {
+    if (isAuthenticated && !isLoading && pathname === "/login") {
+      console.log("[Auth] Authenticated user on /login — redirecting to workspace");
       router.push("/");
     }
-  }, [isAuthenticated, welcomeEmail, pathname, router]);
+  }, [isAuthenticated, isLoading, pathname, router]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelpDrawer, setShowHelpDrawer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -259,7 +261,10 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
 
   if (showWelcome && user) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-[var(--color-bg-main)] z-50 flex flex-col items-center justify-center text-[var(--color-heading)] overflow-hidden">
+      <div
+        className="fixed inset-0 w-screen h-screen bg-[var(--color-bg-main)] z-50 flex flex-col items-center justify-center text-[var(--color-heading)] overflow-hidden cursor-pointer"
+        onClick={() => setShowWelcome(false)}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -307,7 +312,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
               />
             </div>
             <span className="text-xs text-[var(--color-muted)] block">
-              Loading workspace data...
+              Loading workspace data… click anywhere to skip
             </span>
           </div>
         </motion.div>
@@ -315,7 +320,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     );
   }
 
-  if (!isAuthenticated || welcomeEmail) {
+  if (!isAuthenticated) {
     return <GlassLoginWall />;
   }
 

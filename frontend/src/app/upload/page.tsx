@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingSharePopup from "@/components/FloatingSharePopup";
+import { getApiBase, getWsUrl } from "@/lib/apiClient";
 import {
   Select,
   SelectContent,
@@ -104,7 +105,7 @@ export default function MeetingUpload() {
     const email = user.email;
     async function loadSettings() {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(email)}/settings`);
+        const res = await fetch(`${getApiBase()}/api/users/${encodeURIComponent(email)}/settings`);
         if (res.ok) {
           const data = await res.json();
           setSettings(data);
@@ -179,7 +180,7 @@ export default function MeetingUpload() {
     setIsSendingInvite(true);
     setInviteError(null);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/workspace/invite", {
+      const res = await fetch(`${getApiBase()}/api/workspace/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -227,7 +228,7 @@ export default function MeetingUpload() {
     setIsCreatingWorkspace(true);
     setCreateWorkspaceError(null);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/workspaces", {
+      const res = await fetch(`${getApiBase()}/api/workspaces`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: cleanName })
@@ -257,7 +258,7 @@ export default function MeetingUpload() {
   useEffect(() => {
     async function loadFormContext() {
       try {
-        const wRes = await fetch("http://127.0.0.1:8000/api/workspaces");
+        const wRes = await fetch(`${getApiBase()}/api/workspaces`);
         if (wRes.ok) {
           const wList = await wRes.json();
           const names = Array.from(new Set([
@@ -271,7 +272,7 @@ export default function MeetingUpload() {
       }
 
       try {
-        const uRes = await fetch("http://127.0.0.1:8000/api/users");
+        const uRes = await fetch(`${getApiBase()}/api/users`);
         if (uRes.ok) {
           const uList = await uRes.json();
           const deduplicated: any[] = [];
@@ -290,7 +291,7 @@ export default function MeetingUpload() {
       }
       
       try {
-        const mRes = await fetch("http://127.0.0.1:8000/api/meetings");
+        const mRes = await fetch(`${getApiBase()}/api/meetings`);
         if (mRes.ok) {
           const mList = await mRes.json();
           setPastMeetings(mList);
@@ -299,7 +300,7 @@ export default function MeetingUpload() {
           const collaboratorsSet = new Set<string>();
           for (const meet of mList) {
             try {
-              const invRes = await fetch(`http://127.0.0.1:8000/api/meetings/${meet.id}`);
+              const invRes = await fetch(`${getApiBase()}/api/meetings/${meet.id}`);
               if (invRes.ok) {
                 const meetDetails = await invRes.json();
                 for (const inv of (meetDetails.invitations || [])) {
@@ -328,7 +329,7 @@ export default function MeetingUpload() {
     }
     async function loadParentDetails() {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/meetings/${parentMeetingId}`);
+        const res = await fetch(`${getApiBase()}/api/meetings/${parentMeetingId}`);
         if (res.ok) {
           const data = await res.json();
           setParentMeetingDetails(data);
@@ -517,7 +518,7 @@ export default function MeetingUpload() {
     }
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://127.0.0.1:8000/api/meetings/upload", true);
+    xhr.open("POST", `${getApiBase()}/api/meetings/upload`, true);
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) {
@@ -622,7 +623,7 @@ export default function MeetingUpload() {
       startAudioAnalyser(micStream);
 
       // Open WebSocket
-      const ws = new WebSocket("ws://127.0.0.1:8000/ws/meeting-stream");
+      const ws = new WebSocket(getWsUrl("/ws/meeting-stream"));
       socketRef.current = ws;
       ws.binaryType = "blob";
 
@@ -863,7 +864,7 @@ export default function MeetingUpload() {
     }
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://127.0.0.1:8000/api/meetings/upload", true);
+    xhr.open("POST", `${getApiBase()}/api/meetings/upload`, true);
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) {
@@ -1048,7 +1049,7 @@ export default function MeetingUpload() {
       }
 
       // Establish websocket connection for live updates
-      const ws = new WebSocket("ws://127.0.0.1:8000/ws/meeting-stream");
+      const ws = new WebSocket(getWsUrl("/ws/meeting-stream"));
       monitorSocketRef.current = ws;
       ws.binaryType = "blob";
 
@@ -1366,7 +1367,7 @@ export default function MeetingUpload() {
     }
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://127.0.0.1:8000/api/meetings/upload", true);
+    xhr.open("POST", `${getApiBase()}/api/meetings/upload`, true);
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) {

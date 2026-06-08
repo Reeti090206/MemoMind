@@ -129,7 +129,22 @@ class User(SQLModel, table=True):
     color: str = Field(default="from-cyber-purple to-cyber-cyan")
     password: Optional[str] = Field(default=None)
     welcome_email_sent: bool = Field(default=False)
+    onboarding_email_sent: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class EmailQueue(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(index=True)
+    name: str
+    subject: str
+    body_html: str
+    status: str = Field(default="pending")  # pending, sending, sent, failed
+    attempts: int = Field(default=0)
+    max_attempts: int = Field(default=3)
+    error_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: Optional[datetime] = None
+
 
 class MeetingInvitation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

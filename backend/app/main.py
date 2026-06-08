@@ -9,6 +9,7 @@ import random
 import string
 import tempfile
 import asyncio
+import time
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -16,6 +17,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.database import init_db, get_session, engine
+from app.cache_service import backend_cache
+from app.diagnostics_tracker import diagnostics_tracker
 from app.models import (
     Meeting, TranscriptSegment, Decision, Task, Contradiction, 
     UnresolvedTopic, User, MeetingInvitation, UserSettings, SettingsHistory,
@@ -140,6 +143,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(PrivateNetworkCORSMiddleware)
+
+@app.middleware("http")
+async def track_response_time_middleware(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    diagnostics_tracker.track_response_time(duration)
+    response.headers["X-Response-Time-Ms"] = f"{duration * 1000:.2f}"
+    response.headers["X-Cache-Hit-Rate"] = f"{diagnostics_tracker.cache_hit_rate}%"
+    return response
+
+@app.get("/api/diagnostics")
+def get_diagnostics():
+    return {
+        "average_response_time_ms": diagnostics_tracker.average_response_time_ms,
+        "cache_hits": diagnostics_tracker.cache_hits,
+        "cache_misses": diagnostics_tracker.cache_misses,
+        "cache_hit_rate": diagnostics_tracker.cache_hit_rate,
+        "response_times_history": [round(t * 1000, 2) for t in diagnostics_tracker.response_times]
+    }
 
 
 # AI Service Instance
@@ -583,6 +606,11 @@ async def accept_invitation(request: TokenResponseRequest, session: Session = De
         }
     })
     
+    # Invalidate meetings & widgets caches
+    for k in list(backend_cache.store.keys()):
+        if k.startswith("meetings:") or k.startswith("widgets:") or k.startswith("decisions:"):
+            backend_cache.delete(k)
+    
     return {
         "status": "success",
         "message": "Invitation accepted, user added to workspace",
@@ -629,6 +657,11 @@ async def reject_invitation(request: TokenResponseRequest, session: Session = De
             "created_at": inv.created_at.isoformat() if inv.created_at else None
         }
     })
+    
+    # Invalidate meetings & widgets caches
+    for k in list(backend_cache.store.keys()):
+        if k.startswith("meetings:") or k.startswith("widgets:"):
+            backend_cache.delete(k)
     
     return {
         "status": "success",
@@ -738,8 +771,14 @@ def get_meetings_for_user(user_email: Optional[str], session: Session) -> List[M
 
 @app.get("/api/meetings")
 def get_meetings(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    cache_key = f"meetings:{user_email or 'all'}"
+    cached = backend_cache.get(cache_key)
+    if cached is not None:
+        return cached
     meetings = get_meetings_for_user(user_email, session)
-    return sorted(meetings, key=lambda x: x.date, reverse=True)
+    result = sorted(meetings, key=lambda x: x.date, reverse=True)
+    backend_cache.set(cache_key, result, ttl=15)
+    return result
 
 def get_meeting_timeline(meeting: Meeting, session: Session) -> List[Dict[str, Any]]:
     # Find root
@@ -1144,6 +1183,9 @@ async def upload_meeting(
             for c in meeting.contradictions
         ]
 
+
+        # Invalidate caches after meeting upload
+        backend_cache.clear()
         return {
             "status": "success",
             "meeting_id": meeting.id,
@@ -1194,12 +1236,21 @@ def update_task(task_id: int, payload: Dict[str, Any], session: Session = Depend
     session.add(task)
     session.commit()
     session.refresh(task)
+
+    # Invalidate widgets cache after task update
+    for k in list(backend_cache.store.keys()):
+        if k.startswith("widgets:"):
+            backend_cache.delete(k)
     return task
 
 # ----------------- DECISION ENDPOINTS -----------------
 
 @app.get("/api/decisions")
 def get_decisions(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    cache_key = f"decisions:{user_email or 'all'}"
+    cached = backend_cache.get(cache_key)
+    if cached is not None:
+        return cached
     if user_email:
         allowed_meetings = get_meetings_for_user(user_email, session)
         meeting_ids = [m.id for m in allowed_meetings]
@@ -1222,6 +1273,7 @@ def get_decisions(user_email: Optional[str] = None, session: Session = Depends(g
             "related_options": json.loads(d.related_options),
             "overrides_decision_id": d.overrides_decision_id
         })
+    backend_cache.set(cache_key, results, ttl=15)
     return results
 
 # ----------------- SEARCH ENDPOINT -----------------
@@ -1267,6 +1319,10 @@ def search_memory(payload: Dict[str, str], user_email: Optional[str] = None, ses
 
 @app.get("/api/analytics/widgets")
 def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    cache_key = f"widgets:{user_email or 'all'}"
+    cached = backend_cache.get(cache_key)
+    if cached is not None:
+        return cached
     if user_email:
         meetings = get_meetings_for_user(user_email, session)
         meeting_ids = [m.id for m in meetings]
@@ -1301,7 +1357,7 @@ def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get
     else:
         latest_insight = "All decisions and action plans are currently aligned across the workspace."
 
-    return {
+    result = {
         "total_meetings": len(meetings),
         "unresolved_discussions": len(unresolved_topics),
         "active_tasks": len(active_tasks),
@@ -1310,9 +1366,15 @@ def get_widgets(user_email: Optional[str] = None, session: Session = Depends(get
         "contradictions_count": len(contradictions),
         "latest_insight": latest_insight
     }
+    backend_cache.set(f"widgets:{user_email or 'all'}", result, ttl=20)
+    return result
 
 @app.get("/api/analytics")
 def get_analytics(user_email: Optional[str] = None, session: Session = Depends(get_session)):
+    cache_key = f"analytics:{user_email or 'all'}"
+    cached = backend_cache.get(cache_key)
+    if cached is not None:
+        return cached
     if user_email:
         meetings = get_meetings_for_user(user_email, session)
         meeting_ids = [m.id for m in meetings]
@@ -1368,7 +1430,7 @@ def get_analytics(user_email: Optional[str] = None, session: Session = Depends(g
             "resolved": resolved_count
         })
 
-    return {
+    result = {
         "repeated_discussions": repeated_alerts,
         "unresolved_trend": unresolved_trend,
         "speaking_distribution": org_speaker_stats,
@@ -1386,6 +1448,8 @@ def get_analytics(user_email: Optional[str] = None, session: Session = Depends(g
         "total_resolved": len([u for u in unresolved if u.status == "resolved"]),
         "awaiting_review": len([u for u in unresolved if u.status == "open"])
     }
+    backend_cache.set(f"analytics:{user_email or 'all'}", result, ttl=30)
+    return result
 
 # ----------------- ORGANIZATIONAL MEMORY GRAPH -----------------
 
@@ -1595,7 +1659,7 @@ def verify_otp(payload: Dict[str, str], session: Session = Depends(get_session))
         session.commit()
         session.refresh(user)
 
-    # Automatically send welcome email if not already sent and is not a mock email
+    # Automatically queue welcome email if not already sent and is not a mock email
     if user.email:
         email_lower = user.email.lower().strip()
         is_mock_email = (
@@ -1607,15 +1671,11 @@ def verify_otp(payload: Dict[str, str], session: Session = Depends(get_session))
         )
         if not is_mock_email and not getattr(user, "welcome_email_sent", False):
             try:
-                send_result = send_welcome_email({"email": user.email, "name": user.name})
-                if send_result.get("status") == "success":
-                    user.welcome_email_sent = True
-                    session.add(user)
-                    session.commit()
-                    session.refresh(user)
-                    print(f"[Backend Auto-Send Success] Welcome email automatically sent to {user.email}")
+                from app.email_service import enqueue_welcome_email
+                enqueue_welcome_email(user.email, user.name, session)
+                print(f"[Backend Auto-Send Success] Welcome email automatically enqueued for {user.email}")
             except Exception as e:
-                print(f"[Backend Auto-Send Error] Failed to send welcome email to {user.email}: {e}")
+                print(f"[Backend Auto-Send Error] Failed to enqueue welcome email for {user.email}: {e}")
         
     return {
         "status": "success",
@@ -1706,7 +1766,7 @@ def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_ses
         session.commit()
         session.refresh(user)
 
-    # Automatically send welcome email if not already sent and is not a mock email
+    # Automatically queue welcome email if not already sent and is not a mock email
     if user.email:
         email_lower = user.email.lower().strip()
         is_mock_email = (
@@ -1718,15 +1778,11 @@ def firebase_session(payload: Dict[str, Any], session: Session = Depends(get_ses
         )
         if not is_mock_email and not getattr(user, "welcome_email_sent", False):
             try:
-                send_result = send_welcome_email({"email": user.email, "name": user.name})
-                if send_result.get("status") == "success" and send_result.get("sent_via_smtp"):
-                    user.welcome_email_sent = True
-                    session.add(user)
-                    session.commit()
-                    session.refresh(user)
-                    print(f"[Backend Auto-Send Success] Welcome email automatically sent to {user.email}")
+                from app.email_service import enqueue_welcome_email
+                enqueue_welcome_email(user.email, user.name, session)
+                print(f"[Backend Auto-Send Success] Welcome email automatically enqueued for {user.email}")
             except Exception as e:
-                print(f"[Backend Auto-Send Error] Failed to send welcome email to {user.email}: {e}")
+                print(f"[Backend Auto-Send Error] Failed to enqueue welcome email for {user.email}: {e}")
         
     return {
         "status": "success",
@@ -1770,14 +1826,17 @@ def create_workspace(request: WorkspaceCreateRequest, session: Session = Depends
 # ----------------- AUTH & WELCOME EMAIL ENDPOINT -----------------
 
 @app.post("/api/auth/welcome-email")
-def send_welcome_email(payload: Dict[str, Any]):
+def send_welcome_email(payload: Dict[str, Any], session: Session = Depends(get_session)):
     email = payload.get("email")
     name = payload.get("name", "User")
-    sender_email = os.getenv("SENDER_EMAIL", "reetikhandelwal09@gmail.com")
     
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
         
+    from app.email_service import enqueue_welcome_email
+    queue_item, was_created, backup_path = enqueue_welcome_email(email, name, session)
+    
+    # Determine if it's mock
     email_lower = email.lower().strip()
     is_mock = (
         email_lower.endswith("@memomind.ai")
@@ -1786,268 +1845,13 @@ def send_welcome_email(payload: Dict[str, Any]):
         or "david" in email_lower
         or "@" not in email_lower
     )
-
-    # Check if welcome email is already marked as sent in DB
-    from app.database import engine
-    from app.models import User
-    from sqlmodel import Session, select
     
-    welcome_email_already_sent = False
-    try:
-        with Session(engine) as db_session:
-            user_rec = db_session.exec(select(User).where(User.email == email_lower)).first()
-            if user_rec and getattr(user_rec, "welcome_email_sent", False):
-                welcome_email_already_sent = True
-    except Exception as e:
-        print(f"[Welcome Email DB Check Error] {e}")
-        
-    # Generate premium responsive HTML welcome email
-    html_content = f"""<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to MemoMind AI</title>
-  <style>
-    body {{
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #0b0b10;
-      color: #e4e4e7;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .wrapper {{
-      width: 100%;
-      background-color: #0b0b10;
-      padding: 40px 20px;
-      box-sizing: border-box;
-    }}
-    .container {{
-      max-width: 600px;
-      margin: 0 auto;
-      background: linear-gradient(145deg, #13131a, #0c0c12);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 24px;
-      padding: 40px;
-      box-sizing: border-box;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    }}
-    .logo-container {{
-      margin-bottom: 30px;
-      text-align: left;
-    }}
-    .logo {{
-      font-size: 24px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: -0.5px;
-    }}
-    .logo-span {{
-      background: linear-gradient(to right, #06b6d4, #a855f7, #f43f5e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }}
-    .welcome-header {{
-      font-size: 28px;
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 1.2;
-      margin-bottom: 20px;
-      letter-spacing: -0.5px;
-    }}
-    .greeting {{
-      font-size: 16px;
-      color: #a1a1aa;
-      line-height: 1.6;
-      margin-bottom: 30px;
-    }}
-    .accent-text {{
-      color: #a855f7;
-      font-weight: 600;
-    }}
-    .features-container {{
-      margin-bottom: 40px;
-    }}
-    .feature-card {{
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.03);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-    }}
-    .feature-title {{
-      font-size: 15px;
-      font-weight: 700;
-      color: #ffffff;
-      margin: 0 0 8px 0;
-      display: flex;
-      align-items: center;
-    }}
-    .feature-icon {{
-      margin-right: 8px;
-      font-size: 18px;
-    }}
-    .feature-desc {{
-      font-size: 13px;
-      color: #71717a;
-      line-height: 1.5;
-      margin: 0;
-    }}
-    .cta-container {{
-      text-align: center;
-      margin-bottom: 40px;
-    }}
-    .cta-button {{
-      display: inline-block;
-      background: linear-gradient(135deg, #a855f7, #06b6d4);
-      color: #ffffff !important;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 14px 30px;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
-    }}
-    .footer {{
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding-top: 24px;
-      text-align: center;
-      font-size: 11px;
-      color: #52525b;
-      line-height: 1.5;
-    }}
-    .footer-links {{
-      margin-bottom: 16px;
-    }}
-    .footer-link {{
-      color: #71717a;
-      text-decoration: none;
-      margin: 0 10px;
-    }}
-    .footer-link:hover {{
-      color: #a855f7;
-    }}
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <div class="logo-container">
-        <div class="logo">Memo<span class="logo-span">Mind</span> AI</div>
-      </div>
-      <div class="welcome-header">Welcome to MemoMind AI, {name}!</div>
-      <div class="greeting">
-        We're thrilled to welcome you to the platform. MemoMind AI acts as your team's autonomous memory intelligence engine, mapping decisions, tasks, and conversations from your syncs automatically.
-      </div>
-      
-      <div class="features-container">
-        <div class="feature-card">
-          <div class="feature-title"><span class="feature-icon">🧠</span> Autonomous Meeting Intelligence</div>
-          <p class="feature-desc">Upload or stream audio from your syncs. We automatically transcribe speaker contributions and construct deep summary briefs.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-title"><span class="feature-icon">🌐</span> Interactive Memory Mapping</div>
-          <p class="feature-desc">Visualize your decisions, pending tasks, and follow-ups in an interactive semantic relationship network.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-title"><span class="feature-icon">⚠️</span> Plan Contradiction Warning</div>
-          <p class="feature-desc">Our AI checks decisions against previous agreements in real-time, alerting you to conflicting directions immediately.</p>
-        </div>
-      </div>
-
-      <div class="cta-container">
-        <a href="http://localhost:3000" class="cta-button">Go to Dashboard</a>
-      </div>
-
-      <div class="footer">
-        <div class="footer-links">
-          <a href="http://localhost:3000" class="footer-link">Dashboard</a>
-          <a href="http://localhost:3000/settings" class="footer-link">Settings</a>
-          <a href="http://localhost:3000" class="footer-link">Support</a>
-        </div>
-        &copy; 2026 MemoMind AI. All rights reserved. Sent to {email}.<br>
-        TLS 1.3 Encryption Secured • v1.2.6-stable
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-"""
-
-    # Save the email locally to sent_emails directory
-    os.makedirs("sent_emails", exist_ok=True)
-    filename = f"sent_emails/welcome_{email.replace('@', '_at_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(html_content)
-        
-    # Check if SMTP is configured in env
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = os.getenv("SMTP_PORT")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    
-    # Strip quotes if present
-    if smtp_host: smtp_host = smtp_host.strip('"').strip("'")
-    if smtp_port: smtp_port = smtp_port.strip('"').strip("'")
-    if smtp_user: smtp_user = smtp_user.strip('"').strip("'")
-    if smtp_password: smtp_password = smtp_password.strip('"').strip("'")
-    
-    sent_via_smtp = False
-    error_msg = None
-    
-    if not is_mock and not welcome_email_already_sent and smtp_host and smtp_port and smtp_user and smtp_password:
-        try:
-            import smtplib
-            from email.mime.text import MIMEText
-            from email.mime.multipart import MIMEMultipart
-            
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Welcome to MemoMind AI, {name}!"
-            msg["From"] = f"MemoMind AI <{sender_email}>"
-            msg["To"] = email
-            
-            # Plaintext fallback
-            text = f"Welcome to MemoMind AI, {name}! Go to http://localhost:3000 to access your workspace."
-            msg.attach(MIMEText(text, "plain"))
-            msg.attach(MIMEText(html_content, "html"))
-            
-            # Use SSL/TLS
-            if smtp_port == "465":
-                server = smtplib.SMTP_SSL(smtp_host, int(smtp_port))
-            else:
-                server = smtplib.SMTP(smtp_host, int(smtp_port))
-                server.starttls()
-                
-            server.login(smtp_user, smtp_password)
-            server.sendmail(sender_email, email, msg.as_string())
-            server.quit()
-            sent_via_smtp = True
-            print(f"[SMTP Success] Welcome email successfully sent to {email}")
-        except Exception as e:
-            error_msg = str(e)
-            print(f"[SMTP Error] Failed to send welcome email to {email}: {error_msg}")
-
-    if sent_via_smtp or is_mock:
-        try:
-            with Session(engine) as db_session:
-                user_rec = db_session.exec(select(User).where(User.email == email_lower)).first()
-                if user_rec and not getattr(user_rec, "welcome_email_sent", False):
-                    user_rec.welcome_email_sent = True
-                    db_session.add(user_rec)
-                    db_session.commit()
-                    print(f"[Welcome Email DB Update] Marked welcome email as sent for {email}")
-        except Exception as e:
-            print(f"[Welcome Email DB Update Error] Failed to update welcome_email_sent in DB: {e}")
-            
-            
     return {
         "status": "success",
-        "file_path": os.path.abspath(filename),
-        "sent_via_smtp": sent_via_smtp,
-        "smtp_error": error_msg,
-        "html_content": html_content
+        "file_path": backup_path,
+        "sent_via_smtp": not is_mock and (queue_item.status == "sent"),
+        "smtp_error": queue_item.error_message,
+        "html_content": queue_item.body_html
     }
 
 def send_invitation_email(email: str, name: str, meeting_title: str, meeting_id: int, token: str):
@@ -3418,13 +3222,25 @@ async def check_and_send_task_reminders():
     finally:
         session.close()
 
+async def check_and_process_email_queue():
+    session = Session(engine)
+    try:
+        from app.email_service import process_email_queue_sync
+        process_email_queue_sync(session)
+    except Exception as e:
+        print(f"[Scheduler Email Queue Error]: {e}")
+    finally:
+        session.close()
+
 async def background_scheduler_loop():
     print("[Scheduler] Background scheduler loop started.")
     while True:
         try:
             await check_and_delete_audio_files()
             await check_and_send_task_reminders()
+            await check_and_process_email_queue()
         except Exception as e:
             print(f"[Scheduler Exception]: {e}")
         await asyncio.sleep(30)
+
 

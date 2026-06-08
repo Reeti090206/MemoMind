@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { getApiBase } from "@/lib/apiClient";
 import { 
   Plus, 
   User, 
@@ -50,8 +51,8 @@ export default function TaskBoard() {
     async function loadTasks() {
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/tasks?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/tasks";
+          ? `${getApiBase()}/api/tasks?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/tasks`;
         const res = await fetch(url);
         if (res.ok) {
           const list = await res.json();
@@ -80,7 +81,7 @@ export default function TaskBoard() {
     );
 
     try {
-      await fetch(`http://127.0.0.1:8000/api/tasks/${taskId}`, {
+      await fetch(`${getApiBase()}/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus })
@@ -100,7 +101,7 @@ export default function TaskBoard() {
     );
 
     try {
-      await fetch(`http://127.0.0.1:8000/api/tasks/${selectedTask.id}`, {
+      await fetch(`${getApiBase()}/api/tasks/${selectedTask.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

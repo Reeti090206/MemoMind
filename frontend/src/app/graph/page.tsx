@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { getApiBase } from "@/lib/apiClient";
 import { 
   BarChart3, 
   Activity, 
@@ -82,8 +83,8 @@ export default function MeetingCharts() {
     async function loadMeetings() {
       try {
         const url = user?.email
-          ? `http://127.0.0.1:8000/api/meetings?user_email=${encodeURIComponent(user.email)}`
-          : "http://127.0.0.1:8000/api/meetings";
+          ? `${getApiBase()}/api/meetings?user_email=${encodeURIComponent(user.email)}`
+          : `${getApiBase()}/api/meetings`;
         const res = await fetch(url);
         if (res.ok && active) {
           const list = await res.json();
@@ -116,7 +117,7 @@ export default function MeetingCharts() {
 
     async function loadMeetingDetails() {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/meetings/${selectedMeetingId}`);
+        const res = await fetch(`${getApiBase()}/api/meetings/${selectedMeetingId}`);
         if (res.ok && active) {
           const data = await res.json();
           setMeetingData(data);
